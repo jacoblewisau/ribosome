@@ -25,7 +25,9 @@ The chain state lives in a sticky comment on the Issue. The comment is posted by
 
 On every invocation:
 
-1. List bot comments on the Issue: `gh issue view <issue> --json comments --jq '.comments[] | select(.author.login | endswith("[bot]")) | .body'`. GitHub's standard bot login convention is `<name>[bot]`; the Claude GitHub App posts as `claude[bot]` (verified from primary sources 2026-05-28). Do NOT use `endswith("-bot")`; that pattern matches nothing.
+1. List bot comments on the Issue via the REST API (NOT `gh issue view --json`):
+   `gh api repos/<owner>/<repo>/issues/<issue>/comments --jq '.[] | select(.user.type == "Bot") | .body'`.
+   The REST API returns `user.type == "Bot"` and the full `user.login` like `claude[bot]`. The `gh issue view --json comments` GraphQL endpoint TRUNCATES the `[bot]` suffix from `author.login`, so filters like `endswith("[bot]")` against the GraphQL response match nothing. Verified on jacoblewisau/ribosome-test 2026-05-28: REST returns `claude[bot]`, GraphQL via gh returns `claude`.
 2. Find the most recent comment containing `<!-- ribosome:state v1`.
 3. Extract the JSON between that marker and the closing `-->`.
 4. If no state comment exists, this is the first step: initialise.

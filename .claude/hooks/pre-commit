@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+#
+# pre-commit: thin shim that delegates to block-secrets.sh.
+#
+# Git invokes this hook via core.hooksPath=.claude/hooks. Adding new
+# pre-commit checks belongs here, in the order they should run. The first
+# failing check exits non-zero and rejects the commit.
+
+set -uo pipefail
+
+HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+"$HOOK_DIR/block-secrets.sh" || exit $?
+
+exit 0

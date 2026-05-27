@@ -8,6 +8,7 @@ import {
   clearCompleted,
   counts,
   visibleItems,
+  overdueCount,
   type TodosState,
   type TodoFilter,
 } from "./todos.feature";
@@ -18,12 +19,20 @@ import { verifyAttrs } from "../../verify/core/contract";
 
 export interface TodoAppProps {
   initial?: TodosState;
+  /**
+   * Clock injector. Resolved once per render. Default: () => Date.now().
+   * Fixtures pass a fixed-time function so overdue derivation is
+   * reproducible without timer mocking.
+   */
+  now?: () => number;
 }
 
-export function TodoApp({ initial = initialState }: TodoAppProps) {
+export function TodoApp({ initial = initialState, now = () => Date.now() }: TodoAppProps) {
   const [state, setState] = useState<TodosState>(initial);
+  const nowMs = now();
   const { total, done, active } = counts(state);
-  const items = visibleItems(state);
+  const overdue = overdueCount(state, nowMs);
+  const items = visibleItems(state, nowMs);
   const tagged = state.items.filter((t) => t.tags.length > 0).length;
 
   const attrs = verifyAttrs("TodoApp", {
@@ -33,22 +42,28 @@ export function TodoApp({ initial = initialState }: TodoAppProps) {
     filter: state.filter,
     visible: items.length,
     tagged,
+    "overdue-count": overdue,
   });
 
   return (
     <section {...attrs}>
       <h2 data-verify-unit-label="TodoApp">Todos</h2>
-      <TodoForm onSubmit={(text, tags) => setState((s) => addTodo(s, text, tags))} />
+      <TodoForm
+        onSubmit={(text, tags, dueDate) =>
+          setState((s) => addTodo(s, text, tags, dueDate, nowMs))
+        }
+      />
       <FilterControls
         current={state.filter}
         onChange={(f) => setState((s) => setFilter(s, f))}
       />
       <TodoList
         items={items}
+        nowMs={nowMs}
         onToggle={(id) => setState((s) => toggleTodo(s, id))}
         onRemove={(id) => setState((s) => removeTodo(s, id))}
       />
-      <TodoStats total={total} done={done} active={active} />
+      <TodoStats total={total} done={done} active={active} overdue={overdue} />
       <button
         type="button"
         data-verify-action="clear-completed"
@@ -67,7 +82,7 @@ interface FilterControlsProps {
 }
 
 function FilterControls({ current, onChange }: FilterControlsProps) {
-  const filters: TodoFilter[] = ["all", "active", "done"];
+  const filters: TodoFilter[] = ["all", "active", "done", "overdue"];
   return (
     <nav aria-label="Filter todos" data-verify-region="filter-controls">
       {filters.map((f) => (

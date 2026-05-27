@@ -8,7 +8,7 @@
  */
 
 export type TodoId = string;
-export type TodoFilter = "all" | "active" | "done";
+export type TodoFilter = "all" | "active" | "done" | "overdue";
 
 export interface Todo {
   id: TodoId;
@@ -16,6 +16,7 @@ export interface Todo {
   done: boolean;
   createdAt: number;
   tags: ReadonlyArray<string>;
+  dueDate?: number;
 }
 
 export interface TodosState {
@@ -41,6 +42,7 @@ export function addTodo(
   state: TodosState,
   text: string,
   tags: ReadonlyArray<string> = [],
+  dueDate?: number,
   now: number = Date.now()
 ): TodosState {
   const trimmed = text.trim();
@@ -51,6 +53,7 @@ export function addTodo(
     done: false,
     createdAt: now,
     tags,
+    dueDate,
   };
   return { ...state, items: [...state.items, item] };
 }
@@ -93,7 +96,7 @@ export function clearCompleted(state: TodosState): TodosState {
   return { ...state, items: state.items.filter((t) => !t.done) };
 }
 
-export function visibleItems(state: TodosState): ReadonlyArray<Todo> {
+export function visibleItems(state: TodosState, nowMs: number): ReadonlyArray<Todo> {
   switch (state.filter) {
     case "all":
       return state.items;
@@ -101,6 +104,8 @@ export function visibleItems(state: TodosState): ReadonlyArray<Todo> {
       return state.items.filter((t) => !t.done);
     case "done":
       return state.items.filter((t) => t.done);
+    case "overdue":
+      return state.items.filter((t) => isOverdue(t, nowMs));
   }
 }
 
@@ -108,6 +113,36 @@ export function counts(state: TodosState): { total: number; done: number; active
   const total = state.items.length;
   const done = state.items.filter((t) => t.done).length;
   return { total, done, active: total - done };
+}
+
+/**
+ * Overdue iff: dueDate is set, dueDate is strictly less than now, and the
+ * todo is not done. Done dominates overdue (a completed todo is never
+ * overdue regardless of date).
+ */
+export function isOverdue(todo: Todo, nowMs: number): boolean {
+  return todo.dueDate !== undefined && todo.dueDate < nowMs && !todo.done;
+}
+
+export function overdueCount(state: TodosState, nowMs: number): number {
+  return state.items.filter((t) => isOverdue(t, nowMs)).length;
+}
+
+/**
+ * Parse an HTML `<input type="date">` value (YYYY-MM-DD) into a
+ * local-noon timestamp. Empty string and malformed input return
+ * undefined. Local-noon avoids the off-by-one-day surprise that
+ * UTC-midnight parsing produces in non-UTC time zones; see spec 0003
+ * Risks for the rationale.
+ */
+export function parseDueDateInput(input: string): number | undefined {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(input.trim());
+  if (!m) return undefined;
+  const y = Number(m[1]);
+  const mo = Number(m[2]);
+  const d = Number(m[3]);
+  if (mo < 1 || mo > 12 || d < 1 || d > 31) return undefined;
+  return new Date(y, mo - 1, d, 12, 0, 0, 0).getTime();
 }
 
 /**

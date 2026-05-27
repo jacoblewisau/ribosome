@@ -124,6 +124,17 @@ in the plan.
     is immutable from that point; the original memory continues to
     evolve freely. Use this before destructive operations, after
     important chain runs, or whenever the audit trail matters.
+13. **Follow your changes: importers of a changed interface are
+    implicitly in scope.** When a feature changes a unit's exported
+    interface (a required prop is added, a function signature changes,
+    a type union gains a member), every file that imports that
+    interface is implicitly in scope. This includes verify specs that
+    mount the changed unit, downstream component consumers, and any
+    other importer not explicitly listed in `scope_paths`. Generalises
+    rule 11 (which covered build-tooling files) to downstream code.
+    Earned 2026-05-27 from feature 0003 validator finding (TodoStats
+    gained a required `overdue` prop; TodoStats.verify.ts had to be
+    edited but was not in scope_paths).
 
 ---
 

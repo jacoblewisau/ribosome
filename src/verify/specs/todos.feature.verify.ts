@@ -2,9 +2,29 @@ import { z } from "zod";
 import { fireEvent } from "@testing-library/react";
 import React from "react";
 import { TodoApp } from "../../features/todos/TodoApp";
-import { addTodo, initialState, parseTagsInput } from "../../features/todos/todos.feature";
+import {
+  addTodo,
+  initialState,
+  parseTagsInput,
+  parseDueDateInput,
+  isOverdue,
+  type Todo,
+} from "../../features/todos/todos.feature";
 import type { VerifiableUnit } from "../core/types";
 import { registerUnit } from "../core/registry";
+
+const FIXED_NOW = Date.UTC(2026, 4, 15, 0, 0, 0);
+
+function makeTodo(overrides: Partial<Todo> = {}): Todo {
+  return {
+    id: "t_test",
+    text: "test",
+    done: false,
+    createdAt: 0,
+    tags: [],
+    ...overrides,
+  };
+}
 
 /**
  * todos.feature verify spec.
@@ -142,6 +162,66 @@ export const TodosFeatureUnit: VerifiableUnit = {
         (dom) => {
           const root = dom.querySelector('[data-verify-unit="TodoApp"]');
           return root?.getAttribute("data-verify-total") === "0" || "whitespace submit must not produce a todo";
+        },
+      ],
+    },
+    {
+      name: "isOverdue-helper",
+      props: {},
+      render: () =>
+        React.createElement(
+          "div",
+          { "data-verify-unit": "todos.feature" },
+          React.createElement(TodoApp, { now: () => FIXED_NOW })
+        ),
+      invariants: [
+        () => {
+          const pastActive = makeTodo({ dueDate: FIXED_NOW - 86_400_000, done: false });
+          return isOverdue(pastActive, FIXED_NOW) === true || "past-active should be overdue";
+        },
+        () => {
+          const pastDone = makeTodo({ dueDate: FIXED_NOW - 86_400_000, done: true });
+          return isOverdue(pastDone, FIXED_NOW) === false || "past-done should NOT be overdue (done dominates)";
+        },
+        () => {
+          const future = makeTodo({ dueDate: FIXED_NOW + 86_400_000, done: false });
+          return isOverdue(future, FIXED_NOW) === false || "future-dated should NOT be overdue";
+        },
+        () => {
+          const equal = makeTodo({ dueDate: FIXED_NOW, done: false });
+          return isOverdue(equal, FIXED_NOW) === false || "exactly equal should NOT be overdue (strict less-than)";
+        },
+        () => {
+          const noDate = makeTodo({ dueDate: undefined, done: false });
+          return isOverdue(noDate, FIXED_NOW) === false || "no due date should NOT be overdue";
+        },
+      ],
+    },
+    {
+      name: "parseDueDateInput-helper",
+      props: {},
+      render: () =>
+        React.createElement(
+          "div",
+          { "data-verify-unit": "todos.feature" },
+          React.createElement(TodoApp, { now: () => FIXED_NOW })
+        ),
+      invariants: [
+        () => parseDueDateInput("") === undefined || "empty input should return undefined",
+        () => parseDueDateInput("   ") === undefined || "whitespace-only should return undefined",
+        () => parseDueDateInput("not-a-date") === undefined || "malformed should return undefined",
+        () => parseDueDateInput("2026-13-01") === undefined || "month out of range should return undefined",
+        () => parseDueDateInput("2026-05-32") === undefined || "day out of range should return undefined",
+        () => {
+          const ms = parseDueDateInput("2026-05-15");
+          if (typeof ms !== "number") return "valid input should return a number";
+          // Local-noon on 2026-05-15. Verify by reading back the local day.
+          const d = new Date(ms);
+          if (d.getFullYear() !== 2026) return `expected year 2026, got ${d.getFullYear()}`;
+          if (d.getMonth() !== 4) return `expected month index 4 (May), got ${d.getMonth()}`;
+          if (d.getDate() !== 15) return `expected day 15, got ${d.getDate()}`;
+          if (d.getHours() !== 12) return `expected hour 12 (local noon), got ${d.getHours()}`;
+          return true;
         },
       ],
     },

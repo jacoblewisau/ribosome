@@ -20,36 +20,53 @@ export const TodoStatsUnit: VerifiableUnit = {
     total: z.number().int().nonnegative(),
     done: z.number().int().nonnegative(),
     active: z.number().int().nonnegative(),
+    overdue: z.number().int().nonnegative(),
   }).strict(),
   fixtures: [
     {
       name: "empty",
-      props: { total: 0, done: 0, active: 0 },
-      render: () => React.createElement(TodoStats, { total: 0, done: 0, active: 0 }),
+      props: { total: 0, done: 0, active: 0, overdue: 0 },
+      render: () => React.createElement(TodoStats, { total: 0, done: 0, active: 0, overdue: 0 }),
       invariants: [
         countsAddUp,
         (dom) => {
           const root = dom.querySelector('[data-verify-unit="TodoStats"]');
           return root?.getAttribute("data-verify-total") === "0" || "expected total=0";
         },
+        (dom) => {
+          const root = dom.querySelector('[data-verify-unit="TodoStats"]');
+          return root?.getAttribute("data-verify-overdue") === "0" || "expected overdue=0";
+        },
       ],
     },
     {
       name: "all-active",
-      props: { total: 3, done: 0, active: 3 },
-      render: () => React.createElement(TodoStats, { total: 3, done: 0, active: 3 }),
+      props: { total: 3, done: 0, active: 3, overdue: 0 },
+      render: () => React.createElement(TodoStats, { total: 3, done: 0, active: 3, overdue: 0 }),
       invariants: [countsAddUp],
     },
     {
       name: "all-done",
-      props: { total: 3, done: 3, active: 0 },
-      render: () => React.createElement(TodoStats, { total: 3, done: 3, active: 0 }),
+      props: { total: 3, done: 3, active: 0, overdue: 0 },
+      render: () => React.createElement(TodoStats, { total: 3, done: 3, active: 0, overdue: 0 }),
       invariants: [countsAddUp],
     },
     {
+      name: "some-overdue",
+      props: { total: 4, done: 1, active: 3, overdue: 2 },
+      render: () => React.createElement(TodoStats, { total: 4, done: 1, active: 3, overdue: 2 }),
+      invariants: [
+        countsAddUp,
+        (dom) => {
+          const root = dom.querySelector('[data-verify-unit="TodoStats"]');
+          return root?.getAttribute("data-verify-overdue") === "2" || "expected overdue=2";
+        },
+      ],
+    },
+    {
       name: "inconsistent-counts",
-      props: { total: 5, done: 3, active: 1 },
-      render: () => React.createElement(TodoStats, { total: 5, done: 3, active: 1 }),
+      props: { total: 5, done: 3, active: 1, overdue: 0 },
+      render: () => React.createElement(TodoStats, { total: 5, done: 3, active: 1, overdue: 0 }),
       invariants: [countsAddUp],
       probe: true,
     },

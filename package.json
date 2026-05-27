@@ -9,14 +9,15 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "typecheck": "tsc -b --noEmit",
-    "test": "vitest run --passWithNoTests --exclude '**/*.contract.test.ts' --exclude 'tests/acceptance/**'",
-    "test:watch": "vitest --passWithNoTests --exclude '**/*.contract.test.ts' --exclude 'tests/acceptance/**'",
+    "test": "vitest run --passWithNoTests --exclude '**/matrix.test.ts' --exclude 'tests/acceptance/**'",
+    "test:watch": "vitest --passWithNoTests --exclude '**/matrix.test.ts' --exclude 'tests/acceptance/**'",
     "test:acceptance": "vitest run --passWithNoTests tests/acceptance",
-    "verify": "vitest run --reporter=json --outputFile=tests/verify/last-run.json contract.test"
+    "verify": "vitest run --reporter=json --outputFile=tests/verify/last-run.json src/verify/matrix.test.ts"
   },
   "dependencies": {
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@testing-library/dom": "^10.4.0",

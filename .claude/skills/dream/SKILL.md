@@ -68,6 +68,22 @@ Be ruthless about quality. Better one accurate item than five mushy ones.
 5. **Keep it small.** Phase 4.5 the store should typically contain 5 to 20 items. If you exceed 30, you are not being ruthless enough.
 6. **Operator-preferences cite the operator's exact words** where possible. If you cannot quote the operator, the item is probably an inference; downgrade it.
 
+## Before you write: drop the dream-active marker
+
+Phase 6 wired an `enforce-distilled-write` PreToolUse hook that blocks any Write/Edit/MultiEdit targeting `.claude/memory/distilled/**` unless the marker file `.claude/memory/.dream-active` exists. The dream skill is the only legitimate writer to distilled.
+
+Touch the marker before writing:
+```
+touch .claude/memory/.dream-active
+```
+
+When the dream pass completes (success or failure), remove the marker:
+```
+rm -f .claude/memory/.dream-active
+```
+
+If the skill crashes between touch and rm, remove the marker manually before the next dream run. The marker is a flat empty file; its presence is the only signal.
+
 ## How to write the store
 
 Use the helper:

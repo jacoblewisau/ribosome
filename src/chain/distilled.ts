@@ -128,6 +128,66 @@ export function readLatestDistilled(): DistilledStore | undefined {
   return readDistilledFromDir(path);
 }
 
+/**
+ * Decay distilled items that have not been referenced and are old
+ * enough. Returns counts; writes a new distilled store (which the
+ * `enforce-distilled-write` hook will block unless the dream marker
+ * is present, so the caller must own that marker).
+ *
+ * Heuristic (Phase 6, proxy for "N runs without reference" since we
+ * do not track per-pass history):
+ *   - For each item: protected if reference_count > 0 OR last_referenced is set.
+ *   - Otherwise: if first_seen is older than `days`, decrement
+ *     confidence by 0.1.
+ *   - After decrement: items with confidence < `floor` are removed.
+ */
+export function decayDistilled(opts: {
+  days: number;
+  floor: number;
+  now?: Date;
+}): { decayed: number; purged: string[] } {
+  const now = opts.now ?? new Date();
+  const current = readLatestDistilled();
+  if (current === undefined) return { decayed: 0, purged: [] };
+
+  const next: DistilledItem[] = [];
+  const purged: string[] = [];
+  let decayed = 0;
+
+  for (const item of current.items) {
+    const protectedByRefs = item.reference_count > 0 || Boolean(item.last_referenced);
+    if (protectedByRefs) {
+      next.push(item);
+      continue;
+    }
+    const ageMs = now.getTime() - new Date(item.first_seen).getTime();
+    const thresholdMs = opts.days * 24 * 60 * 60 * 1000;
+    if (ageMs < thresholdMs) {
+      next.push(item);
+      continue;
+    }
+    const newConfidence = Math.max(0, item.confidence - 0.1);
+    if (newConfidence < opts.floor) {
+      purged.push(item.id);
+      continue;
+    }
+    next.push({ ...item, confidence: newConfidence });
+    decayed += 1;
+  }
+
+  if (decayed === 0 && purged.length === 0) {
+    return { decayed: 0, purged: [] };
+  }
+
+  writeDistilled({
+    generated_at: now.toISOString(),
+    source_chains: current.source_chains,
+    items: next,
+  });
+
+  return { decayed, purged };
+}
+
 /** Load a specific distilled store by its directory path. */
 export function readDistilledFromDir(dir: string): DistilledStore {
   const storeJson = join(dir, "store.json");

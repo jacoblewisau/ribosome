@@ -32,6 +32,7 @@ process.env.RIBOSOME_MEMORY_MD = join(SANDBOX_ROOT, "MEMORY.md");
 const {
   _purgeForTests,
   citeItem,
+  decayDistilled,
   distilledRoots,
   forgetItem,
   latestDistilledPath,
@@ -178,6 +179,70 @@ describe("Phase 4.5 distilled store helper", () => {
       items: [sampleItem("pat-001")],
     });
     expect(() => forgetItem("nonexistent", "test")).toThrow();
+  });
+
+  describe("Phase 6 decay", () => {
+    const oldFirstSeen = "2026-01-01T00:00:00.000Z";
+    const recentFirstSeen = new Date().toISOString();
+
+    it("decays old uncited items by 0.1 and preserves cited ones", () => {
+      writeDistilled({
+        generated_at: oldFirstSeen,
+        source_chains: ["0001"],
+        items: [
+          sampleItem("pat-old-uncited", { first_seen: oldFirstSeen, confidence: 0.8 }),
+          sampleItem("pat-old-cited", {
+            first_seen: oldFirstSeen,
+            confidence: 0.8,
+            reference_count: 1,
+            last_referenced: recentFirstSeen,
+          }),
+          sampleItem("pat-recent", { first_seen: recentFirstSeen, confidence: 0.8 }),
+        ],
+      });
+      const result = decayDistilled({ days: 14, floor: 0.3 });
+      expect(result.decayed).toBe(1);
+      expect(result.purged).toEqual([]);
+      const after = readLatestDistilled()!;
+      const map = new Map(after.items.map((i) => [i.id, i] as const));
+      expect(map.get("pat-old-uncited")!.confidence).toBeCloseTo(0.7, 5);
+      expect(map.get("pat-old-cited")!.confidence).toBeCloseTo(0.8, 5);
+      expect(map.get("pat-recent")!.confidence).toBeCloseTo(0.8, 5);
+    });
+
+    it("purges items whose decayed confidence falls below the floor", () => {
+      writeDistilled({
+        generated_at: oldFirstSeen,
+        source_chains: ["0001"],
+        items: [
+          sampleItem("pat-just-above", { first_seen: oldFirstSeen, confidence: 0.5 }),
+          sampleItem("pat-will-purge", { first_seen: oldFirstSeen, confidence: 0.39 }),
+        ],
+      });
+      const result = decayDistilled({ days: 14, floor: 0.3 });
+      // pat-will-purge: 0.39 -> 0.29 (below 0.3) -> purged
+      // pat-just-above: 0.5 -> 0.4 (above 0.3) -> decayed
+      expect(result.decayed).toBe(1);
+      expect(result.purged).toEqual(["pat-will-purge"]);
+      const after = readLatestDistilled()!;
+      expect(after.items.map((i) => i.id)).toEqual(["pat-just-above"]);
+    });
+
+    it("no-ops when no items are eligible", () => {
+      writeDistilled({
+        generated_at: recentFirstSeen,
+        source_chains: ["0001"],
+        items: [sampleItem("pat-recent", { first_seen: recentFirstSeen, confidence: 0.5 })],
+      });
+      const result = decayDistilled({ days: 14, floor: 0.3 });
+      expect(result).toEqual({ decayed: 0, purged: [] });
+    });
+
+    it("no-ops when no distilled store exists", () => {
+      _purgeForTests("I-KNOW-WHAT-I-AM-DOING");
+      const result = decayDistilled({ days: 14, floor: 0.3 });
+      expect(result).toEqual({ decayed: 0, purged: [] });
+    });
   });
 
   // Phase 4.5 acceptance (substrate side):

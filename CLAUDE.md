@@ -1,184 +1,161 @@
 # CLAUDE.md — Ribosome
 
-This file is loaded into every Claude Code session in this repository. Keep it
-between 100 and 300 lines. Every rule below has a reason behind it (often a
-mistake that already happened). Prune as often as you add.
+Loaded into every Claude Code session in this repository. Every rule earned its
+place (most from a mistake that already happened). Prune as often as you add.
+Target length: 100 to 300 lines.
 
-If anything in this file contradicts the plan, the plan wins. Plan lives at
-`/Users/jacobl/research/software-factory/PLAN.md`.
+When this file contradicts the plan, the plan wins. Plan is at
+`/Users/jacobl/research/software-factory/PLAN.md` (maintainer-local; future
+iteration may move it into the repo).
 
 ---
 
 ## Identity
 
-Ribosome is a Claude Code workflow that ships features from a GitHub Issue to
-a merged PR. It is built for two operators with different needs.
+Ribosome is a Claude Code workflow that ships features from a GitHub Issue
+to a merged PR. Two operator profiles use this repo with different needs:
 
-- **Operator (non coder).** Interacts only through the GitHub UI: Issues,
-  comments, PR merges. Never the CLI. Never `.claude/` files. The full
-  operator surface is documented in `OPERATOR.md`.
-- **Maintainer.** Edits this file, the agents, the skills, the hooks, the
-  eval harness. Reads the plan first when in doubt.
+- **Operator (non coder).** GitHub UI only: Issues, comments, PR merges. Never
+  the CLI, never `.claude/` files. Their surface is `OPERATOR.md`.
+- **Maintainer.** Edits this file, the agents, the skills, the hooks. Reads
+  the plan before changing anything substantive.
 
 The name is from the molecular machine that reads an instruction (mRNA) and
-synthesises a new working object (a protein). Issues are the mRNA. PRs are
-the product. Each subagent and skill in this repo has a ribosomal analogue
-documented in the metaphor table at the top of `PLAN.md`. The analogue is
-documentation, not branding; file names stay functional (`builder.md`, not
-`large-subunit.md`) so a new maintainer can navigate without a biology
-degree.
+synthesises a working object (a protein). Issues are the mRNA, PRs are the
+product. The metaphor is documentation, not branding; file names stay
+functional (`builder.md`, not `large-subunit.md`).
 
-Current phase: 0 (foundations). What is wired: this file, `OPERATOR.md`,
-`.claude/` skeleton, the `block-secrets` pre-commit hook. What is not wired:
-any agent body, any skill body, any GitHub workflow, any memory store, any
-eval. See `PLAN.md` §12 for the phase plan.
+**Phases shipped:** 0 (foundations), 1 (chain), 2 (verify schema), 2.5 (live
+memory), 3 (GitHub workflow), 4.5 (dream + distilled), 6 (enforcement hooks).
+**Phases remaining:** 4 (proactive scouts), 5 (eval harness).
 
 ---
 
 ## Stack
 
-To be decided. Likely candidates depending on the first real feature:
-
-- Runtime: Node 22 plus Bun, or pure Node, or Python. Pick once at Phase 1.
-- Web framework: Next.js App Router, or Vite plus React, or Remix.
-- Data: Postgres plus Prisma, or Supabase, or SQLite for early phases.
-- Background jobs: BullMQ on Redis, or a managed queue.
-- Test: Vitest plus Playwright (for acceptance and screenshots).
-- Lint and types: Biome or ESLint plus tsc strict.
-
-When the stack lands, replace this section with the concrete choices and
-the commands below. Until then, treat any stack-coupled discussion as
-hypothetical.
+| Layer | Choice |
+|---|---|
+| Runtime | Node 22 (`engines` in package.json), bash 3.2+ for hooks |
+| UI substrate | Vite + React 19 + TypeScript strict |
+| Test runner | Vitest with happy-dom |
+| Verifier matrix | `src/verify/` (custom; emits canonical JSON for the validator) |
+| Schema validation | Zod (props on every VerifiableUnit) |
+| Date / timezone | Local-noon convention for `<input type="date">` |
+| GitHub automation | `anthropics/claude-code-action@v1`, opus-4-7 default |
 
 ---
 
 ## Commands
 
-Phase 0 commands only. Updated each phase.
-
 ```
-# install the local git hooks (one time per clone)
+# install local git hooks (one time per clone)
 git config core.hooksPath .claude/hooks
 
-# verify the hook is wired
-git config --get core.hooksPath
-# expected output: .claude/hooks
+# verify GitHub setup is complete (idempotent)
+npm run setup:check
 
-# manually run the secrets check against the current index
-.claude/hooks/block-secrets.sh
+# tests
+npm run typecheck        # tsc -b --noEmit
+npm test                 # vitest unit + chain + hook tests (32 currently)
+npm run verify           # verifier matrix; writes tests/verify/last-run.json
 
-# snapshot the current contents of .claude/memory/ into git
-# (opt-in; the regular memory state stays gitignored)
-npm run memory:snapshot
-# or with a custom message:
-bash scripts/memory-snapshot.sh "memory: snapshot before refactor"
-
-# inspect chain state (maintainer convenience; not for the operator)
-npm run chain:list
-npm run chain:show 0003
-
-# run the acceptance test for the chain state helper
-npm test
+# chain inspection (maintainer only; the operator uses GitHub)
+npm run chain:list                      # every chain on disk
+npm run chain:show <id>                 # detail for one chain
+npm run dream:show                      # latest distilled store summary
+npm run dream:forget <id> [reason]      # remove a distilled item
+npm run dream:decay [--days N] [--floor F]  # decay or purge stale items
+npm run memory:snapshot                 # opt-in: commit memory for audit
 ```
 
-Stack-specific commands (test, build, dev, typecheck, migrate) get added in
-Phase 1 once the stack is chosen.
+Stack-specific commands inside the substrate (`npm run dev`, `npm run build`)
+are runnable but not part of the chain.
 
 ---
 
 ## Architecture rules
 
-From `PLAN.md` §3. These are the principles every agent, skill, and hook in
-Ribosome must respect. They are short on purpose. Long-form reasoning lives
-in the plan.
+From `PLAN.md` §3 plus four rules earned in production. Grouped by topic for
+maintainability; the numbers are stable (do not renumber when adding).
+
+### Decomposition
 
 1. **Skill before agent before pipeline.** Do not reach for a subagent when
    a skill suffices. Do not build a pipeline when a coordinator suffices.
    Smell test: if the output is one number, it is not a subagent.
-2. **Read only by default.** Any step that can be read only must be. Write
-   access is a privilege, granted per path glob, enforced by hook.
 3. **Clean context windows are a feature.** The reason to spawn a subagent
    is to isolate context, not to look modular.
+
+### Verification
+
 4. **Machine readable contracts beat prose review.** Components, APIs, and
    jobs declare fixtures, invariants, and observable outputs. The validator
    reads the contract output, not the source.
+8. **Eval the system, not the prompt.** A scored task suite gates changes
+   to any agent or skill (Phase 5 wires this).
+
+### Process
+
 5. **CLAUDE.md is bounded and earned.** 100 to 300 lines. Every rule has a
    story behind it. Prune as often as you add.
 6. **Three human gates, not seven.** Story approval, spec approval, PR
    merge. Everything else runs.
 7. **Idempotent setup.** Re-running setup is safe. Agents and skills
    register without duplication.
-8. **Eval the system, not the prompt.** A scored task suite gates changes
-   to any agent or skill.
+
+### Memory
+
 9. **Persistent lessons, not persistent transcripts.** Two tier memory:
-   live store mounted per session, distilled store written only by the
-   Dreaming pass. Raw history is consumed and discarded.
-10. **Hooks are guardrails, not features.** Fail loud, never silently
-    rewrite. The user can always bypass with `--no-verify`; do not try to
-    out-clever them.
-11. **`package.json` is implicitly in scope when the build commands
-    themselves need to change.** When a feature requires a new test
-    script, a new dependency entry (rare; requires spec approval), or a
-    flag adjustment on an existing script, the builder may edit
-    `package.json` even if the spec did not list it. The spec-writer
-    should add `package.json` to `scope_paths` whenever a script edit is
-    foreseeable. Earned 2026-05-27 from feature 0001 validator finding.
-12. **Memory state is filesystem by default, committed by explicit
-    opt-in.** `.claude/memory/live/` and `.claude/memory/distilled/` are
-    gitignored. To preserve a chain audit trail, run
-    `npm run memory:snapshot`, which copies the current memory state
-    into `memory-snapshots/<timestamp>/` and commits the copy. The copy
-    is immutable from that point; the original memory continues to
-    evolve freely. Use this before destructive operations, after
-    important chain runs, or whenever the audit trail matters.
-13. **Follow your changes: importers of a changed interface are
-    implicitly in scope.** When a feature changes a unit's exported
-    interface (a required prop is added, a function signature changes,
-    a type union gains a member), every file that imports that
-    interface is implicitly in scope. This includes verify specs that
-    mount the changed unit, downstream component consumers, and any
-    other importer not explicitly listed in `scope_paths`. Generalises
-    rule 11 (which covered build-tooling files) to downstream code.
-    Earned 2026-05-27 from feature 0003 validator finding (TodoStats
-    gained a required `overdue` prop; TodoStats.verify.ts had to be
-    edited but was not in scope_paths).
-14. **Chain state lives at `.claude/memory/live/<id>/` with a fixed
-    layout.** Per-chain working area created at chain init by the
-    coordinator. Files: `chain.json` (state machine, version `"1"`),
-    `<role>.md` (each role's final report), `<role>.inflight.md`
-    (in-flight notes for resumption). A role is "mid-run" when its
-    `.inflight.md` exists and is newer than its `.md`; the validator
-    refuses to verdict against a mid-run role and reports BLOCKED at
-    the chain level. The helper module at `src/chain/state.ts`
-    centralises the layout; agents read and write the files directly
-    via the Read / Write tools, scripts use the helper. The layout
-    follows Anthropic's start-simple principle: filesystem
-    coordination, no managed-agents API surface, no live message
-    passing between subagents. Earned 2026-05-27 from Phase 2.5
-    research + plan §10 verified findings.
+   live store per session, distilled store written only by the Dreaming
+   pass. Raw history is consumed and discarded.
+12. **Memory state is filesystem by default, committed by explicit opt-in.**
+    `.claude/memory/live/` and `.claude/memory/distilled/` are gitignored.
+    `npm run memory:snapshot` copies the current state into
+    `memory-snapshots/<timestamp>/` and commits the copy.
+14. **Chain state lives at `.claude/memory/live/<id>/` with a fixed layout.**
+    `chain.json` (state machine, version `"1"`), `<role>.md` (final
+    reports), `<role>.inflight.md` (resumption notes). A role is "mid-run"
+    when its `.inflight.md` is newer than its `.md`; the validator returns
+    BLOCKED in that case. Helper at `src/chain/state.ts`.
+
+### Guardrails
+
+2. **Read only by default.** Any step that can be read only must be. Write
+   access is a privilege granted per path glob and enforced by the
+   `enforce-scope` PreToolUse hook (Phase 6).
+10. **Hooks fail loud, never silently rewrite.** A blocked operation prints
+    actionable stderr and exits non-zero. The user can always bypass with
+    `--no-verify`; do not try to out-clever them.
+
+### Scope (earned in production)
+
+11. **`package.json` is implicitly in scope when build commands need to
+    change.** Earned 2026-05-27 from feature 0001: builder needed
+    `--passWithNoTests` on `npm test` but `package.json` was not in
+    `scope_paths`. Spec-writer should now anticipate script edits.
+13. **Importers of a changed interface are implicitly in scope.** When a
+    feature changes a unit's exported type (required prop added, signature
+    changed, union member added), every importing file is in scope. Earned
+    2026-05-27 from feature 0003: `TodoStats` gained a required `overdue`
+    prop; `TodoStats.verify.ts` had to be edited but was not listed.
 
 ---
 
 ## Prose conventions for Ribosome outputs
 
-These rules apply to every artefact Ribosome produces that a human reads:
-PR bodies, Issue comments from the bot, generated stories, generated specs,
-generated documentation, validator reports, digest Issues.
+Apply to every artefact a human reads: PR bodies, Issue comments from the
+bot, generated stories and specs, validator reports, digests.
 
-- **No en or em dashes.** Use commas, parens, colons, or restructure. The
-  ASCII hyphen-minus is allowed in compound nouns (`tenant-aware`) and in
-  command flags (`--no-verify`).
-- **No emoji.** Not in PR bodies, not in Issue comments, not in code
-  comments, not in commit messages, not in any generated documentation.
-- **Primary-source verification.** Do not state specific facts about
-  third-party libraries, APIs, papers, or services with authority unless
-  verified from the primary source in this session. Mark inferences and
-  paraphrases as such. "I do not know" is a first-class answer. Better to
-  ask the operator than to fabricate.
+- **No en or em dashes.** Use commas, parens, colons, or restructure.
+  Hyphens are fine in compound nouns and command flags.
+- **No emoji.** Anywhere. Including code comments and commit messages.
+- **Primary-source verification.** Do not state facts about third-party
+  libraries, APIs, or services with authority unless verified from the
+  primary source in this session. Mark inferences as such. "I do not
+  know" is a first-class answer.
 - **First principles, not mediocre precedent.** When the plan, this file,
-  or an established pattern in the repo is wrong, say so and propose the
-  fix. Do not defer to the existing thing just because it exists. The
-  upgrade path is a PR against this file or against the plan.
+  or a repo pattern is wrong, say so and propose a fix. The upgrade path
+  is a PR; do not silently work around.
 - **Plain language with the operator.** OPERATOR.md is the contract: six
   slash commands, three gates, three Issue templates. Do not invent new
   surface in operator-facing text.
@@ -187,94 +164,69 @@ generated documentation, validator reports, digest Issues.
 
 ## Do not do
 
-The list of things that have caused or would cause real harm. Each is a hard
-rule, not a guideline.
+Hard rules. Each has caused real harm or would cause real harm.
 
 - **No `git commit --amend`** after a pre-commit hook failure. The commit
-  did not happen. Amending would modify the previous commit. Create a new
-  commit instead.
+  did not happen; amending modifies the previous commit. Create a new
+  commit.
 - **No `--no-verify` from any agent.** The operator may bypass for one
   commit when certain. Agents never bypass.
-- **No `git add -A` or `git add .`.** Stage specific paths by name. The
-  hook is a backstop, not the gate.
+- **No `git add -A` or `git add .`.** Stage specific paths by name.
 - **No `git push --force` to main, ever.** Force push to feature branches
-  is allowed when the branch is clearly owned by Ribosome and not shared.
-- **No interactive git flags** (`-i`, `--interactive`). Never callable from
-  an automated path.
-- **No writes to `.claude/memory/distilled/`** from any agent or session
-  except the Dreaming job. Distilled is trustworthy only because the write
-  surface is one process.
+  is allowed when the branch is clearly owned by Ribosome.
+- **No interactive git flags** (`-i`). Never callable from automation.
+- **No writes to `.claude/memory/distilled/`** from anyone except the
+  Dreaming job. Enforced by the `enforce-distilled-write` hook plus the
+  `.claude/memory/.dream-active` marker convention.
 - **No edits to CLAUDE.md from an agent.** Only `rule-miner` opens a PR
-  against this file, and the operator merges. Agents do not self-modify
-  their own guardrails.
-- **No fabricated citations or screenshots.** If a screenshot would be
-  helpful and one cannot be produced, say so. Do not invent a path that
-  does not exist.
-- **No new dependencies** without an explicit operator-approved spec entry.
-  Dep bumps go through the `dep-scanner` scout and the standard chain.
-- **No secrets in any file the hook checks.** If the hook fails, fix the
-  cause; do not bypass and recommit.
+  against this file; the operator merges. Agents do not self-modify their
+  guardrails.
+- **No fabricated citations or screenshots.** If you cannot produce one,
+  say so.
+- **No new dependencies** without an operator-approved spec entry. Dep
+  bumps go through the `dep-scanner` scout (Phase 4) and the chain.
 
 ---
 
-## Hook installation
+## Hooks installed in this repo
 
-The pre-commit guard lives at `.claude/hooks/pre-commit` and delegates to
-`.claude/hooks/block-secrets.sh`. Git is wired to use it via
-`core.hooksPath`. This survives clones because the hook scripts are
-committed in the repo, but the `core.hooksPath` config is per-clone and
-must be set once after cloning.
+| Hook | Trigger | What it does |
+|---|---|---|
+| `pre-commit` (git) -> `block-secrets.sh` | every `git commit` | rejects `.env`, `*.key`, `*.pem`, `secrets.*` and content matching AWS / GitHub PAT / Anthropic key regexes |
+| `enforce-scope.sh` (Claude Code PreToolUse) | `Write` / `Edit` / `MultiEdit` during builder runs | rejects writes outside the active spec's `scope_paths`; exits 2 with the active chain id and the allowed paths in stderr |
+| `enforce-distilled-write.sh` (Claude Code PreToolUse) | `Write` / `Edit` / `MultiEdit` targeting `.claude/memory/distilled/**` | allowed only when `.claude/memory/.dream-active` marker file exists; the `dream` skill manages the marker |
+| `record-correction.sh` (CLI, not a Claude Code hook) | invoked by coordinator on `/changes` | appends a structured JSON line to `.claude/corrections.jsonl` for the rule-miner to consume |
 
-One-time install:
-
-```
-git config core.hooksPath .claude/hooks
-```
-
-Verification:
-
-```
-git config --get core.hooksPath   # expects: .claude/hooks
-.claude/hooks/block-secrets.sh    # exits 0 on a clean index
-```
-
-Acceptance test (Phase 0 done criterion):
-
-```
-echo 'AWS_SECRET_ACCESS_KEY=AKIAFAKETESTKEY' > .env
-git add .env
-git commit -m "test"   # rejected with: filename  .env  (matches .env)
-git restore --staged .env
-rm .env
-```
-
-The hook covers:
-
-- **Filenames.** `.env` (and `.env.<anything>` except `.example`, `.sample`,
-  `.template`, `.dist`), `*.key`, `*.pem`, `secrets.*`.
-- **Content.** AWS access key id (`AKIA` plus 16 alphanumerics), GitHub
-  classic PAT (`ghp_` plus 36 alphanumerics), GitHub fine-grained PAT
-  (`github_pat_` plus 82 chars), Anthropic API key (`sk-ant-` plus 32 or
-  more chars).
-
-Both layers run on every commit. A violation in either layer rejects the
-commit. To bypass for a single commit (operator only, when certain):
-`git commit --no-verify`.
+Git hooks install with `git config core.hooksPath .claude/hooks` (run once per
+clone). Claude Code hooks register via `.claude/settings.json` and load on
+session start. Acceptance evidence for each hook is in `src/chain/hooks.test.ts`
+(28 tests cover the matrix).
 
 ---
 
 ## Pointers
 
-- `OPERATOR.md` is the full non-coder surface. If a question is about how
-  to use Ribosome from the GitHub UI, the answer is in there.
-- `/Users/jacobl/research/software-factory/PLAN.md` is the design document.
-  Read it before changing anything in `.claude/`.
-- `.claude/memory/ACCESS.md` is the per-agent memory access matrix.
+- `OPERATOR.md`: non-coder surface (two pages).
+- `.claude/skills/setup/SKILL.md`: maintainer-facing GitHub bootstrap walkthrough.
+- `.claude/memory/ACCESS.md`: per-agent memory write permissions.
+- `.claude/skills/verify-contracts/SKILL.md`: contract authoring conventions.
+- `tests/verify/last-run.json`: canonical verifier report (schema
+  `ribosome.verify.report`, version `"1"`).
+- `/Users/jacobl/research/software-factory/PLAN.md`: design document.
 
 ---
 
 ## When this file changes
 
-Append the date and a one-line reason to a CHANGELOG comment at the bottom
-of this file when you edit. Keep the file under 300 lines; if you add a
-section, prune another or split into a linked doc.
+Append the date and a one-line reason as a comment at the bottom. Keep the file
+under 300 lines; if you add a section, prune another or split into a linked doc.
+Numbered rules keep their numbers forever; new rules append at the next
+unused number rather than renumbering. Deletions leave the number gap.
+
+<!--
+CHANGELOG
+2026-05-28: Phase 6 pass. Rules grouped by topic. Stack section concretized.
+            Commands section now lists all npm scripts. Hooks table replaces
+            the prior Phase 0 hook-install section. Identity reflects shipped
+            phases (0/1/2/2.5/3/4.5/6). Length: ~230 lines.
+-->

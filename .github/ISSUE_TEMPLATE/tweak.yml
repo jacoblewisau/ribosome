@@ -1,0 +1,27 @@
+name: Tweak
+description: A small wording, colour, or copy change.
+title: "[tweak] "
+labels: ["ribo:tweak"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For small changes that should skip the spec phase: copy edits, colour
+        adjustments, single-string updates. If your change requires data model
+        thinking or new behaviour, use the Feature template instead.
+
+  - type: textarea
+    id: change
+    attributes:
+      label: What to change
+      description: One or two sentences. "Change the 'Add' button label to 'Add todo'."
+    validations:
+      required: true
+
+  - type: textarea
+    id: where
+    attributes:
+      label: Where
+      description: Which page, which component, which screen. Plain language.
+    validations:
+      required: false

@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Operator manual
+    url: https://github.com/anthropics/claude-code-action/blob/main/README.md
+    about: Read OPERATOR.md in this repo for the full non-coder workflow.

@@ -1,0 +1,48 @@
+name: Feature
+description: Ask Ribosome to ship a new feature.
+title: "[feature] "
+labels: ["ribo:feature"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe what you want in plain English. You do not need to think about
+        the tech stack, the file layout, or how the bot will do it. The bot will
+        propose a design and you will get two approval moments before any code
+        gets written.
+
+  - type: textarea
+    id: as_a
+    attributes:
+      label: As a...
+      description: Who is this for? (For example "user", "operator", "admin", or just "me".)
+      placeholder: user
+    validations:
+      required: true
+
+  - type: textarea
+    id: i_want
+    attributes:
+      label: I want...
+      description: What do you want the system to do? One or two sentences.
+      placeholder: see overdue todos highlighted so I can prioritise them.
+    validations:
+      required: true
+
+  - type: textarea
+    id: so_that
+    attributes:
+      label: So that...
+      description: Why does this matter? What is the outcome you expect?
+      placeholder: I do not have to look up each todo's date manually.
+    validations:
+      required: true
+
+  - type: textarea
+    id: success_looks_like
+    attributes:
+      label: Success looks like...
+      description: How will you know this is done? One sentence is enough.
+      placeholder: Items past their due date are visually distinct on the list.
+    validations:
+      required: true

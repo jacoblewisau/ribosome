@@ -1,0 +1,105 @@
+name: Ribosome
+
+# Triggers:
+#   - Issue labeled with ribo:feature, ribo:bug, or ribo:tweak -> start a chain.
+#   - Issue comment containing one of the six slash commands -> advance the chain.
+#
+# State machine: stored in a sticky comment on the Issue. The coordinator skill
+# reads prior bot comments for an HTML-comment-bracketed JSON payload to know
+# which step ran last. See OPERATOR.md for the operator view and
+# .claude/skills/coordinator/SKILL.md for the workflow's view.
+#
+# Each event runs ONE action invocation. The action does as much chain work as
+# fits in --max-turns; long builder runs may need multiple events to complete.
+# Mid-run state lives in the ribosome/<id> feature branch once it exists.
+
+on:
+  issues:
+    types: [labeled]
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+  id-token: write
+
+# Prevent overlapping runs on the same Issue. The chain is sequential per
+# Issue; parallel events would race on the state comment.
+concurrency:
+  group: ribosome-issue-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  ribosome:
+    name: Ribosome chain step
+    if: |
+      (
+        github.event_name == 'issues' &&
+        (
+          contains(github.event.label.name, 'ribo:feature') ||
+          contains(github.event.label.name, 'ribo:bug') ||
+          contains(github.event.label.name, 'ribo:tweak')
+        )
+      )
+      ||
+      (
+        github.event_name == 'issue_comment' &&
+        (
+          startsWith(github.event.comment.body, '/approve') ||
+          startsWith(github.event.comment.body, '/changes') ||
+          startsWith(github.event.comment.body, '/cancel') ||
+          startsWith(github.event.comment.body, '/explain') ||
+          startsWith(github.event.comment.body, '/keep') ||
+          startsWith(github.event.comment.body, '/forget')
+        ) &&
+        github.event.comment.user.type != 'Bot'
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          # Use the default GITHUB_TOKEN's identity for branch ops by the
+          # checkout itself; the action below pushes via its own token.
+          persist-credentials: true
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Install Claude Code hook path
+        run: git config core.hooksPath .claude/hooks
+
+      - name: Configure git identity for bot commits
+        run: |
+          git config user.name "ribosome-bot"
+          git config user.email "ribosome-bot@users.noreply.github.com"
+
+      - name: Run Ribosome chain (Claude Code Action)
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # The coordinator skill is the entry point. It reads the Issue
+          # context, locates the state comment, picks the next chain step,
+          # spawns subagents, posts the next comment, and updates the state.
+          # The skill body lives at .claude/skills/coordinator/SKILL.md.
+          prompt: |
+            /coordinator event=${{ github.event_name }} issue=${{ github.event.issue.number }} repo=${{ github.repository }} actor=${{ github.actor }} label=${{ github.event.label.name }} command=${{ github.event.comment.body }} comment_id=${{ github.event.comment.id }} run_id=${{ github.run_id }}
+          claude_args: |
+            --model claude-opus-4-7
+            --max-turns 60
+            --append-system-prompt "You are running inside a GitHub Actions invocation triggered by event ${{ github.event_name }} on issue #${{ github.event.issue.number }} in ${{ github.repository }}. Read the operator-facing OPERATOR.md before any user-visible output. Post Issue comments with `gh issue comment`. Open draft PRs with `gh pr create --draft`. The chain state is encoded as a sticky HTML-comment-bracketed JSON in a bot comment on this Issue; if no such comment exists this is the first step."
+
+      # No explicit "push" step here: the Claude Code action drives all git
+      # operations (commit, push, branch creation, PR open) via gh + git
+      # under the GitHub App's identity using the permissions above.

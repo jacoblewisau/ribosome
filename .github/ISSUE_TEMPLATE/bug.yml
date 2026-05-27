@@ -1,0 +1,45 @@
+name: Bug
+description: Something is broken. Tell the bot what you saw.
+title: "[bug] "
+labels: ["ribo:bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe what happened and what you expected. You do not need to debug
+        anything yourself. The bot will investigate and propose a fix.
+
+  - type: textarea
+    id: what_happened
+    attributes:
+      label: What happened?
+      description: What did you see? A screenshot link or paste is fine.
+    validations:
+      required: true
+
+  - type: textarea
+    id: what_should_have_happened
+    attributes:
+      label: What should have happened?
+      description: Describe the correct behaviour as you understand it.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps_if_known
+    attributes:
+      label: Steps to reproduce
+      description: If you can list the steps, do; otherwise leave blank.
+      placeholder: |
+        1. Open the app.
+        2. ...
+    validations:
+      required: false
+
+  - type: input
+    id: link_or_screenshot
+    attributes:
+      label: Link or screenshot
+      description: A URL to a screenshot, a Loom, or anything else that shows the problem.
+    validations:
+      required: false

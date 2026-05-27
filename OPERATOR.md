@@ -115,6 +115,27 @@ repo) when:
 
 There is no penalty for stopping. `/cancel` is always available.
 
+## Saving a record of what the bot did
+
+The bot keeps notes about each chain run in a folder called
+`.claude/memory/`. By default these notes are local: they stay on the
+maintainer's machine and never enter the repository's history. This
+keeps git history quiet and avoids cluttering commits with byproducts.
+
+When something happens that you want a permanent record of (an
+important feature run, a postmortem, the state of memory before a big
+change), the maintainer can run a single command:
+
+```
+npm run memory:snapshot
+```
+
+That command copies the current memory contents into a folder named
+`memory-snapshots/<timestamp>/` and commits the copy. The original
+memory keeps changing freely after that; the snapshot is frozen at
+the moment of the command. You do not normally need to run this; the
+maintainer will.
+
 ## What the bot will never do
 
 - Push directly to the main branch.

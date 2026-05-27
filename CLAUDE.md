@@ -66,6 +66,12 @@ git config --get core.hooksPath
 
 # manually run the secrets check against the current index
 .claude/hooks/block-secrets.sh
+
+# snapshot the current contents of .claude/memory/ into git
+# (opt-in; the regular memory state stays gitignored)
+npm run memory:snapshot
+# or with a custom message:
+bash scripts/memory-snapshot.sh "memory: snapshot before refactor"
 ```
 
 Stack-specific commands (test, build, dev, typecheck, migrate) get added in
@@ -110,6 +116,14 @@ in the plan.
     `package.json` even if the spec did not list it. The spec-writer
     should add `package.json` to `scope_paths` whenever a script edit is
     foreseeable. Earned 2026-05-27 from feature 0001 validator finding.
+12. **Memory state is filesystem by default, committed by explicit
+    opt-in.** `.claude/memory/live/` and `.claude/memory/distilled/` are
+    gitignored. To preserve a chain audit trail, run
+    `npm run memory:snapshot`, which copies the current memory state
+    into `memory-snapshots/<timestamp>/` and commits the copy. The copy
+    is immutable from that point; the original memory continues to
+    evolve freely. Use this before destructive operations, after
+    important chain runs, or whenever the audit trail matters.
 
 ---
 

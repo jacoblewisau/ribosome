@@ -68,6 +68,48 @@ export const TodoAppUnit: VerifiableUnit = {
       ],
     },
     {
+      name: "with-tags-on-some-items",
+      props: {},
+      render: () => React.createElement(TodoApp),
+      act: async (container) => {
+        const text = container.querySelector('[data-verify-input="todo-text"]') as HTMLInputElement;
+        const tagsIn = container.querySelector('[data-verify-input="todo-tags"]') as HTMLInputElement;
+        const button = container.querySelector('[data-verify-action="submit-todo"]') as HTMLButtonElement;
+        // First todo: with two tags.
+        fireEvent.change(text, { target: { value: "read paper" } });
+        fireEvent.change(tagsIn, { target: { value: "urgent, follow-up" } });
+        fireEvent.click(button);
+        // Second todo: no tags.
+        fireEvent.change(text, { target: { value: "send email" } });
+        fireEvent.click(button);
+      },
+      invariants: [
+        (dom) => {
+          const root = dom.querySelector('[data-verify-unit="TodoApp"]');
+          return root?.getAttribute("data-verify-tagged") === "1" || "expected tagged=1 (one todo of two has tags)";
+        },
+        (dom) => {
+          const items = dom.querySelectorAll('[data-verify-unit="TodoItem"]');
+          if (items.length !== 2) return `expected 2 items, got ${items.length}`;
+          const first = items[0]!;
+          return first.getAttribute("data-verify-tag-count") === "2" || "expected first item tag-count=2";
+        },
+        (dom) => {
+          const items = dom.querySelectorAll('[data-verify-unit="TodoItem"]');
+          if (items.length !== 2) return `expected 2 items, got ${items.length}`;
+          const second = items[1]!;
+          return second.getAttribute("data-verify-tag-count") === "0" || "expected second item tag-count=0";
+        },
+        (dom) => {
+          const items = dom.querySelectorAll('[data-verify-unit="TodoItem"]');
+          if (items.length !== 2) return `expected 2 items, got ${items.length}`;
+          const first = items[0]!;
+          const tagsField = first.querySelector('[data-verify-field="tags"]');
+          return tagsField?.textContent === "urgent, follow-up" || `expected joined tags "urgent, follow-up", got "${tagsField?.textContent}"`;
+        },
+      ],
+    },
+    {
       // Probe: asserts something deliberately false to prove the framework
       // catches lies. Three todos are added; the invariant claims total=999.
       // The dom-contract reports total=3 and the invariant fires "expected

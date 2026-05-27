@@ -2,7 +2,7 @@ import { z } from "zod";
 import { fireEvent } from "@testing-library/react";
 import React from "react";
 import { TodoApp } from "../../features/todos/TodoApp";
-import { addTodo, initialState } from "../../features/todos/todos.feature";
+import { addTodo, initialState, parseTagsInput } from "../../features/todos/todos.feature";
 import type { VerifiableUnit } from "../core/types";
 import { registerUnit } from "../core/registry";
 
@@ -51,6 +51,74 @@ export const TodosFeatureUnit: VerifiableUnit = {
           return after.items.length === 0 || "addTodo on whitespace string should not append";
         },
       ],
+    },
+    {
+      name: "tags-parse-and-trim",
+      props: {},
+      render: () =>
+        React.createElement(
+          "div",
+          { "data-verify-unit": "todos.feature" },
+          React.createElement(TodoApp)
+        ),
+      act: async (container) => {
+        const text = container.querySelector('[data-verify-input="todo-text"]') as HTMLInputElement;
+        const tags = container.querySelector('[data-verify-input="todo-tags"]') as HTMLInputElement;
+        const button = container.querySelector('[data-verify-action="submit-todo"]') as HTMLButtonElement;
+        fireEvent.change(text, { target: { value: "test" } });
+        // Whitespace, empty parts, and a duplicate. Expect ["a", "b", "c"].
+        fireEvent.change(tags, { target: { value: "  a  , b  ,, c  , a" } });
+        fireEvent.click(button);
+      },
+      invariants: [
+        (dom) => {
+          const items = dom.querySelectorAll('[data-verify-unit="TodoItem"]');
+          if (items.length !== 1) return `expected 1 item, got ${items.length}`;
+          return items[0]!.getAttribute("data-verify-tag-count") === "3" || "expected tag-count=3 after parse";
+        },
+        (dom) => {
+          const items = dom.querySelectorAll('[data-verify-unit="TodoItem"]');
+          if (items.length !== 1) return `expected 1 item, got ${items.length}`;
+          const tagsField = items[0]!.querySelector('[data-verify-field="tags"]');
+          return tagsField?.textContent === "a, b, c" || `expected "a, b, c", got "${tagsField?.textContent}"`;
+        },
+        () => {
+          // Spot check the pure parser too.
+          const parsed = parseTagsInput("  a  , b  ,, c  , a");
+          if (parsed.length !== 3) return `parser returned ${parsed.length} tags, want 3`;
+          if (parsed.join(",") !== "a,b,c") return `parser order/values wrong: ${parsed.join(",")}`;
+          return true;
+        },
+      ],
+    },
+    {
+      // Probe: tags-dedupe-fails. Asserts that "x, x, x" yields three tags.
+      // The parser dedupes to one, so tag-count is "1". The invariant fires.
+      // Verdict: PASS (probe). Confirms the dedupe path is exercised.
+      name: "tags-dedupe-fails",
+      props: {},
+      render: () =>
+        React.createElement(
+          "div",
+          { "data-verify-unit": "todos.feature" },
+          React.createElement(TodoApp)
+        ),
+      act: async (container) => {
+        const text = container.querySelector('[data-verify-input="todo-text"]') as HTMLInputElement;
+        const tags = container.querySelector('[data-verify-input="todo-tags"]') as HTMLInputElement;
+        const button = container.querySelector('[data-verify-action="submit-todo"]') as HTMLButtonElement;
+        fireEvent.change(text, { target: { value: "test" } });
+        fireEvent.change(tags, { target: { value: "x, x, x" } });
+        fireEvent.click(button);
+      },
+      invariants: [
+        (dom) => {
+          const items = dom.querySelectorAll('[data-verify-unit="TodoItem"]');
+          if (items.length !== 1) return `expected 1 item, got ${items.length}`;
+          return items[0]!.getAttribute("data-verify-tag-count") === "3" || "probe expected tag-count=3";
+        },
+      ],
+      probe: true,
     },
     {
       name: "whitespace-submit",

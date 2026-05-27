@@ -11,6 +11,7 @@ export function TodoItem({ todo, onToggle, onRemove }: TodoItemProps) {
   const attrs = verifyAttrs("TodoItem", {
     id: todo.id,
     done: todo.done,
+    "tag-count": todo.tags.length,
   });
 
   return (
@@ -25,6 +26,7 @@ export function TodoItem({ todo, onToggle, onRemove }: TodoItemProps) {
         />
         <span data-verify-field="text">{todo.text}</span>
       </label>
+      <span data-verify-field="tags">{todo.tags.join(", ")}</span>
       <button
         type="button"
         data-verify-action="remove"

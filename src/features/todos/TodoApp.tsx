@@ -24,6 +24,7 @@ export function TodoApp({ initial = initialState }: TodoAppProps) {
   const [state, setState] = useState<TodosState>(initial);
   const { total, done, active } = counts(state);
   const items = visibleItems(state);
+  const tagged = state.items.filter((t) => t.tags.length > 0).length;
 
   const attrs = verifyAttrs("TodoApp", {
     total,
@@ -31,12 +32,13 @@ export function TodoApp({ initial = initialState }: TodoAppProps) {
     active,
     filter: state.filter,
     visible: items.length,
+    tagged,
   });
 
   return (
     <section {...attrs}>
       <h2 data-verify-unit-label="TodoApp">Todos</h2>
-      <TodoForm onSubmit={(text) => setState((s) => addTodo(s, text))} />
+      <TodoForm onSubmit={(text, tags) => setState((s) => addTodo(s, text, tags))} />
       <FilterControls
         current={state.filter}
         onChange={(f) => setState((s) => setFilter(s, f))}

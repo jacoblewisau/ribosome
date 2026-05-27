@@ -15,6 +15,7 @@ export interface Todo {
   text: string;
   done: boolean;
   createdAt: number;
+  tags: ReadonlyArray<string>;
 }
 
 export interface TodosState {
@@ -31,8 +32,17 @@ export const initialState: TodosState = {
  * Add a todo. Returns the new state. Whitespace-only inputs are
  * rejected (the form should not produce one, but the feature guards
  * anyway and the whitespace-submit probe verifies this).
+ *
+ * `tags` is an already-parsed array of strings; the caller (TodoForm
+ * via parseTagsInput) is responsible for splitting, trimming, and
+ * deduplication. addTodo trusts its input.
  */
-export function addTodo(state: TodosState, text: string, now: number = Date.now()): TodosState {
+export function addTodo(
+  state: TodosState,
+  text: string,
+  tags: ReadonlyArray<string> = [],
+  now: number = Date.now()
+): TodosState {
   const trimmed = text.trim();
   if (trimmed.length === 0) return state;
   const item: Todo = {
@@ -40,8 +50,28 @@ export function addTodo(state: TodosState, text: string, now: number = Date.now(
     text: trimmed,
     done: false,
     createdAt: now,
+    tags,
   };
   return { ...state, items: [...state.items, item] };
+}
+
+/**
+ * Parse a raw tag input string into a deduplicated array of tags.
+ * Splits on commas, trims each part, drops empty parts, and removes
+ * exact-match duplicates preserving first-seen order. Pure.
+ */
+export function parseTagsInput(input: string): string[] {
+  const parts = input.split(",");
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const part of parts) {
+    const trimmed = part.trim();
+    if (trimmed.length === 0) continue;
+    if (seen.has(trimmed)) continue;
+    seen.add(trimmed);
+    out.push(trimmed);
+  }
+  return out;
 }
 
 export function removeTodo(state: TodosState, id: TodoId): TodosState {

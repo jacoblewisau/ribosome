@@ -8,6 +8,7 @@ import {
   parseTagsInput,
   parseDueDateInput,
   isOverdue,
+  setTodoText,
   type Todo,
 } from "../../features/todos/todos.feature";
 import type { VerifiableUnit } from "../core/types";
@@ -222,6 +223,54 @@ export const TodosFeatureUnit: VerifiableUnit = {
           if (d.getDate() !== 15) return `expected day 15, got ${d.getDate()}`;
           if (d.getHours() !== 12) return `expected hour 12 (local noon), got ${d.getHours()}`;
           return true;
+        },
+      ],
+    },
+    {
+      name: "setTodoText-helper",
+      props: {},
+      render: () =>
+        React.createElement(
+          "div",
+          { "data-verify-unit": "todos.feature" },
+          React.createElement(TodoApp, { now: () => FIXED_NOW })
+        ),
+      invariants: [
+        () => {
+          // Build a state with one todo and edit its text.
+          const seeded = addTodo(initialState, "original");
+          const id = seeded.items[0]!.id;
+          const after = setTodoText(seeded, id, "edited");
+          return after.items[0]?.text === "edited" || "expected text='edited' after setTodoText";
+        },
+        () => {
+          // Trim happens.
+          const seeded = addTodo(initialState, "x");
+          const id = seeded.items[0]!.id;
+          const after = setTodoText(seeded, id, "   spacey   ");
+          return after.items[0]?.text === "spacey" || "expected trimmed text";
+        },
+        () => {
+          // Whitespace-only rejected: state unchanged by reference.
+          const seeded = addTodo(initialState, "keep");
+          const id = seeded.items[0]!.id;
+          const after = setTodoText(seeded, id, "   ");
+          return after === seeded || "whitespace-only edit should be no-op (state unchanged)";
+        },
+        () => {
+          // Unknown id: state unchanged by reference.
+          const seeded = addTodo(initialState, "keep");
+          const after = setTodoText(seeded, "nonexistent-id", "new");
+          return after === seeded || "unknown id should be no-op (state unchanged)";
+        },
+        () => {
+          // Other items are untouched by reference.
+          const s1 = addTodo(initialState, "a");
+          const s2 = addTodo(s1, "b");
+          const aId = s2.items[0]!.id;
+          const bRef = s2.items[1]!;
+          const after = setTodoText(s2, aId, "A");
+          return after.items[1] === bRef || "non-edited item should be reference-equal to its original";
         },
       ],
     },

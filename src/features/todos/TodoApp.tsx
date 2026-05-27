@@ -9,6 +9,7 @@ import {
   counts,
   visibleItems,
   overdueCount,
+  setTodoText,
   type TodosState,
   type TodoFilter,
 } from "./todos.feature";
@@ -62,6 +63,7 @@ export function TodoApp({ initial = initialState, now = () => Date.now() }: Todo
         nowMs={nowMs}
         onToggle={(id) => setState((s) => toggleTodo(s, id))}
         onRemove={(id) => setState((s) => removeTodo(s, id))}
+        onEditText={(id, text) => setState((s) => setTodoText(s, id, text))}
       />
       <TodoStats total={total} done={done} active={active} overdue={overdue} />
       <button

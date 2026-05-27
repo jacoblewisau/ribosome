@@ -7,9 +7,10 @@ export interface TodoListProps {
   nowMs: number;
   onToggle: (id: TodoId) => void;
   onRemove: (id: TodoId) => void;
+  onEditText: (id: TodoId, text: string) => void;
 }
 
-export function TodoList({ items, nowMs, onToggle, onRemove }: TodoListProps) {
+export function TodoList({ items, nowMs, onToggle, onRemove, onEditText }: TodoListProps) {
   const attrs = verifyAttrs("TodoList", {
     count: items.length,
   });
@@ -23,6 +24,7 @@ export function TodoList({ items, nowMs, onToggle, onRemove }: TodoListProps) {
           nowMs={nowMs}
           onToggle={onToggle}
           onRemove={onRemove}
+          onEditText={onEditText}
         />
       ))}
     </ul>

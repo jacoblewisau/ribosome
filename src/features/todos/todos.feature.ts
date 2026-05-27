@@ -129,6 +129,29 @@ export function overdueCount(state: TodosState, nowMs: number): number {
 }
 
 /**
+ * Replace the text of an existing todo. Trims whitespace; if the
+ * trimmed value is empty, returns the input state unchanged (no-op).
+ * If no todo matches the id, returns the input state unchanged.
+ * Otherwise returns a new state with the matching todo's text
+ * replaced.
+ *
+ * Mirrors the whitespace-only guard from addTodo (the form rejects
+ * empty submissions; this helper rejects empty edits the same way).
+ */
+export function setTodoText(state: TodosState, id: TodoId, text: string): TodosState {
+  const trimmed = text.trim();
+  if (trimmed.length === 0) return state;
+  let changed = false;
+  const items = state.items.map((t) => {
+    if (t.id !== id) return t;
+    changed = true;
+    return { ...t, text: trimmed };
+  });
+  if (!changed) return state;
+  return { ...state, items };
+}
+
+/**
  * Parse an HTML `<input type="date">` value (YYYY-MM-DD) into a
  * local-noon timestamp. Empty string and malformed input return
  * undefined. Local-noon avoids the off-by-one-day surprise that

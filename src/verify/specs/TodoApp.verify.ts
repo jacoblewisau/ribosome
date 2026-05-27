@@ -221,6 +221,145 @@ export const TodoAppUnit: VerifiableUnit = {
       ],
     },
     {
+      name: "edit-saves-on-enter",
+      props: {},
+      render: () => React.createElement(TodoApp, { now: makeClock() }),
+      act: async (container) => {
+        const text = container.querySelector('[data-verify-input="todo-text"]') as HTMLInputElement;
+        const button = container.querySelector('[data-verify-action="submit-todo"]') as HTMLButtonElement;
+        fireEvent.change(text, { target: { value: "draft" } });
+        fireEvent.click(button);
+        const span = container.querySelector('[data-verify-action="enter-edit"]') as HTMLSpanElement;
+        fireEvent.click(span);
+        const editInput = container.querySelector('[data-verify-input="edit-text"]') as HTMLInputElement;
+        fireEvent.change(editInput, { target: { value: "final" } });
+        fireEvent.keyDown(editInput, { key: "Enter" });
+      },
+      invariants: [
+        (dom) => {
+          const items = dom.querySelectorAll('[data-verify-unit="TodoItem"]');
+          if (items.length !== 1) return `expected 1 item, got ${items.length}`;
+          return items[0]!.getAttribute("data-verify-editing") === "false" || "expected editing=false after Enter";
+        },
+        (dom) => {
+          const items = dom.querySelectorAll('[data-verify-unit="TodoItem"]');
+          if (items.length !== 1) return `expected 1 item, got ${items.length}`;
+          const span = items[0]!.querySelector('[data-verify-field="text"]');
+          return span?.textContent === "final" || `expected text="final" after edit, got "${span?.textContent}"`;
+        },
+      ],
+    },
+    {
+      name: "edit-cancels-on-escape",
+      props: {},
+      render: () => React.createElement(TodoApp, { now: makeClock() }),
+      act: async (container) => {
+        const text = container.querySelector('[data-verify-input="todo-text"]') as HTMLInputElement;
+        const button = container.querySelector('[data-verify-action="submit-todo"]') as HTMLButtonElement;
+        fireEvent.change(text, { target: { value: "keep" } });
+        fireEvent.click(button);
+        const span = container.querySelector('[data-verify-action="enter-edit"]') as HTMLSpanElement;
+        fireEvent.click(span);
+        const editInput = container.querySelector('[data-verify-input="edit-text"]') as HTMLInputElement;
+        fireEvent.change(editInput, { target: { value: "throwaway" } });
+        fireEvent.keyDown(editInput, { key: "Escape" });
+      },
+      invariants: [
+        (dom) => {
+          const items = dom.querySelectorAll('[data-verify-unit="TodoItem"]');
+          if (items.length !== 1) return `expected 1 item, got ${items.length}`;
+          return items[0]!.getAttribute("data-verify-editing") === "false" || "expected editing=false after Escape";
+        },
+        (dom) => {
+          const items = dom.querySelectorAll('[data-verify-unit="TodoItem"]');
+          const span = items[0]?.querySelector('[data-verify-field="text"]');
+          return span?.textContent === "keep" || `expected text unchanged "keep", got "${span?.textContent}"`;
+        },
+      ],
+    },
+    {
+      name: "edit-cancels-on-blur",
+      props: {},
+      render: () => React.createElement(TodoApp, { now: makeClock() }),
+      act: async (container) => {
+        const text = container.querySelector('[data-verify-input="todo-text"]') as HTMLInputElement;
+        const button = container.querySelector('[data-verify-action="submit-todo"]') as HTMLButtonElement;
+        fireEvent.change(text, { target: { value: "stay" } });
+        fireEvent.click(button);
+        const span = container.querySelector('[data-verify-action="enter-edit"]') as HTMLSpanElement;
+        fireEvent.click(span);
+        const editInput = container.querySelector('[data-verify-input="edit-text"]') as HTMLInputElement;
+        fireEvent.change(editInput, { target: { value: "different" } });
+        fireEvent.blur(editInput);
+      },
+      invariants: [
+        (dom) => {
+          const items = dom.querySelectorAll('[data-verify-unit="TodoItem"]');
+          if (items.length !== 1) return `expected 1 item, got ${items.length}`;
+          return items[0]!.getAttribute("data-verify-editing") === "false" || "expected editing=false after blur";
+        },
+        (dom) => {
+          const items = dom.querySelectorAll('[data-verify-unit="TodoItem"]');
+          const span = items[0]?.querySelector('[data-verify-field="text"]');
+          return span?.textContent === "stay" || `expected text unchanged "stay", got "${span?.textContent}"`;
+        },
+      ],
+    },
+    {
+      name: "edit-rejects-empty-on-enter",
+      props: {},
+      render: () => React.createElement(TodoApp, { now: makeClock() }),
+      act: async (container) => {
+        const text = container.querySelector('[data-verify-input="todo-text"]') as HTMLInputElement;
+        const button = container.querySelector('[data-verify-action="submit-todo"]') as HTMLButtonElement;
+        fireEvent.change(text, { target: { value: "keep" } });
+        fireEvent.click(button);
+        const span = container.querySelector('[data-verify-action="enter-edit"]') as HTMLSpanElement;
+        fireEvent.click(span);
+        const editInput = container.querySelector('[data-verify-input="edit-text"]') as HTMLInputElement;
+        fireEvent.change(editInput, { target: { value: "   " } });
+        fireEvent.keyDown(editInput, { key: "Enter" });
+      },
+      invariants: [
+        (dom) => {
+          const items = dom.querySelectorAll('[data-verify-unit="TodoItem"]');
+          if (items.length !== 1) return `expected 1 item, got ${items.length}`;
+          return items[0]!.getAttribute("data-verify-editing") === "false" || "expected editing=false after empty Enter";
+        },
+        (dom) => {
+          const items = dom.querySelectorAll('[data-verify-unit="TodoItem"]');
+          const span = items[0]?.querySelector('[data-verify-field="text"]');
+          return span?.textContent === "keep" || `expected text unchanged "keep", got "${span?.textContent}"`;
+        },
+      ],
+    },
+    {
+      // Probe: claim-not-editing-after-click. Renders one todo, clicks
+      // its text (which DOES enter editing). The invariant claims
+      // data-verify-editing="false". The actual DOM has editing="true".
+      // The invariant fires; verdict PASS via probe. Pairs with
+      // edit-saves-on-enter per pat-probe-pairs-with-behavior.
+      name: "claim-not-editing-after-click",
+      props: {},
+      render: () => React.createElement(TodoApp, { now: makeClock() }),
+      act: async (container) => {
+        const text = container.querySelector('[data-verify-input="todo-text"]') as HTMLInputElement;
+        const button = container.querySelector('[data-verify-action="submit-todo"]') as HTMLButtonElement;
+        fireEvent.change(text, { target: { value: "one" } });
+        fireEvent.click(button);
+        const span = container.querySelector('[data-verify-action="enter-edit"]') as HTMLSpanElement;
+        fireEvent.click(span);
+      },
+      invariants: [
+        (dom) => {
+          const items = dom.querySelectorAll('[data-verify-unit="TodoItem"]');
+          if (items.length !== 1) return `expected 1 item, got ${items.length}`;
+          return items[0]!.getAttribute("data-verify-editing") === "false" || "probe expected editing=false (actually true)";
+        },
+      ],
+      probe: true,
+    },
+    {
       name: "total-claims-mismatch",
       props: {},
       render: () => React.createElement(TodoApp, { now: makeClock() }),

@@ -57,7 +57,12 @@ jobs:
         github.event.comment.user.type != 'Bot'
       )
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # 60 minutes is the upper bound. A normal chain step (researcher +
+    # story-writer + post comment) completes in 5 to 15 min on opus.
+    # The first observed real run hit 30 min and was killed; opening
+    # the budget rather than the work surface so we can see what the
+    # action actually does end to end.
+    timeout-minutes: 60
 
     steps:
       - name: Checkout
@@ -97,8 +102,8 @@ jobs:
             /coordinator event=${{ github.event_name }} issue=${{ github.event.issue.number }} repo=${{ github.repository }} actor=${{ github.actor }} label=${{ github.event.label.name }} command=${{ github.event.comment.body }} comment_id=${{ github.event.comment.id }} run_id=${{ github.run_id }}
           claude_args: |
             --model claude-opus-4-7
-            --max-turns 60
-            --append-system-prompt "You are running inside a GitHub Actions invocation triggered by event ${{ github.event_name }} on issue #${{ github.event.issue.number }} in ${{ github.repository }}. Read the operator-facing OPERATOR.md before any user-visible output. Post Issue comments with `gh issue comment`. Open draft PRs with `gh pr create --draft`. The chain state is encoded as a sticky HTML-comment-bracketed JSON in a bot comment on this Issue; if no such comment exists this is the first step."
+            --max-turns 40
+            --append-system-prompt "You are running inside a GitHub Actions invocation triggered by event ${{ github.event_name }} on issue #${{ github.event.issue.number }} in ${{ github.repository }}. Read the operator-facing OPERATOR.md before any user-visible output. Post Issue comments with `gh issue comment`. Open draft PRs with `gh pr create --draft`. The chain state is encoded as a sticky HTML-comment-bracketed JSON in a bot comment on this Issue; if no such comment exists this is the first step. CRITICAL: do exactly ONE chain step per invocation. If this is the labeled event, run researcher and story-writer and post the story comment with the state marker, then STOP. Do not pre-emptively run spec-writer or builder; wait for the next /approve event. If this is a comment event, advance by exactly one step from the state in the prior bot comment, post the new artefact, update the state, then STOP."
 
       # No explicit "push" step here: the Claude Code action drives all git
       # operations (commit, push, branch creation, PR open) via gh + git

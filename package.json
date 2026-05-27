@@ -1,0 +1,32 @@
+{
+  "name": "ribosome",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Workflow that ships a GitHub Issue to a merged PR. See OPERATOR.md for the non-coder surface and CLAUDE.md for the architecture.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -b --noEmit",
+    "test": "vitest run --exclude '**/*.contract.test.ts' --exclude 'tests/acceptance/**'",
+    "test:watch": "vitest --exclude '**/*.contract.test.ts' --exclude 'tests/acceptance/**'",
+    "test:acceptance": "vitest run tests/acceptance",
+    "verify": "vitest run --reporter=json --outputFile=tests/verify/last-run.json contract.test"
+  },
+  "dependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@testing-library/dom": "^10.4.0",
+    "@testing-library/react": "^16.1.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "happy-dom": "^15.11.7",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.5",
+    "vitest": "^2.1.8"
+  }
+}

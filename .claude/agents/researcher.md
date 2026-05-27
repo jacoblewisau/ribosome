@@ -18,7 +18,8 @@ Given a feature description (the Issue text or an upstream summary), inspect the
 - The repo's source tree, particularly `src/`, `tests/`, and any `docs/`.
 - `.claude/memory/live/<id>/chain.json`: the chain state machine.
 - The live memory store at `.claude/memory/live/<id>/`. You may read any file there; you write only `researcher.md` (your final findings) and optionally `researcher.inflight.md` (in-flight notes for a long research pass).
-- The distilled memory store at `.claude/memory/distilled/` (will be empty until Phase 4.5).
+- **The distilled memory store** at `.claude/memory/distilled/<latest-timestamp>/`. Read `MEMORY.md` in that directory first; it is the index. Then read any item that looks relevant. Cite the item id in the "Memory citations" section of your findings; the dream skill increments the item's `reference_count` when you cite it.
+- The repo-root `MEMORY.md` is the human-readable digest of the distilled store. It is committed; the underlying distilled files may not be on this machine. Read the repo-root file as a fallback if the distilled directory is empty.
 - Any prior `stories/<id>.md` or `specs/<id>.md` that touch the same area.
 
 ## What to produce

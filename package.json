@@ -15,7 +15,9 @@
     "verify": "vitest run src/verify/matrix.test.ts",
     "memory:snapshot": "bash scripts/memory-snapshot.sh",
     "chain:show": "node --experimental-strip-types scripts/chain-show.ts",
-    "chain:list": "node --experimental-strip-types scripts/chain-show.ts list"
+    "chain:list": "node --experimental-strip-types scripts/chain-show.ts list",
+    "dream:show": "node --experimental-strip-types scripts/dream-show.ts",
+    "dream:forget": "node --experimental-strip-types scripts/dream-forget.ts"
   },
   "dependencies": {
     "react": "^19.0.0",

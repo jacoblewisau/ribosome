@@ -75,6 +75,25 @@ The remote is set but `gh` cannot reach the repo. Common causes:
 - The repo is in an organization the maintainer does not have access to. Check `gh org list`.
 - The repo was deleted. Run `gh repo view <owner>/<name>` to confirm.
 
+### Issue labels missing (preflight: not a `setup:check` line but required)
+
+The Issue templates declare default labels (`ribo:feature`, `ribo:bug`, `ribo:tweak`) and the workflow's `if:` condition matches on those labels. **Labels do not auto-create from templates.** The maintainer must create them before opening the first Issue, or `gh issue create --label "ribo:feature"` fails with "label not found". Run once:
+
+```
+while IFS="|" read -r name color description; do
+  [ -z "$name" ] && continue
+  gh label create "$name" --color "$color" --description "$description" --repo <owner>/<name>
+done <<'LABELS'
+ribo:feature|1d76db|operator-requested feature
+ribo:bug|d73a4a|operator-reported bug
+ribo:tweak|cfd3d7|small wording or copy change
+ribo:auto-pr|0e8a16|PR opened by Ribosome
+ribo:digest|a371f7|weekly Dreaming digest
+LABELS
+```
+
+`gh label create` returns 422 if the label already exists; that error is safe to ignore on re-runs. Adjust colours to taste.
+
 ### `claude_app=missing`
 
 The Claude GitHub App is not installed on this repo. Installation requires a browser:

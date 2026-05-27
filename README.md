@@ -94,12 +94,32 @@ or via `gh api`. Each rule has a reason.
 
 ## What is and is not in Phase 3
 
-Shipped:
+Shipped and demonstrated end-to-end on a real GitHub repo
+(jacoblewisau/ribosome-test 2026-05-28):
 - Three Issue templates (Feature, Bug, Tweak).
 - One workflow file (`.github/workflows/ribosome.yml`) handling all six
   slash commands via job-level `if:` conditionals.
-- Sticky-comment state machine on each Issue.
+- Sticky-comment state machine on each Issue (JSON inside HTML
+  comments).
 - `pr-shepherd` subagent that opens draft PRs.
+- The `setup` skill walks a maintainer through the GitHub configuration
+  on a fresh checkout; `npm run setup:check` reports state.
+- The `checks.yml` workflow runs `npm test`, `npm run typecheck`, and
+  `npm run verify` on every push and PR so branch protection has
+  named status checks to require.
+
+What the live demo showed (chain 0005, "rename heading to My Todos"):
+- Issue opened with `ribo:feature` label triggered the workflow within
+  ~10 seconds.
+- Researcher + story-writer ran (~7:48 wall clock) and posted a
+  structured story with gate 1 instructions.
+- `/approve` triggered spec-writer (~3:09); spec posted with gate 2.
+- `/approve` triggered the build cascade (builder + test-author +
+  validator + pr-shepherd) (~6:47); draft PR #2 opened on branch
+  `ribosome/0005` with a clean validator report and the acceptance
+  test for the change.
+- Total wall clock from Issue to draft PR: ~17 minutes of chain work,
+  plus operator approval time. Estimated cost: $5 to $8 on Opus 4.7.
 
 Deferred (with rationale in the plan):
 - Playwright screenshots on PRs. Plan §13 Q3 flagged this as
@@ -108,10 +128,26 @@ Deferred (with rationale in the plan):
 - Proactive scouts (CI watcher, dep scanner, coverage scout, doc drift,
   shepherd, dreamer-digest). Phase 4 deliverable. The dream skill is
   ready; the scout that posts a weekly digest Issue is not yet wired.
-- Mid-run resumption from a partial chain step. If a workflow run times
-  out mid-builder, the maintainer intervenes manually. Phase 6 will add
-  resumption via the `ribosome/<id>` branch state.
+- Mid-run resumption from a partial chain step. The workflow tightly
+  scopes each invocation to one step, so a single failure leaves the
+  Issue in a recoverable state; Phase 6 will add explicit resumption
+  via the `ribosome/<id>` branch.
 - Eval harness on PRs touching `.claude/**`. Phase 5 deliverable.
+
+What this live run uncovered as bugs (now fixed):
+1. The coordinator skill filtered bot comments using
+   `gh issue view --json` which strips the `[bot]` suffix from
+   `author.login`; switched to `gh api ... --jq '.[] | select(.user.type
+   == "Bot")'` which is robust regardless of login format.
+2. The Claude Code Action ran with default permissions that deny most
+   tool calls; the workflow's `claude_args` now passes an explicit
+   `--allowedTools` allowlist scoped to `Read,Write,Edit,Glob,Grep`
+   and `Bash(gh:*),Bash(git:*),Bash(npm:*),...` so Claude can do its
+   work without per-call denials.
+3. Issue templates declare default labels but the labels themselves
+   are not auto-created; the `setup` skill now documents the
+   `gh label create` block to run once per repo before the first
+   Issue.
 
 ## Inspection commands (maintainer only)
 

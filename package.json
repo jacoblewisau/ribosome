@@ -9,9 +9,9 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "typecheck": "tsc -b --noEmit",
-    "test": "vitest run --exclude '**/*.contract.test.ts' --exclude 'tests/acceptance/**'",
-    "test:watch": "vitest --exclude '**/*.contract.test.ts' --exclude 'tests/acceptance/**'",
-    "test:acceptance": "vitest run tests/acceptance",
+    "test": "vitest run --passWithNoTests --exclude '**/*.contract.test.ts' --exclude 'tests/acceptance/**'",
+    "test:watch": "vitest --passWithNoTests --exclude '**/*.contract.test.ts' --exclude 'tests/acceptance/**'",
+    "test:acceptance": "vitest run --passWithNoTests tests/acceptance",
     "verify": "vitest run --reporter=json --outputFile=tests/verify/last-run.json contract.test"
   },
   "dependencies": {

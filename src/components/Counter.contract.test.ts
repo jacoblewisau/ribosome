@@ -33,6 +33,7 @@ const DOM_CONTRACT = {
   "counter.label": "the label heading; text matches the `label` prop",
   "counter.value": "the current value display; text is the numeric value",
   "counter.increment": "the increment button; click increases the value by `step`",
+  "counter.reset": "the reset button; click returns the value to the `initial` prop",
 } as const;
 
 describe("Counter contract", () => {
@@ -97,6 +98,70 @@ describe("Counter contract", () => {
           fireEvent.click(button!);
           const value = container.querySelector('[data-contract="counter.value"]');
           expect(value?.textContent).toBe(String(initial + step * 3));
+        });
+
+        it("reset on an unmodified counter is a no-op", () => {
+          const initial = fixture.props.initial ?? 0;
+          const { container } = render(React.createElement(Counter, fixture.props));
+          const resetButton = container.querySelector(
+            '[data-contract="counter.reset"]'
+          ) as HTMLButtonElement | null;
+          expect(resetButton).not.toBeNull();
+          fireEvent.click(resetButton!);
+          const value = container.querySelector('[data-contract="counter.value"]');
+          expect(value?.textContent).toBe(String(initial));
+        });
+
+        it("reset returns the value to initial after some increments", () => {
+          const initial = fixture.props.initial ?? 0;
+          const { container } = render(React.createElement(Counter, fixture.props));
+          const inc = container.querySelector(
+            '[data-contract="counter.increment"]'
+          ) as HTMLButtonElement | null;
+          const reset = container.querySelector(
+            '[data-contract="counter.reset"]'
+          ) as HTMLButtonElement | null;
+          fireEvent.click(inc!);
+          fireEvent.click(inc!);
+          fireEvent.click(reset!);
+          const value = container.querySelector('[data-contract="counter.value"]');
+          expect(value?.textContent).toBe(String(initial));
+        });
+
+        it("increment after reset adds step to initial, not to pre-reset value", () => {
+          const initial = fixture.props.initial ?? 0;
+          const step = fixture.props.step ?? 1;
+          const { container } = render(React.createElement(Counter, fixture.props));
+          const inc = container.querySelector(
+            '[data-contract="counter.increment"]'
+          ) as HTMLButtonElement | null;
+          const reset = container.querySelector(
+            '[data-contract="counter.reset"]'
+          ) as HTMLButtonElement | null;
+          fireEvent.click(inc!);
+          fireEvent.click(inc!);
+          fireEvent.click(inc!);
+          fireEvent.click(reset!);
+          fireEvent.click(inc!);
+          const value = container.querySelector('[data-contract="counter.value"]');
+          expect(value?.textContent).toBe(String(initial + step));
+        });
+
+        it("reset is idempotent across multiple clicks", () => {
+          const initial = fixture.props.initial ?? 0;
+          const { container } = render(React.createElement(Counter, fixture.props));
+          const inc = container.querySelector(
+            '[data-contract="counter.increment"]'
+          ) as HTMLButtonElement | null;
+          const reset = container.querySelector(
+            '[data-contract="counter.reset"]'
+          ) as HTMLButtonElement | null;
+          fireEvent.click(inc!);
+          fireEvent.click(reset!);
+          fireEvent.click(reset!);
+          fireEvent.click(reset!);
+          const value = container.querySelector('[data-contract="counter.value"]');
+          expect(value?.textContent).toBe(String(initial));
         });
       });
     }

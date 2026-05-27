@@ -29,6 +29,13 @@ export function Counter({ initial = 0, step = 1, label = "Counter" }: CounterPro
       >
         Add {step}
       </button>
+      <button
+        type="button"
+        data-contract="counter.reset"
+        onClick={() => setValue(initial)}
+      >
+        Reset
+      </button>
     </section>
   );
 }

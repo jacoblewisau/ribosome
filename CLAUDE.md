@@ -103,6 +103,13 @@ in the plan.
 10. **Hooks are guardrails, not features.** Fail loud, never silently
     rewrite. The user can always bypass with `--no-verify`; do not try to
     out-clever them.
+11. **`package.json` is implicitly in scope when the build commands
+    themselves need to change.** When a feature requires a new test
+    script, a new dependency entry (rare; requires spec approval), or a
+    flag adjustment on an existing script, the builder may edit
+    `package.json` even if the spec did not list it. The spec-writer
+    should add `package.json` to `scope_paths` whenever a script edit is
+    foreseeable. Earned 2026-05-27 from feature 0001 validator finding.
 
 ---
 

@@ -72,6 +72,13 @@ git config --get core.hooksPath
 npm run memory:snapshot
 # or with a custom message:
 bash scripts/memory-snapshot.sh "memory: snapshot before refactor"
+
+# inspect chain state (maintainer convenience; not for the operator)
+npm run chain:list
+npm run chain:show 0003
+
+# run the acceptance test for the chain state helper
+npm test
 ```
 
 Stack-specific commands (test, build, dev, typecheck, migrate) get added in
@@ -135,6 +142,20 @@ in the plan.
     Earned 2026-05-27 from feature 0003 validator finding (TodoStats
     gained a required `overdue` prop; TodoStats.verify.ts had to be
     edited but was not in scope_paths).
+14. **Chain state lives at `.claude/memory/live/<id>/` with a fixed
+    layout.** Per-chain working area created at chain init by the
+    coordinator. Files: `chain.json` (state machine, version `"1"`),
+    `<role>.md` (each role's final report), `<role>.inflight.md`
+    (in-flight notes for resumption). A role is "mid-run" when its
+    `.inflight.md` exists and is newer than its `.md`; the validator
+    refuses to verdict against a mid-run role and reports BLOCKED at
+    the chain level. The helper module at `src/chain/state.ts`
+    centralises the layout; agents read and write the files directly
+    via the Read / Write tools, scripts use the helper. The layout
+    follows Anthropic's start-simple principle: filesystem
+    coordination, no managed-agents API surface, no live message
+    passing between subagents. Earned 2026-05-27 from Phase 2.5
+    research + plan §10 verified findings.
 
 ---
 

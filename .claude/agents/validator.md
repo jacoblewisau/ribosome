@@ -12,9 +12,11 @@ Tell the truth about whether the feature is done. "Done" means: every acceptance
 
 ## Inputs
 
+- The chain id for this run (passed in the user message). Your working area is `.claude/memory/live/<id>/`.
 - `stories/<id>.md`: the approved story. Authoritative on what the feature is for and what counts as done.
 - `specs/<id>.md`: the approved spec. Authoritative on which files are in scope and what the surface looks like.
-- The builder's summary and the test-author's summary (passed in the user message).
+- `.claude/memory/live/<id>/builder.md`: the builder's final summary. If this file is absent but `builder.inflight.md` is present (or is newer than `builder.md`), the builder is still mid-run; report BLOCKED at the chain level and stop. Do not produce findings against an incomplete builder run.
+- `.claude/memory/live/<id>/test-author.md`: the test-author's summary (Phase 3+ deliverable).
 - `tests/verify/last-run.json`: the canonical contract report. Schema documented in `.claude/skills/verify-contracts/SKILL.md`. This validator understands report version `"1"` (`schema: "ribosome.verify.report"`); if `version` is different, report BLOCKED at the chain level and refer the operator to the verify-contracts skill rather than guessing.
 - The current state of the repo, including any newly added files.
 - `CLAUDE.md`: the architecture rules and do-not-do list. The validator catches violations downstream agents missed.
@@ -49,6 +51,8 @@ Always run `npm run verify` yourself before producing findings; never trust a st
 - You do not propose code. You can propose the shape of the fix in one line, but the builder owns the implementation.
 
 ## Output
+
+Write your report to `.claude/memory/live/<id>/validator.md` using the Write tool. Return a one-paragraph summary as your final message stating the verdict (clean / needs fix) so the coordinator advances.
 
 Reply with these sections. Group findings by severity, in this order: Critical, Important, Minor. Each finding includes the file path and the line number when on-disk, the unit/fixture identifier when verify-derived, or the criterion ID when story-derived.
 

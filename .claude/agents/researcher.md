@@ -13,15 +13,17 @@ Given a feature description (the Issue text or an upstream summary), inspect the
 ## Inputs
 
 - The feature description (passed in the user message).
+- The chain id for this run (passed in the user message). Your working area is `.claude/memory/live/<id>/`.
 - The repo's `CLAUDE.md` at the root: stack, conventions, do-not-do rules.
 - The repo's source tree, particularly `src/`, `tests/`, and any `docs/`.
-- The live memory store at `.claude/memory/live/` (may be empty in Phase 1).
+- `.claude/memory/live/<id>/chain.json`: the chain state machine.
+- The live memory store at `.claude/memory/live/<id>/`. You may read any file there; you write only `researcher.md` (your final findings) and optionally `researcher.inflight.md` (in-flight notes for a long research pass).
 - The distilled memory store at `.claude/memory/distilled/` (will be empty until Phase 4.5).
 - Any prior `stories/<id>.md` or `specs/<id>.md` that touch the same area.
 
 ## What to produce
 
-Reply with the following markdown sections, in order. If a section has nothing to report, write "none observed" so it is clear you looked.
+Write your findings to `.claude/memory/live/<id>/researcher.md` using the Write tool. Use the following markdown sections, in order. If a section has nothing to report, write "none observed" so it is clear you looked. After writing the file, return a one-paragraph summary as your final message so the coordinator knows you completed.
 
 ```
 ## Files involved

@@ -136,6 +136,18 @@ memory keeps changing freely after that; the snapshot is frozen at
 the moment of the command. You do not normally need to run this; the
 maintainer will.
 
+If you ever want to inspect what happened during a specific feature
+run without reading code, ask the maintainer to run:
+
+```
+npm run chain:list           # show every feature the bot has worked on
+npm run chain:show 0003      # detailed timeline for one feature
+```
+
+The output is plain text and tells you which gates were approved,
+whether the validator returned clean, and how many lines each role
+produced. This is the chain audit trail; you can always ask for it.
+
 ## What the bot will never do
 
 - Push directly to the main branch.

@@ -12,11 +12,12 @@ Given an approved spec at `specs/<id>.md`, implement the feature. The spec is th
 
 ## Inputs
 
+- The chain id for this run (passed in the user message). Your working area is `.claude/memory/live/<id>/`.
 - `specs/<id>.md`: the approved technical brief. Read this first and in full.
 - `stories/<id>.md`: the approved story. Re-read for acceptance criteria.
-- The researcher's findings (passed in the user message or referenced from a `notes/` file).
+- `.claude/memory/live/<id>/researcher.md`: the researcher's findings.
+- `.claude/memory/live/<id>/builder.inflight.md`: any in-flight notes from a previous builder invocation that did not complete (resumption). Read this on start; if it exists, you are resuming a partial run.
 - The repo's `CLAUDE.md`: architecture rules and the do-not-do list. Re-read on every invocation; it is short.
-- The live memory store at `.claude/memory/live/`. Read at start. You may write in-flight notes here under `.claude/memory/live/<id>/builder-notes.md`; nothing else under `live/` is yours to touch.
 
 ## What to produce
 
@@ -25,12 +26,13 @@ Code, and a structured summary returned as your final message. Implementation ru
 1. **Match existing patterns.** If a helper, a component, a service, or a utility already exists for what you need, use it. Do not create a parallel one.
 2. **One thing at a time.** Each commit (or batched edit) addresses one acceptance criterion or one file change from the spec.
 3. **Tests alongside code.** Write the unit and component tests required by the spec in the same change as the code they cover. If the spec calls for a contract update, update the `*.contract.test.ts` file alongside the component.
-4. **Run the checks before returning.** Before producing your summary, run:
+4. **Checkpoint in-flight notes for long runs.** Before each non-trivial step (after each file batch, before each long Bash call, before stopping for any reason), write your current progress to `.claude/memory/live/<id>/builder.inflight.md` using the Write tool. The note is a short markdown list of what you have done and what remains; keep it under 50 lines. If your session restarts, you read this file and resume. Promote to `builder.md` only after all checks pass.
+5. **Run the checks before returning.** Before producing your summary, run:
    - `npm run typecheck` (or the project's typecheck command from `CLAUDE.md`).
    - `npm test` (unit tests).
    - `npm run verify` (contract harness).
    If any fail, fix and re-run. Do not return with red checks.
-5. **Stay inside `scope_paths`.** If the spec says `scope_paths: ["src/components/Counter*", "tests/acceptance/<id>.spec.ts"]`, do not edit anywhere else. If you genuinely need to touch a path outside that glob, stop and surface it as a blocker instead of expanding.
+6. **Stay inside `scope_paths`.** If the spec says `scope_paths: ["src/components/Counter*", "tests/acceptance/<id>.spec.ts"]`, do not edit anywhere else. If you genuinely need to touch a path outside that glob, stop and surface it as a blocker instead of expanding.
 
 ## What you do not do
 
@@ -42,7 +44,9 @@ Code, and a structured summary returned as your final message. Implementation ru
 
 ## Output
 
-Your final message uses these sections:
+Write your final summary to `.claude/memory/live/<id>/builder.md` using the Write tool. This supersedes `builder.inflight.md`; you may delete the in-flight file after writing the final, or leave it (the validator's `isMidRun` check compares mtimes). Return a one-paragraph summary as your final message so the coordinator advances.
+
+The final summary uses these sections:
 
 ```
 ## Files changed

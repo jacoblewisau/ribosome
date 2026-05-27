@@ -6,11 +6,15 @@
  *   - PASS    : every non-probe check is ok (or warn).
  *   - FAIL    : at least one non-probe check is fail.
  *   - BLOCKED : a verifier threw or could not observe; distinct from FAIL.
- *   - SKIP    : reserved; not yet used.
+ *   - SKIP    : reserved; the unit declared zero fixtures.
  *
  * Probe checks are recorded but never elevate the verdict. A probe
  * fixture whose checks all pass is a quiet success; one whose checks
- * fail is the *expected* outcome that proves the harness catches bugs.
+ * fail is the expected outcome that proves the harness catches bugs.
+ *
+ * Every result includes a DOM snapshot: every `data-verify-*` attribute
+ * on the unit's root element at observation time, with the prefix
+ * stripped. The validator reads this snapshot instead of the source.
  */
 
 import { render } from "@testing-library/react";
@@ -22,6 +26,7 @@ export async function runFixture(
   fixture: Fixture
 ): Promise<FixtureResult> {
   const started = performance.now();
+  const startedISO = new Date().toISOString();
   const checks: Check[] = [];
   const isProbe = fixture.probe === true;
 
@@ -31,10 +36,13 @@ export async function runFixture(
     container = c;
   } catch (err) {
     return {
-      unit: unit.name,
-      fixture: fixture.name,
+      unitId: unit.name,
+      fixtureId: fixture.name,
       probe: isProbe,
       verdict: isProbe ? "PASS" : "BLOCKED",
+      blockedReason: isProbe ? undefined : `render threw: ${(err as Error).message}`,
+      durationMs: performance.now() - started,
+      timestamp: startedISO,
       checks: [
         {
           verifier: "runner",
@@ -42,7 +50,7 @@ export async function runFixture(
           reason: `render threw: ${(err as Error).message}`,
         },
       ],
-      durationMs: performance.now() - started,
+      domSnapshot: {},
     };
   }
 
@@ -76,27 +84,55 @@ export async function runFixture(
     }
   }
 
-  const verdict = verdictOf(checks, isProbe);
+  const domSnapshot = snapshotContract(container, unit.name);
+  const { verdict, blockedReason } = verdictOf(checks, isProbe);
+
   return {
-    unit: unit.name,
-    fixture: fixture.name,
+    unitId: unit.name,
+    fixtureId: fixture.name,
     probe: isProbe,
     verdict,
-    checks,
+    blockedReason,
     durationMs: performance.now() - started,
+    timestamp: startedISO,
+    checks,
+    domSnapshot,
   };
 }
 
-function verdictOf(checks: ReadonlyArray<Check>, isProbe: boolean): FixtureResult["verdict"] {
-  // Probes always PASS at the verdict level; the checks array records
-  // their internal state for the dashboard.
-  if (isProbe) return "PASS";
+function verdictOf(
+  checks: ReadonlyArray<Check>,
+  isProbe: boolean
+): { verdict: FixtureResult["verdict"]; blockedReason?: string } {
+  if (isProbe) return { verdict: "PASS" };
   let hasFail = false;
-  let hasBlocked = false;
+  let blockedReason: string | undefined;
   for (const c of checks) {
-    if (c.status === "fail") hasFail = true;
-    if (c.verifier === "runner" && c.status === "fail") hasBlocked = true;
+    if (c.status === "fail") {
+      hasFail = true;
+      if (c.verifier === "runner") {
+        blockedReason = c.reason;
+      }
+    }
   }
-  if (hasFail || hasBlocked) return hasBlocked ? "BLOCKED" : "FAIL";
-  return "PASS";
+  if (blockedReason) return { verdict: "BLOCKED", blockedReason };
+  if (hasFail) return { verdict: "FAIL" };
+  return { verdict: "PASS" };
+}
+
+/**
+ * Walk the unit's root and collect every `data-verify-*` attribute as a
+ * key->value map with the `data-verify-` prefix stripped. The map is
+ * the contract surface the validator consults.
+ */
+function snapshotContract(container: HTMLElement, unitName: string): Record<string, string> {
+  const root = container.querySelector(`[data-verify-unit="${unitName}"]`);
+  if (!root) return {};
+  const snap: Record<string, string> = {};
+  for (const attr of Array.from(root.attributes)) {
+    if (attr.name.startsWith("data-verify-")) {
+      snap[attr.name.slice("data-verify-".length)] = attr.value;
+    }
+  }
+  return snap;
 }

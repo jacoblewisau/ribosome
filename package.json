@@ -12,7 +12,7 @@
     "test": "vitest run --passWithNoTests --exclude '**/matrix.test.ts' --exclude 'tests/acceptance/**'",
     "test:watch": "vitest --passWithNoTests --exclude '**/matrix.test.ts' --exclude 'tests/acceptance/**'",
     "test:acceptance": "vitest run --passWithNoTests tests/acceptance",
-    "verify": "vitest run --reporter=json --outputFile=tests/verify/last-run.json src/verify/matrix.test.ts",
+    "verify": "vitest run src/verify/matrix.test.ts",
     "memory:snapshot": "bash scripts/memory-snapshot.sh"
   },
   "dependencies": {
@@ -23,6 +23,7 @@
   "devDependencies": {
     "@testing-library/dom": "^10.4.0",
     "@testing-library/react": "^16.1.0",
+    "@types/node": "^25.9.1",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.4",

@@ -75,15 +75,33 @@ export interface Verifier {
   ) => Check[] | Promise<Check[]>;
 }
 
-/** Result of running one fixture across all registered verifiers. */
+/**
+ * Result of running one fixture across all registered verifiers.
+ *
+ * Field names track the verifiable-React workshop's VerifyResult shape
+ * (`unitId`, `fixtureId`, `blockedReason`, `durationMs`, `timestamp`,
+ * `domSnapshot`). The verify-contracts SKILL documents the schema; the
+ * validator depends on it. Do not rename fields without bumping the
+ * report version in run-verify.
+ */
 export interface FixtureResult {
-  unit: string;
-  fixture: string;
+  unitId: string;
+  fixtureId: string;
   probe: boolean;
   verdict: Verdict;
-  checks: Check[];
-  /** Wall time for this fixture run in milliseconds. */
+  /** Populated only when verdict is BLOCKED. One-line reason. */
+  blockedReason?: string;
   durationMs: number;
+  /** ISO-8601 timestamp at fixture run start. */
+  timestamp: string;
+  checks: Check[];
+  /**
+   * DOM contract snapshot: every `data-verify-*` attribute observed on
+   * the unit's root element, keyed by attribute name (with the
+   * `data-verify-` prefix stripped). This is the labelled-facts view the
+   * validator inspects without reading source.
+   */
+  domSnapshot: Record<string, string>;
 }
 
 /** Result of running the full matrix. */
@@ -94,6 +112,30 @@ export interface MatrixResult {
   failed: number;
   blocked: number;
   skipped: number;
-  probeFailuresExpected: number;
+  probesSeen: number;
+  results: FixtureResult[];
+}
+
+/**
+ * Canonical verify report schema, version 1. Written to
+ * `tests/verify/last-run.json` after every `npm run verify`. The
+ * validator depends on field names and types exactly as declared here.
+ *
+ * Increment `version` for any breaking change; the validator's prompt
+ * cites the version it understands.
+ */
+export interface VerifyReport {
+  version: "1";
+  generated_at: string;
+  schema: "ribosome.verify.report";
+  totals: {
+    units: number;
+    fixtures: number;
+    pass: number;
+    fail: number;
+    blocked: number;
+    skip: number;
+    probes: number;
+  };
   results: FixtureResult[];
 }

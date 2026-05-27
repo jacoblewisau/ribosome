@@ -1,4 +1,6 @@
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { writeFileSync, mkdirSync } from "node:fs";
+import { dirname, resolve } from "node:path";
 
 import { _resetRegistryForTests, getUnits, registerVerifier } from "./core/registry";
 import { runFixture } from "./core/runner";
@@ -6,9 +8,13 @@ import { schemaVerifier } from "./verifiers/schema";
 import { invariantsVerifier } from "./verifiers/invariants";
 import { domContractVerifier } from "./verifiers/dom-contract";
 import { a11yVerifier } from "./verifiers/a11y";
+import type { FixtureResult, VerifyReport } from "./core/types";
 
-// Importing the specs is what triggers registration.
-// Side-effectful by design.
+const REPORT_PATH = resolve(__dirname, "../../tests/verify/last-run.json");
+
+// Collected during the run; written in afterAll.
+const collected: FixtureResult[] = [];
+
 beforeAll(async () => {
   _resetRegistryForTests();
   registerVerifier(schemaVerifier);
@@ -19,6 +25,27 @@ beforeAll(async () => {
   await import("./specs/TodoApp.verify");
   await import("./specs/TodoStats.verify");
   await import("./specs/todos.feature.verify");
+});
+
+afterAll(() => {
+  const totals = {
+    units: new Set(collected.map((r) => r.unitId)).size,
+    fixtures: collected.length,
+    pass: collected.filter((r) => r.verdict === "PASS" && !r.probe).length,
+    fail: collected.filter((r) => r.verdict === "FAIL").length,
+    blocked: collected.filter((r) => r.verdict === "BLOCKED").length,
+    skip: collected.filter((r) => r.verdict === "SKIP").length,
+    probes: collected.filter((r) => r.probe).length,
+  };
+  const report: VerifyReport = {
+    version: "1",
+    generated_at: new Date().toISOString(),
+    schema: "ribosome.verify.report",
+    totals,
+    results: collected,
+  };
+  mkdirSync(dirname(REPORT_PATH), { recursive: true });
+  writeFileSync(REPORT_PATH, JSON.stringify(report, null, 2));
 });
 
 describe("verify matrix", () => {
@@ -32,31 +59,31 @@ describe("verify matrix", () => {
   });
 
   it("runs every fixture and reports verdicts", async () => {
+    // Soft expectations collect failures across the entire matrix
+    // instead of bailing at the first failing fixture. The validator
+    // depends on a complete report; partial runs hide downstream
+    // problems behind upstream ones.
     const units = getUnits();
-    let nonProbeFailures = 0;
     let probesSeen = 0;
     for (const unit of units) {
       for (const fixture of unit.fixtures) {
         const result = await runFixture(unit, fixture);
+        collected.push(result);
         if (result.probe) {
           probesSeen += 1;
-          // Probes are always PASS at the verdict level (their internal
-          // checks may include "probe" status entries).
-          expect(result.verdict, `probe ${unit.name}/${fixture.name} verdict`).toBe("PASS");
+          expect.soft(result.verdict, `probe ${unit.name}/${fixture.name} verdict`).toBe("PASS");
         } else {
           if (result.verdict !== "PASS") {
-            nonProbeFailures += 1;
             // eslint-disable-next-line no-console
             console.error(
               `[verify matrix] non-probe failure: ${unit.name}/${fixture.name} verdict=${result.verdict}`,
-              JSON.stringify(result.checks, null, 2)
+              JSON.stringify(result.checks.filter((c) => c.status === "fail"), null, 2)
             );
           }
-          expect(result.verdict, `${unit.name}/${fixture.name} verdict`).toBe("PASS");
+          expect.soft(result.verdict, `${unit.name}/${fixture.name} verdict`).toBe("PASS");
         }
       }
     }
     expect(probesSeen).toBeGreaterThan(0);
-    expect(nonProbeFailures).toBe(0);
   });
 });

@@ -17,7 +17,7 @@
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
     "useDefineForClassFields": true,
-    "types": ["vitest/globals"],
+    "types": ["vitest/globals", "node"],
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"]

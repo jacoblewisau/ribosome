@@ -70,12 +70,30 @@ function findRepoRoot(start: string = process.cwd()): string {
 }
 
 const REPO_ROOT = findRepoRoot();
-const DISTILLED_ROOT = join(REPO_ROOT, ".claude", "memory", "distilled");
-const ARCHIVE_ROOT = join(REPO_ROOT, ".claude", "memory", "distilled.archive");
-const ROOT_MEMORY_MD = join(REPO_ROOT, "MEMORY.md");
+
+/**
+ * Resolve the on-disk paths used by this module. Reads env var
+ * overrides on every call so tests can sandbox to a temp dir
+ * without affecting production state. Production callers see the
+ * default repo-rooted paths.
+ *
+ *   RIBOSOME_DISTILLED_ROOT        overrides .claude/memory/distilled
+ *   RIBOSOME_DISTILLED_ARCHIVE_ROOT overrides .claude/memory/distilled.archive
+ *   RIBOSOME_MEMORY_MD              overrides <repo-root>/MEMORY.md
+ */
+function paths(): { DISTILLED_ROOT: string; ARCHIVE_ROOT: string; ROOT_MEMORY_MD: string } {
+  return {
+    DISTILLED_ROOT:
+      process.env.RIBOSOME_DISTILLED_ROOT ?? join(REPO_ROOT, ".claude", "memory", "distilled"),
+    ARCHIVE_ROOT:
+      process.env.RIBOSOME_DISTILLED_ARCHIVE_ROOT ??
+      join(REPO_ROOT, ".claude", "memory", "distilled.archive"),
+    ROOT_MEMORY_MD: process.env.RIBOSOME_MEMORY_MD ?? join(REPO_ROOT, "MEMORY.md"),
+  };
+}
 
 export function distilledRoots() {
-  return { DISTILLED_ROOT, ARCHIVE_ROOT, ROOT_MEMORY_MD };
+  return paths();
 }
 
 /**
@@ -83,6 +101,7 @@ export function distilledRoots() {
  * Sorted, newest last. Excludes hidden files like .gitkeep.
  */
 export function listDistilledTimestamps(): string[] {
+  const { DISTILLED_ROOT } = paths();
   if (!existsSync(DISTILLED_ROOT)) return [];
   return readdirSync(DISTILLED_ROOT)
     .filter((entry) => {
@@ -96,6 +115,7 @@ export function listDistilledTimestamps(): string[] {
 export function latestDistilledPath(): string | undefined {
   const stamps = listDistilledTimestamps();
   if (stamps.length === 0) return undefined;
+  const { DISTILLED_ROOT } = paths();
   return join(DISTILLED_ROOT, stamps[stamps.length - 1]!);
 }
 
@@ -150,6 +170,7 @@ export function writeDistilled(store: Omit<DistilledStore, "version" | "schema">
     .replace(/[:.]/g, "-")
     .replace("T", "T")
     .replace("Z", "Z");
+  const { DISTILLED_ROOT, ROOT_MEMORY_MD } = paths();
   const newDir = join(DISTILLED_ROOT, timestamp);
   mkdirSync(newDir, { recursive: true });
 
@@ -213,6 +234,7 @@ export function citeItem(id: string): void {
 }
 
 function archive(timestamp: string): void {
+  const { DISTILLED_ROOT, ARCHIVE_ROOT } = paths();
   mkdirSync(ARCHIVE_ROOT, { recursive: true });
   // We "archive" by copy + leave-in-place. Symlink would be cleaner
   // on POSIX but breaks on Windows; a plain copy is portable.
@@ -358,6 +380,7 @@ export function _purgeForTests(confirm: "I-KNOW-WHAT-I-AM-DOING"): void {
   if (confirm !== "I-KNOW-WHAT-I-AM-DOING") {
     throw new Error("chain/distilled: purge requires confirmation token");
   }
+  const { DISTILLED_ROOT, ARCHIVE_ROOT } = paths();
   for (const root of [DISTILLED_ROOT, ARCHIVE_ROOT]) {
     if (!existsSync(root)) continue;
     for (const entry of readdirSync(root)) {

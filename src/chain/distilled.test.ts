@@ -13,11 +13,23 @@
  * researcher is a Claude Code subagent invoked from a real session.
  */
 
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { existsSync, readFileSync } from "node:fs";
+import { describe, it, expect, beforeAll, beforeEach, afterEach } from "vitest";
+import { existsSync, mkdtempSync, readFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import {
+// Sandbox the production paths to a tmp dir BEFORE the module import
+// captures them. distilled.ts reads RIBOSOME_DISTILLED_ROOT and friends
+// lazily on every call, so setting these here is sufficient to isolate
+// the test from production state. Tests would otherwise wipe the real
+// .claude/memory/distilled and the repo-root MEMORY.md, which happened
+// once during Phase 3 verification.
+const SANDBOX_ROOT = mkdtempSync(join(tmpdir(), "ribosome-distilled-test-"));
+process.env.RIBOSOME_DISTILLED_ROOT = join(SANDBOX_ROOT, "distilled");
+process.env.RIBOSOME_DISTILLED_ARCHIVE_ROOT = join(SANDBOX_ROOT, "archive");
+process.env.RIBOSOME_MEMORY_MD = join(SANDBOX_ROOT, "MEMORY.md");
+
+const {
   _purgeForTests,
   citeItem,
   distilledRoots,
@@ -27,11 +39,26 @@ import {
   readDistilledFromDir,
   readLatestDistilled,
   writeDistilled,
-  type DistilledItem,
-} from "./distilled";
+} = await import("./distilled");
+type DistilledItem = Awaited<ReturnType<typeof readLatestDistilled>> extends { items: infer I } | undefined
+  ? I extends Array<infer T>
+    ? T
+    : never
+  : never;
 
 beforeEach(() => _purgeForTests("I-KNOW-WHAT-I-AM-DOING"));
 afterEach(() => _purgeForTests("I-KNOW-WHAT-I-AM-DOING"));
+
+beforeAll(() => {
+  // Sanity: confirm the sandbox is in place and not the real repo.
+  const { DISTILLED_ROOT, ROOT_MEMORY_MD } = distilledRoots();
+  if (!DISTILLED_ROOT.includes("ribosome-distilled-test-")) {
+    throw new Error(`refusing to run: DISTILLED_ROOT not sandboxed: ${DISTILLED_ROOT}`);
+  }
+  if (!ROOT_MEMORY_MD.includes("ribosome-distilled-test-")) {
+    throw new Error(`refusing to run: ROOT_MEMORY_MD not sandboxed: ${ROOT_MEMORY_MD}`);
+  }
+});
 
 function sampleItem(id: string, overrides: Partial<DistilledItem> = {}): DistilledItem {
   return {

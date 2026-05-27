@@ -17,7 +17,8 @@
     "chain:show": "node --experimental-strip-types scripts/chain-show.ts",
     "chain:list": "node --experimental-strip-types scripts/chain-show.ts list",
     "dream:show": "node --experimental-strip-types scripts/dream-show.ts",
-    "dream:forget": "node --experimental-strip-types scripts/dream-forget.ts"
+    "dream:forget": "node --experimental-strip-types scripts/dream-forget.ts",
+    "setup:check": "node --experimental-strip-types scripts/setup-check.ts"
   },
   "dependencies": {
     "react": "^19.0.0",

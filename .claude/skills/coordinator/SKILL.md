@@ -25,7 +25,7 @@ The chain state lives in a sticky comment on the Issue. The comment is posted by
 
 On every invocation:
 
-1. List bot comments on the Issue: `gh issue view <issue> --json comments --jq '.comments[] | select(.author.login | endswith("-bot")) | .body'`.
+1. List bot comments on the Issue: `gh issue view <issue> --json comments --jq '.comments[] | select(.author.login | endswith("[bot]")) | .body'`. GitHub's standard bot login convention is `<name>[bot]`; the Claude GitHub App posts as `claude[bot]` (verified from primary sources 2026-05-28). Do NOT use `endswith("-bot")`; that pattern matches nothing.
 2. Find the most recent comment containing `<!-- ribosome:state v1`.
 3. Extract the JSON between that marker and the closing `-->`.
 4. If no state comment exists, this is the first step: initialise.

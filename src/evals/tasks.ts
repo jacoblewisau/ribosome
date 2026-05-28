@@ -397,6 +397,28 @@ export const TASKS: ReadonlyArray<TaskDefinition> = [
     },
   },
   {
+    id: "TR6",
+    category: "trap",
+    name: "every scout workflow grants `id-token: write` permission",
+    rationale:
+      "Earned 2026-05-28 in production: after the workflow_run trigger fix landed, every scout failed at the action's first invocation with 'Could not fetch an OIDC token. Did you remember to add id-token: write to your workflow permissions?'. The action retries 3x then aborts. The docs imply id-token is only needed for OIDC federation, but the action's actual code path requires it even with anthropic_api_key set. ribosome.yml already has it (line 26); scouts must too.",
+    check: () => {
+      const missing: string[] = [];
+      for (const s of SCOUT_NAMES) {
+        const yml = readFile(`.github/workflows/scout-${s}.yml`);
+        // Match `id-token: write` (with optional comment) inside the
+        // permissions block. Conservative: look for the literal anywhere
+        // in the file since each scout's permissions block is the only
+        // place these keys appear.
+        if (!/id-token:\s*write/.test(yml)) {
+          missing.push(`scout-${s}.yml lacks id-token: write`);
+        }
+      }
+      if (missing.length > 0) return fail(missing.join("; "));
+      return pass();
+    },
+  },
+  {
     id: "TR5",
     category: "trap",
     name: "no scout workflow uses `on: push:` (agent mode rejects push)",

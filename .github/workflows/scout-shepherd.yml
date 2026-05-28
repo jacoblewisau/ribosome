@@ -17,6 +17,7 @@ permissions:
   issues: write
   pull-requests: write
   contents: read
+  id-token: write # required by anthropics/claude-code-action@v1 even with anthropic_api_key set
 
 concurrency:
   group: scout-shepherd

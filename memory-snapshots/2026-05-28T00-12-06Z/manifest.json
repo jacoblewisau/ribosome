@@ -1,0 +1,8 @@
+{
+  "snapshot_at": "2026-05-28T00:12:06Z",
+  "source": ".claude/memory",
+  "live_chains": "0001,0002,0003,0004",
+  "distilled_files": 30,
+  "distilled_archive_files": 22,
+  "git_head_at_snapshot": "c266e131ea0cc1f2ebab32a15c1ac2068845e899"
+}

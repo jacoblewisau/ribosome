@@ -1,0 +1,22 @@
+{
+  "id": "0003",
+  "issue": "Add due dates to todos with overdue highlighting and an overdue filter.",
+  "path": "full",
+  "path_reason": "introduces time-dependent state; touches the feature module, the form, the item, the app, the filter controls, and the contract specs; first time the chain handles time-determinism",
+  "current_step": "completed",
+  "gate_state": {
+    "1_story": "approved (defaults stand: local-noon parsing, clock prop, overdue in stats, no ticker, done-dominates)",
+    "2_spec": "approved; amended 2026-05-27 to include src/verify/specs/TodoStats.verify.ts in scope_paths per CLAUDE.md rule 13",
+    "3_pr": "phase-1-skipped"
+  },
+  "first_pass_findings": "1 Important (TodoStats.verify.ts scope creep); resolved by promoting CLAUDE.md rule 13 + amending spec",
+  "validator_status": "clean (after amendment)",
+  "files_in_scope": 9,
+  "files_out_of_scope": 0,
+  "tests_total": 2,
+  "tests_passed": 2,
+  "tests_failed": 0,
+  "rules_promoted": ["13"],
+  "started_at": "2026-05-27",
+  "completed_at": "2026-05-27"
+}

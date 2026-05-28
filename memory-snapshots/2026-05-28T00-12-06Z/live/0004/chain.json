@@ -1,0 +1,16 @@
+{
+  "version": "1",
+  "id": "0004",
+  "issue": "Add edit-in-place for todo text. Click the todo text to edit; press Enter to save; press Escape to cancel; click outside to cancel.",
+  "path": "full",
+  "path_reason": "introduces per-item local state coordinated across multiple TodoItems, new keyboard interaction surface, first feature whose acceptance includes focus management",
+  "current_step": "completed",
+  "gate_state": {
+    "story": "approved",
+    "spec": "approved",
+    "pr": "phase-skipped"
+  },
+  "validator_status": "clean",
+  "started_at": "2026-05-27T20:53:23.288Z",
+  "completed_at": "2026-05-27T20:59:33.185Z"
+}

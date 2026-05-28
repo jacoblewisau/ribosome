@@ -1,0 +1,20 @@
+{
+  "id": "0002",
+  "issue": "Add tags to todos so users can categorize them.",
+  "path": "full",
+  "path_reason": "new field in state shape, new UI input, new display rendering, new probe; warrants both gates",
+  "current_step": "completed",
+  "gate_state": {
+    "1_story": "approved (defaults stand: comma-separated input, case-sensitive dedupe, unbounded, inline render, TodoStats unchanged)",
+    "2_spec": "approved",
+    "3_pr": "phase-1-skipped"
+  },
+  "validator_status": "clean (no Critical, no Important, no Minor; no scope creep)",
+  "files_in_scope": 6,
+  "files_out_of_scope": 0,
+  "tests_total": 2,
+  "tests_passed": 2,
+  "tests_failed": 0,
+  "started_at": "2026-05-27",
+  "completed_at": "2026-05-27"
+}

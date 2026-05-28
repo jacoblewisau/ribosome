@@ -614,6 +614,25 @@ export const TASKS: ReadonlyArray<TaskDefinition> = [
     },
   },
   {
+    id: "TR10",
+    category: "trap",
+    name: "ribosome.yml pins the chain to claude-opus-4-8 (the current latest Opus)",
+    rationale:
+      "The chain runs Opus by default. As of 2026-05-29, the latest Opus is 4.8 (per Anthropic prompting docs: 'The exact model string for Claude Opus 4.8 is claude-opus-4-8'). 4.8 has documented strengths in long-horizon agentic work, literal instruction following, and higher precision in code review. Catches a regression where someone reverts to 4.7 (which is now one version behind) or drops the --model flag entirely (which would default to whatever the action's pinned default is, breaking reproducibility). Update this invariant when a newer Opus ships and Ribosome migrates.",
+    check: () => {
+      const yml = readFile(".github/workflows/ribosome.yml");
+      if (!/--model\s+claude-opus-4-8/.test(yml)) {
+        return fail(".github/workflows/ribosome.yml does not pin --model claude-opus-4-8");
+      }
+      // Forbid the older version explicitly so a half-edit (changing the
+      // string in only one place) trips the trap.
+      if (/--model\s+claude-opus-4-7/.test(yml)) {
+        return fail(".github/workflows/ribosome.yml still references claude-opus-4-7 somewhere");
+      }
+      return pass();
+    },
+  },
+  {
     id: "TR4",
     category: "trap",
     name: "no scout workflow uses --dangerously-skip-permissions",

@@ -50,7 +50,7 @@ Source: Anthropic's prompting docs, section "Code review harnesses":
 
 The doc warns: "When a review prompt says things like 'only report high-severity issues,' 'be conservative,' or 'don't nitpick,' Claude Opus 4.8 may follow that instruction more faithfully than earlier models did: it may investigate the code just as thoroughly, identify the bugs, and then not report findings it judges to be below your stated bar."
 
-Ribosome's validator runs on Opus 4.7 (per `ribosome.yml`). To avoid silently dropping real bugs, the validator's job at the finding stage is **coverage**, not filtering.
+Ribosome's validator runs on Opus 4.8 (per `ribosome.yml`). The doc notes that 4.8 has "higher recall and precision in internal evals" but also follows conservative instructions more faithfully than earlier models — so explicit coverage-first language matters more, not less. To avoid silently dropping real bugs, the validator's job at the finding stage is **coverage**, not filtering.
 
 <coverage_first>
 Report every issue you find, including ones you are uncertain about or consider low-severity. Do not filter for importance or confidence at this stage; the operator's review of the PR is the downstream filter. Your goal here is coverage: it is better to surface a finding that later gets filtered out than to silently drop a real bug.

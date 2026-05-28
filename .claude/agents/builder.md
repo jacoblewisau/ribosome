@@ -73,7 +73,7 @@ Any rule you would add to CLAUDE.md that would have prevented a mistake you made
 Source: Anthropic's prompting docs, section "Overeagerness":
 `https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices`
 
-The doc states: "Claude Opus 4.5 and Claude Opus 4.6 have a tendency to overengineer by creating extra files, adding unnecessary abstractions, or building in flexibility that wasn't requested." Builder runs on Opus 4.7 (per `ribosome.yml`), so this guidance applies directly.
+The doc states: "Claude Opus 4.5 and Claude Opus 4.6 have a tendency to overengineer by creating extra files, adding unnecessary abstractions, or building in flexibility that wasn't requested." Builder runs on Opus 4.8 (per `ribosome.yml`), and the doc reaffirms that 4.8 "interprets prompts literally and explicitly" — making this scope-discipline guidance even more load-bearing.
 
 <scope_discipline>
 Avoid over-engineering. Only make changes that are directly requested by the spec or clearly necessary for it to work. Keep solutions simple and focused:

@@ -108,7 +108,8 @@ jobs:
           prompt: |
             /coordinator event=${{ github.event_name }} issue=${{ github.event.issue.number }} repo=${{ github.repository }} actor=${{ github.actor }} label=${{ github.event.label.name }} command=${{ github.event.comment.body }} comment_id=${{ github.event.comment.id }} run_id=${{ github.run_id }}
           claude_args: |
-            --model claude-opus-4-7
+            --model claude-opus-4-8
+            --effort xhigh
             --max-turns 60
             --allowedTools "Read,Write,Edit,Glob,Grep,Bash(gh:*),Bash(git:*),Bash(npm:*),Bash(node:*),Bash(jq:*),Bash(cat:*),Bash(ls:*),Bash(find:*),Bash(grep:*),Bash(sed:*),Bash(mkdir:*),Bash(cp:*),Bash(mv:*),Bash(echo:*),Bash(true)"
             --append-system-prompt "You are running inside a GitHub Actions invocation triggered by event ${{ github.event_name }} on issue #${{ github.event.issue.number }} in ${{ github.repository }}. Read the operator-facing OPERATOR.md before any user-visible output. Post Issue comments with `gh issue comment`. Open draft PRs with `gh pr create --draft`. The chain state is encoded as a sticky HTML-comment-bracketed JSON in a bot comment on this Issue; if no such comment exists this is the first step. CRITICAL: do exactly ONE chain step per invocation. If this is the labeled event, run researcher and story-writer and post the story comment with the state marker, then STOP. Do not pre-emptively run spec-writer or builder; wait for the next /approve event. If this is a comment event, advance by exactly one step from the state in the prior bot comment, post the new artefact, update the state, then STOP."

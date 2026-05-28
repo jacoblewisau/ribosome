@@ -1,9 +1,9 @@
 {
   "version": "1",
   "schema": "ribosome.eval.baseline",
-  "recorded_at": "2026-05-29T09:00:00.000Z",
-  "pass": 29,
-  "totalTasks": 29,
+  "recorded_at": "2026-05-29T09:47:00.000Z",
+  "pass": 30,
+  "totalTasks": 30,
   "score": 1,
-  "notes": "rebaselined after session-4 agent-behaviour tightening. R10 (builder scope_discipline block), R11 (validator coverage-first language with confidence levels), T10 (researcher + validator state-contract fenced JSON). test-author removed from chain dispatch; builder now writes acceptance tests within scope_paths. Primary sources cited in agent prompts: Anthropic prompting best-practices doc, 'Overeagerness' and 'Code review harnesses' sections."
+  "notes": "rebaselined after Opus 4.7 -> 4.8 upgrade. TR10 pins ribosome.yml --model to claude-opus-4-8 (latest Opus per Anthropic prompting docs). Chain now also passes --effort xhigh per the doc's recommendation for coding/agentic use cases. Builder.md and validator.md citation blocks updated to reference 4.8."
 }

@@ -379,6 +379,33 @@ export const TASKS: ReadonlyArray<TaskDefinition> = [
     },
   },
   {
+    id: "T7",
+    category: "tricky",
+    name: "agent prompts do not direct use of tools not in their allowlist",
+    rationale:
+      "Earned 2026-05-28 from chain 0005 run 1: researcher.md and validator.md both said 'Write your findings ... using the Write tool' but their tools frontmatter excluded Write. The researcher fell back to inline output (per Claude Code's subagent system reminder), the coordinator misdiagnosed an enforce-scope block, and the chain stalled before story-writer. Invariant: if Write is not in the agent's tools allowlist, the prompt body must not contain the literal 'the Write tool' as an instruction.",
+    check: () => {
+      const offenders: string[] = [];
+      for (const path of AGENT_FILES) {
+        const content = readFile(path);
+        const m = content.match(/^---\n([\s\S]*?)\n---/);
+        if (!m) continue;
+        const fm = m[1]!;
+        const toolsMatch = fm.match(/^tools:\s*(.+)$/m);
+        if (!toolsMatch) continue;
+        const tools = toolsMatch[1]!;
+        const hasWrite = /\bWrite\b/.test(tools);
+        if (hasWrite) continue;
+        const body = content.slice(m[0].length);
+        if (/using the Write tool|via the Write tool/i.test(body)) {
+          offenders.push(`${path} directs Write but tools allowlist excludes it`);
+        }
+      }
+      if (offenders.length > 0) return fail(offenders.join("; "));
+      return pass();
+    },
+  },
+  {
     id: "TR4",
     category: "trap",
     name: "no scout workflow uses --dangerously-skip-permissions",

@@ -17,14 +17,16 @@ Given a feature description (the Issue text or an upstream summary), inspect the
 - The repo's `CLAUDE.md` at the root: stack, conventions, do-not-do rules.
 - The repo's source tree, particularly `src/`, `tests/`, and any `docs/`.
 - `.claude/memory/live/<id>/chain.json`: the chain state machine.
-- The live memory store at `.claude/memory/live/<id>/`. You may read any file there; you write only `researcher.md` (your final findings) and optionally `researcher.inflight.md` (in-flight notes for a long research pass).
+- The live memory store at `.claude/memory/live/<id>/`. You may read any file there. You do not write to it directly; your inline reply is what the coordinator persists.
 - **The distilled memory store** at `.claude/memory/distilled/<latest-timestamp>/`. Read `MEMORY.md` in that directory first; it is the index. Then read any item that looks relevant. Cite the item id in the "Memory citations" section of your findings; the dream skill increments the item's `reference_count` when you cite it.
 - The repo-root `MEMORY.md` is the human-readable digest of the distilled store. It is committed; the underlying distilled files may not be on this machine. Read the repo-root file as a fallback if the distilled directory is empty.
 - Any prior `stories/<id>.md` or `specs/<id>.md` that touch the same area.
 
 ## What to produce
 
-Write your findings to `.claude/memory/live/<id>/researcher.md` using the Write tool. Use the following markdown sections, in order. If a section has nothing to report, write "none observed" so it is clear you looked. After writing the file, return a one-paragraph summary as your final message so the coordinator knows you completed.
+Your tools allowlist is `Read, Grep, Glob` (no Write); Claude Code's subagent system reminder also forbids writing report/findings/analysis files. Return your findings inline as your final assistant message, structured with the markdown sections below. The coordinator (which has Write) will persist your reply to `.claude/memory/live/<id>/researcher.md` before invoking the story-writer step. End your reply with a one-paragraph summary so the coordinator can act on it quickly.
+
+If a section has nothing to report, write "none observed" so it is clear you looked.
 
 ```
 ## Files involved

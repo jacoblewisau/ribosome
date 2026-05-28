@@ -1,9 +1,9 @@
 {
   "version": "1",
   "schema": "ribosome.eval.baseline",
-  "recorded_at": "2026-05-28T06:02:00.000Z",
-  "pass": 19,
-  "totalTasks": 19,
+  "recorded_at": "2026-05-28T07:06:00.000Z",
+  "pass": 20,
+  "totalTasks": 20,
   "score": 1,
-  "notes": "rebaselined after adding TR6 (every scout grants id-token: write). Earned from production failure on jacoblewisau/ribosome-test: scouts succeeded structurally on workflow_run but failed at the action's first turn with 'Could not fetch an OIDC token' because id-token: write was missing from scout permissions. Adding it across all seven scouts."
+  "notes": "rebaselined after T7 (agent prompts do not direct use of tools not in their allowlist). Earned from chain 0005 run 1 stall: researcher.md and validator.md instructed 'Write your findings ... using the Write tool' while their tools frontmatter excluded Write. Fix: agents return inline; coordinator persists. T7 locks the invariant."
 }

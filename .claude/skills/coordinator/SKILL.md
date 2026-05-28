@@ -55,14 +55,18 @@ For each step listed above, the canonical inputs and outputs:
 
 | Step | Reads | Writes (file) | Writes (comment) |
 |---|---|---|---|
-| researcher | `CLAUDE.md`, `MEMORY.md`, source tree, prior chains | `.claude/memory/live/<id>/researcher.md` | none (researcher is silent on the Issue; story-writer is the next visible step) |
+| researcher | `CLAUDE.md`, `MEMORY.md`, source tree, prior chains | (returns inline; coordinator persists to `.claude/memory/live/<id>/researcher.md`) | none (researcher is silent on the Issue; story-writer is the next visible step) |
 | story-writer | researcher.md | `stories/<id>.md` | "Story for review (gate 1)" with story body + state marker |
 | spec-writer | story + researcher | `specs/<id>.md` | "Spec for review (gate 2)" with spec body + state marker |
 | builder | spec, researcher, in-flight notes | `.claude/memory/live/<id>/builder.md`, code under `scope_paths` | none directly; coordinator posts "Building" status with state marker |
 | test-author | story, builder summary | tests/acceptance/<id>.spec.ts | none |
 | verify-contracts | the contract harness | `tests/verify/last-run.json` | none |
-| validator | story, spec, builder, last-run.json | `.claude/memory/live/<id>/validator.md` | none directly; coordinator posts "Validator: clean" or "Validator: needs fix" status |
+| validator | story, spec, builder, last-run.json | (returns inline; coordinator persists to `.claude/memory/live/<id>/validator.md`) | none directly; coordinator posts "Validator: clean" or "Validator: needs fix" status |
 | pr-shepherd | validator.md, builder.md, story, last-run.json | the PR itself | PR opened comment with link |
+
+### Persistence of read-only subagent output
+
+`researcher` and `validator` are tool-restricted read-only agents (no Write). They return findings inline as their final assistant message. After each returns, the coordinator persists the reply text to the file shown above using its own Write tool, so downstream steps can read it as a file. `builder` has Write and writes its own `builder.md` directly. Earned 2026-05-28: chain 0005 run 1 stalled because researcher returned inline (correct per its tools) but the coordinator was ambiguous about who persists the file; run 2 succeeded by accident via a Bash heredoc workaround. This table is now the contract.
 
 ## Operator-visible comments
 

@@ -52,7 +52,7 @@ Always run `npm run verify` yourself before producing findings; never trust a st
 
 ## Output
 
-Write your report to `.claude/memory/live/<id>/validator.md` using the Write tool. Return a one-paragraph summary as your final message stating the verdict (clean / needs fix) so the coordinator advances.
+Your tools allowlist is `Read, Grep, Glob, Bash` (no Write); Claude Code's subagent system reminder also forbids writing report files. Return your full report inline as your final assistant message, using the sections below. The coordinator (which has Write) will persist your reply to `.claude/memory/live/<id>/validator.md` before deciding the next chain step. End your reply with a one-paragraph summary stating the verdict (clean / needs fix) so the coordinator advances.
 
 Reply with these sections. Group findings by severity, in this order: Critical, Important, Minor. Each finding includes the file path and the line number when on-disk, the unit/fixture identifier when verify-derived, or the criterion ID when story-derived.
 

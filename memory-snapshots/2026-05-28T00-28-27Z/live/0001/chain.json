@@ -1,0 +1,18 @@
+{
+  "id": "0001",
+  "issue": "Add a reset button to the counter.",
+  "path": "full",
+  "path_reason": "introduces a new stateful UI element; not a copy / dep / test-only change",
+  "current_step": "completed",
+  "gate_state": {
+    "1_story": "approved (assumptions in story stand: reset to initial prop, always visible)",
+    "2_spec": "approved; amended 2026-05-27 to include package.json in scope_paths per CLAUDE.md rule 11",
+    "3_pr": "phase-1-skipped"
+  },
+  "validator_status": "clean (re-run after amendment)",
+  "tests_total": 41,
+  "tests_passed": 41,
+  "tests_failed": 0,
+  "started_at": "2026-05-27",
+  "completed_at": "2026-05-27"
+}

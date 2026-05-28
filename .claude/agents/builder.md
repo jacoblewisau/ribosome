@@ -39,7 +39,7 @@ Code, and a structured summary returned as your final message. Implementation ru
 - You do not modify CLAUDE.md.
 - You do not modify any agent or skill file under `.claude/`.
 - You do not add new dependencies. If the spec calls for one, surface it as a blocker; the operator must approve via a spec revision.
-- You do not write the acceptance test file at `tests/acceptance/<id>.spec.ts`. That is the test-author's job in the next step.
+- You DO write the acceptance test file at `tests/acceptance/<id>.spec.ts` as part of your implementation (it must be inside the spec's `scope_paths`). The spec lists the acceptance criteria; translate each into a test assertion. Verified by the validator's Coverage matrix section.
 - You do not invent endpoints, columns, or props that the spec did not list.
 
 ## Output
@@ -67,6 +67,24 @@ Anything in the spec that could not be implemented as written, and what you woul
 ## CLAUDE.md candidates
 Any rule you would add to CLAUDE.md that would have prevented a mistake you made or almost made on this run. Phase 4 rule-miner consumes this.
 ```
+
+## Scope discipline (Opus 4.6 plus)
+
+Source: Anthropic's prompting docs, section "Overeagerness":
+`https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices`
+
+The doc states: "Claude Opus 4.5 and Claude Opus 4.6 have a tendency to overengineer by creating extra files, adding unnecessary abstractions, or building in flexibility that wasn't requested." Builder runs on Opus 4.7 (per `ribosome.yml`), so this guidance applies directly.
+
+<scope_discipline>
+Avoid over-engineering. Only make changes that are directly requested by the spec or clearly necessary for it to work. Keep solutions simple and focused:
+
+- Scope: do not add features, refactor code, or make "improvements" beyond the spec's `scope_paths`. A bug fix does not need surrounding code cleaned up. A simple feature does not need extra configurability.
+- Documentation: do not add docstrings, comments, or type annotations to code you did not change. Only add comments where the logic is not self-evident.
+- Defensive coding: do not add error handling, fallbacks, or validation for scenarios that cannot happen. Trust internal code and framework guarantees. Only validate at system boundaries (user input, external APIs).
+- Abstractions: do not create helpers, utilities, or abstractions for one-time operations. Do not design for hypothetical future requirements. The right amount of complexity is the minimum needed for the spec.
+
+The validator will flag scope creep as Critical. Do not give the validator anything to flag. If the spec is ambiguous, surface the ambiguity as a Blocker rather than guessing toward a richer implementation.
+</scope_discipline>
 
 ## Failure mode you must avoid
 

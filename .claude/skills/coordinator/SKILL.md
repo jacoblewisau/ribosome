@@ -41,7 +41,7 @@ After acting, write a new bot comment that includes both the operator-visible co
 | Issue labeled `ribo:*` | no state | Allocate chain id (next sequential, zero-padded, four digits). Initialise state. Invoke `researcher` subagent. Then run `story-writer` skill. Post story + state comment. |
 | `/approve` on Issue | `current_step: story-writer`, gate_state.story: pending | Mark story approved. Run `spec-writer` skill. Post spec + state comment. |
 | `/changes <note>` on Issue | `current_step: story-writer` | Run `bash .claude/hooks/record-correction.sh <id> story-writer "<note>" github-issue-comment`. Re-run `story-writer` with the note appended. Post revised story + state comment. |
-| `/approve` on Issue | `current_step: spec-writer`, gate_state.spec: pending | Mark spec approved. Create branch `ribosome/<id>`. Invoke `builder` subagent. Run `test-author` subagent. Run `verify-contracts` skill. Invoke `validator` subagent. If validator clean: invoke `pr-shepherd`. Post PR link + state comment. |
+| `/approve` on Issue | `current_step: spec-writer`, gate_state.spec: pending | Mark spec approved. Create branch `ribosome/<id>`. Invoke `builder` subagent (builder writes both implementation and the acceptance test at `tests/acceptance/<id>.spec.ts`, within `scope_paths`). Run `verify-contracts` skill. Invoke `validator` subagent. If validator clean: invoke `pr-shepherd`. Post PR link + state comment. |
 | `/changes <note>` on Issue | `current_step: spec-writer` | Run `bash .claude/hooks/record-correction.sh <id> spec-writer "<note>" github-issue-comment`. Re-run `spec-writer` with the note appended. Post revised spec + state comment. |
 | `/cancel` on Issue | any | Close the chain. Comment "Cancelled by operator at step <current_step>." Update state to `current_step: cancelled`. Delete branch if it exists. |
 | `/explain <q>` on Issue | any | One-shot researcher invocation answering the operator's question. Post answer as comment. Do NOT advance state. |
@@ -58,8 +58,7 @@ For each step listed above, the canonical inputs and outputs:
 | researcher | `CLAUDE.md`, `MEMORY.md`, source tree, prior chains | (returns inline; coordinator persists to `.claude/memory/live/<id>/researcher.md`) | none (researcher is silent on the Issue; story-writer is the next visible step) |
 | story-writer | researcher.md | `stories/<id>.md` | "Story for review (gate 1)" with story body + state marker |
 | spec-writer | story + researcher | `specs/<id>.md` | "Spec for review (gate 2)" with spec body + state marker |
-| builder | spec, researcher, in-flight notes | `.claude/memory/live/<id>/builder.md`, code under `scope_paths` | none directly; coordinator posts "Building" status with state marker |
-| test-author | story, builder summary | tests/acceptance/<id>.spec.ts | none |
+| builder | spec, researcher, in-flight notes | `.claude/memory/live/<id>/builder.md`, code under `scope_paths` (includes the acceptance test at `tests/acceptance/<id>.spec.ts`) | none directly; coordinator posts "Building" status with state marker |
 | verify-contracts | the contract harness | `tests/verify/last-run.json` | none |
 | validator | story, spec, builder, last-run.json | (returns inline; coordinator persists to `.claude/memory/live/<id>/validator.md`) | none directly; coordinator posts "Validator: clean" or "Validator: needs fix" status |
 | pr-shepherd | validator.md, builder.md, story, last-run.json | the PR itself | PR opened comment with link |
@@ -67,6 +66,29 @@ For each step listed above, the canonical inputs and outputs:
 ### Persistence of read-only subagent output
 
 `researcher` and `validator` are tool-restricted read-only agents (no Write). They return findings inline as their final assistant message. After each returns, the coordinator persists the reply text to the file shown above using its own Write tool, so downstream steps can read it as a file. `builder` has Write and writes its own `builder.md` directly. Earned 2026-05-28: chain 0005 run 1 stalled because researcher returned inline (correct per its tools) but the coordinator was ambiguous about who persists the file; run 2 succeeded by accident via a Bash heredoc workaround. This table is now the contract.
+
+### State-machine parsing (the JSON contract)
+
+Earned 2026-05-29 (session 4 review): the coordinator previously parsed subagent prose via brittle regex on "Status: clean" or similar. One wording drift in an agent prompt broke the state machine silently. Both `researcher` and `validator` now end their replies with a fenced JSON block that the coordinator parses as the source of truth for state advancement. Prose stays for the operator-visible comment; JSON drives the gate.
+
+To extract the contract from a subagent reply:
+
+```bash
+echo "<reply>" | awk '/^```json$/{flag=1; next} /^```$/{flag=0} flag' | jq
+```
+
+Or equivalently in JavaScript: match `/```json\n([\s\S]*?)\n```/` and `JSON.parse` the capture group. The coordinator uses the LAST such block in the reply (in case a subagent quotes prior JSON as example).
+
+Advancement rules based on the parsed JSON:
+
+| Source | Field | Action |
+|---|---|---|
+| researcher | `ready_for_story: false` | post the prose + open questions as a comment; do NOT advance to story-writer; wait for operator clarification via `/changes` |
+| researcher | `ready_for_story: true` (default) | persist prose to `.claude/memory/live/<id>/researcher.md`; run story-writer skill; advance state to `current_step: story-writer` |
+| validator | `verdict: "clean"` | persist prose to `.claude/memory/live/<id>/validator.md`; invoke pr-shepherd; advance state to `current_step: pr-shepherd` |
+| validator | `verdict: "needs_fix"` | persist prose; loop back to builder with the validator JSON attached; advance state to `current_step: builder` (loop count incremented). Two-loop limit per the dispatch table. |
+
+If the JSON block is missing or `JSON.parse` throws, the coordinator posts a "step failed" comment quoting the parse error and stops without advancing state. The operator re-triggers via label cycle.
 
 ## Operator-visible comments
 

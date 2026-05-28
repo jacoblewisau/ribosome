@@ -1,9 +1,9 @@
 {
   "version": "1",
   "schema": "ribosome.eval.baseline",
-  "recorded_at": "2026-05-28T12:00:00.000Z",
-  "pass": 26,
-  "totalTasks": 26,
+  "recorded_at": "2026-05-29T09:00:00.000Z",
+  "pass": 29,
+  "totalTasks": 29,
   "score": 1,
-  "notes": "rebaselined after dual-auth retrofit. T9 (every claude-code-action invocation passes both claude_code_oauth_token and anthropic_api_key inputs), TR9 (setup-bootstrap.ts defaults --auth to 'oauth' and the AuthMode union includes both 'oauth' and 'api'). Default auth path is subscription quota; --auth api is the pay-per-token fallback."
+  "notes": "rebaselined after session-4 agent-behaviour tightening. R10 (builder scope_discipline block), R11 (validator coverage-first language with confidence levels), T10 (researcher + validator state-contract fenced JSON). test-author removed from chain dispatch; builder now writes acceptance tests within scope_paths. Primary sources cited in agent prompts: Anthropic prompting best-practices doc, 'Overeagerness' and 'Code review harnesses' sections."
 }

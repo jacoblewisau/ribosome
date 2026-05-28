@@ -51,6 +51,27 @@ Anything from `.claude/memory/live/` or `.claude/memory/distilled/` that bears o
 Genuine gaps in your knowledge. Do not invent answers. If the Issue is ambiguous, say what is ambiguous and why your reading of the code does not resolve it.
 ```
 
+## State contract (required)
+
+After the prose sections above, end your reply with a fenced JSON block the coordinator will parse to advance the chain state. The prose is for the operator-visible Issue comment; the JSON is for the state machine. Both must be present.
+
+Format (omit fields with no content rather than emitting null; coordinator treats missing as empty):
+
+```json
+{
+  "agent": "researcher",
+  "chain_id": "<id passed in your user message>",
+  "files_involved": ["src/...", "tests/..."],
+  "open_questions": ["..."],
+  "memory_citations": ["MEMORY.md#pat-..."],
+  "ready_for_story": true
+}
+```
+
+Set `ready_for_story` to `false` only if the open questions are blockers (the story-writer cannot proceed without operator clarification). Default `true`.
+
+XML-tag rationale: per Anthropic's prompting docs ("Structure prompts with XML tags"), explicit structural markers reduce parsing ambiguity. JSON is the strongest structural marker available. The coordinator uses the JSON for advancement decisions; if the block is malformed or missing, the chain treats the run as failed and surfaces the error to the operator.
+
 ## What you do not do
 
 - You do not write code. You do not edit files.

@@ -43,11 +43,15 @@ function fail(reason: string): { result: CheckResult; reason: string } {
   return { result: "FAIL", reason };
 }
 
+// test-author was removed from the chain in session 4 (2026-05-29). The
+// agent was a stub never implemented; builder writes the acceptance test
+// as part of its `scope_paths` work, and the validator's Coverage matrix
+// section verifies criteria coverage. Removing a redundant agent aligns
+// with the scope_discipline block added to builder.md the same day.
 const AGENT_FILES = [
   ".claude/agents/researcher.md",
   ".claude/agents/builder.md",
   ".claude/agents/validator.md",
-  ".claude/agents/test-author.md",
   ".claude/agents/pr-shepherd.md",
 ];
 
@@ -120,7 +124,7 @@ export const TASKS: ReadonlyArray<TaskDefinition> = [
   {
     id: "R3",
     category: "routine",
-    name: "all five agent files declare name and description in frontmatter",
+    name: "all chain agent files declare name and description in frontmatter",
     rationale:
       "Claude Code requires both. A missing field means the agent silently fails to register on session start.",
     check: () => {
@@ -535,6 +539,77 @@ export const TASKS: ReadonlyArray<TaskDefinition> = [
       if (!/AuthMode\s*=\s*"oauth"\s*\|\s*"api"/.test(code)) {
         return fail("scripts/setup-bootstrap.ts AuthMode union does not list both 'oauth' and 'api'");
       }
+      return pass();
+    },
+  },
+  {
+    id: "R10",
+    category: "routine",
+    name: "builder.md contains an explicit scope_discipline block",
+    rationale:
+      "Earned 2026-05-29 from session-3 agent-behaviour review: Opus 4.6+ has a documented tendency to overengineer (Anthropic prompting docs, 'Overeagerness' section). Builder runs on Opus 4.7 by default. The scope_discipline block instructs the builder to stay within spec.scope_paths and avoid speculative features, refactors, or abstractions. If a refactor drops this block, the operator may start seeing PRs that touch more than the Issue asked for.",
+    check: () => {
+      const content = readFile(".claude/agents/builder.md");
+      if (!/<scope_discipline>/.test(content) || !/<\/scope_discipline>/.test(content)) {
+        return fail("builder.md missing <scope_discipline>...</scope_discipline> block");
+      }
+      // Require at least three of the four canonical bullets so a token-level
+      // gut of the block still trips the trap.
+      const bullets = ["Scope:", "Documentation:", "Defensive coding:", "Abstractions:"];
+      const present = bullets.filter(b => content.includes(b));
+      if (present.length < 3) {
+        return fail(`builder.md scope_discipline block missing bullets; found only: ${present.join(", ")}`);
+      }
+      return pass();
+    },
+  },
+  {
+    id: "R11",
+    category: "routine",
+    name: "validator.md uses coverage-first language with confidence levels",
+    rationale:
+      "Earned 2026-05-29 from session-3 agent-behaviour review: Opus 4.6+ may suppress real findings when prompted with 'be conservative' or 'do not invent issues' (Anthropic prompting docs, 'Code review harnesses' section). Validator's job at the finding stage is coverage; filtering happens downstream (the operator reviews the PR). If a refactor reverts to filter-first language, Critical bugs may silently never reach the operator.",
+    check: () => {
+      const content = readFile(".claude/agents/validator.md");
+      // Required: the coverage-first framing and per-finding confidence annotation.
+      if (!/coverage/i.test(content)) {
+        return fail("validator.md does not mention 'coverage'");
+      }
+      if (!/confidence:\s*high\s*\|\s*medium\s*\|\s*low/i.test(content)) {
+        return fail("validator.md does not document the confidence: high | medium | low annotation on findings");
+      }
+      // Forbidden: the suppressive 'do not invent issues' phrasing the doc
+      // warns against.
+      if (/do not invent issues/i.test(content)) {
+        return fail("validator.md still contains 'do not invent issues' phrasing; replace with coverage-first language");
+      }
+      return pass();
+    },
+  },
+  {
+    id: "T10",
+    category: "tricky",
+    name: "researcher and validator prompts include a fenced JSON state contract",
+    rationale:
+      "Earned 2026-05-29 from session-3 review: previously the coordinator parsed agent prose via regex (e.g. matching 'Status: clean'). One wording drift broke the state machine silently. Each read-only subagent now ends its reply with a fenced ```json block the coordinator parses as the source of truth. The prompt body documents this contract so the model emits it consistently. If the contract section is removed, the coordinator's JSON.parse will throw and the chain will fail with a clear error.",
+    check: () => {
+      const offenders: string[] = [];
+      for (const path of [".claude/agents/researcher.md", ".claude/agents/validator.md"]) {
+        const content = readFile(path);
+        if (!/State contract/i.test(content)) {
+          offenders.push(`${path} missing "State contract" section heading`);
+          continue;
+        }
+        // Look for a fenced ```json block in the body.
+        if (!/```json[\s\S]*?```/.test(content)) {
+          offenders.push(`${path} missing fenced \`\`\`json block`);
+          continue;
+        }
+        if (!/"agent":/.test(content) || !/"chain_id":/.test(content)) {
+          offenders.push(`${path} state-contract block missing "agent" or "chain_id" fields`);
+        }
+      }
+      if (offenders.length > 0) return fail(offenders.join("; "));
       return pass();
     },
   },

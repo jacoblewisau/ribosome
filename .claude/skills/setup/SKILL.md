@@ -131,6 +131,19 @@ Re-run `npm run setup:check`. The `anthropic_api_key` line should flip to `ok`.
 
 These should never be missing in a Ribosome checkout. If they are, the maintainer has deleted them or is in the wrong directory. Run `git status` to confirm; if files were deleted accidentally, run `git restore .github/workflows/ribosome.yml .github/workflows/checks.yml`.
 
+### `branch_protection=blocked` (GitHub Free + private repo)
+
+GitHub Free does not allow branch protection on private repositories; the API returns `403 Upgrade to GitHub Pro or make this repository public to enable this feature.` Two paths:
+
+```
+# Option A: make the repo public (test repos usually fine; ribosome scaffolding contains no secrets):
+gh repo edit <owner>/<name> --visibility public --accept-visibility-change-consequences
+
+# Option B: upgrade to GitHub Pro (paid).
+```
+
+After Option A, re-run `npm run setup:check`; `branch_protection` will flip from `blocked` to `missing`, then continue below to apply the rules.
+
 ### `branch_protection=missing`
 
 Apply the protection rules on `main`. Use this command, substituting the actual `<owner>/<name>`:

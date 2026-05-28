@@ -120,11 +120,27 @@ printCheck("checks_workflow", checksExists ? { ok: true, value: ".github/workflo
 
 // 10. branch protection
 if (ghRepoFull) {
-  const protection = tryRun(`gh api repos/${ghRepoFull}/branches/main/protection 2>&1 | head -3 | grep -E '"required_pull_request_reviews"|"required_status_checks"' || echo MISSING`);
-  if (protection.ok && protection.value !== "MISSING") {
+  // Capture the full API response so we can distinguish "not configured" from
+  // "blocked by GitHub plan" (Free tier on private repos returns 403 with
+  // 'Upgrade to GitHub Pro or make this repository public to enable this feature.').
+  // Earned 2026-05-28: applying protection on a fresh private repo failed
+  // until the repo was made public; the setup skill needs to surface this.
+  const protectionRaw = tryRun(`gh api repos/${ghRepoFull}/branches/main/protection 2>&1`);
+  const value = protectionRaw.ok ? protectionRaw.value : protectionRaw.reason;
+  if (protectionRaw.ok && /"required_status_checks"|"required_pull_request_reviews"/.test(value)) {
     printCheck("branch_protection", { ok: true, value: "configured" });
+  } else if (/Upgrade to GitHub Pro/i.test(value)) {
+    printCheck(
+      "branch_protection",
+      { ok: false, reason: "blocked by GitHub Free on private repos" },
+      "GitHub Free does not allow branch protection on private repos; either `gh repo edit " + ghRepoFull + " --visibility public --accept-visibility-change-consequences` or upgrade to GitHub Pro"
+    );
   } else {
-    printCheck("branch_protection", { ok: false, reason: "not configured" }, "apply via the setup skill or gh api PUT /repos/.../branches/main/protection");
+    printCheck(
+      "branch_protection",
+      { ok: false, reason: "not configured" },
+      "apply via the setup skill or gh api PUT /repos/.../branches/main/protection"
+    );
   }
 } else {
   printCheck("branch_protection", { ok: false, reason: "cannot check without remote" });

@@ -1,9 +1,9 @@
 {
   "version": "1",
   "schema": "ribosome.eval.baseline",
-  "recorded_at": "2026-05-28T10:00:00.000Z",
-  "pass": 24,
-  "totalTasks": 24,
+  "recorded_at": "2026-05-28T12:00:00.000Z",
+  "pass": 26,
+  "totalTasks": 26,
   "score": 1,
-  "notes": "rebaselined after iteration 1 of /setup rebuild. Adds R8 (setup-bootstrap.ts exists), T8 (orchestrator invokes gh auth setup-git), TR7 (no --source=. in repo create), TR8 (no --body in gh secret set call sites). Earned from F1 (origin clash on --source=.), F2 (HTTPS push needs credential helper), and the safe-secret-handling discipline."
+  "notes": "rebaselined after dual-auth retrofit. T9 (every claude-code-action invocation passes both claude_code_oauth_token and anthropic_api_key inputs), TR9 (setup-bootstrap.ts defaults --auth to 'oauth' and the AuthMode union includes both 'oauth' and 'api'). Default auth path is subscription quota; --auth api is the pay-per-token fallback."
 }

@@ -93,6 +93,12 @@ jobs:
       - name: Run Ribosome chain (Claude Code Action)
         uses: anthropics/claude-code-action@v1
         with:
+          # Dual-auth: action picks whichever secret is populated. Default
+          # is OAuth (Pro/Max subscription quota; zero incremental spend).
+          # If the operator chose --auth api at /setup, ANTHROPIC_API_KEY
+          # will be set and CLAUDE_CODE_OAUTH_TOKEN will be empty (and
+          # vice versa). The action treats empty as unset.
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           show_full_output: "true"
           # The coordinator skill is the entry point. It reads the Issue

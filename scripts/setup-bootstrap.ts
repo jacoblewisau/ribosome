@@ -60,10 +60,13 @@ interface StepResult {
   detail?: string;
 }
 
+type AuthMode = "oauth" | "api";
+
 interface BootstrapOptions {
   repo: string;
   owner?: string;
   visibility: "public" | "private";
+  auth: AuthMode;
   slackWebhook?: string;
   seedIssue: boolean;
   seedIssueBodyPath?: string;
@@ -71,6 +74,23 @@ interface BootstrapOptions {
   openBrowser: boolean;
   timeoutMin: number;
 }
+
+// Authentication contract. The action accepts both inputs; whichever
+// secret is populated wins. Default `oauth` draws from the operator's
+// Claude Pro/Max subscription quota (zero incremental spend per chain
+// step). `api` is the pay-per-token fallback. Verified against
+// anthropics/claude-code-action@v1 action.yml: both inputs are optional;
+// validate-env.ts requires "at least one." Empty unset secrets in GitHub
+// Actions resolve to empty string, which the action treats as not-set.
+const AUTH_SECRET_NAMES: Record<AuthMode, string> = {
+  oauth: "CLAUDE_CODE_OAUTH_TOKEN",
+  api: "ANTHROPIC_API_KEY",
+};
+
+const AUTH_HOWTO: Record<AuthMode, string> = {
+  oauth: "Pro/Max users: run `claude setup-token` to print a portable OAuth token. Pipe directly to gh so the value never lands on the CLI or in history:\n       claude setup-token | gh secret set CLAUDE_CODE_OAUTH_TOKEN --repo <repo>",
+  api: "Get an API key at https://console.anthropic.com/settings/keys then run:\n       gh secret set ANTHROPIC_API_KEY --repo <repo>",
+};
 
 interface CompletedBootstrap {
   repo_full: string;
@@ -287,15 +307,28 @@ async function step_visibility_flip(opts: BootstrapOptions, fullName: string): P
   return { status: "ok", detail: `${current} -> ${desired}` };
 }
 
-async function step_secret_detect(): Promise<{ status: StepStatus; detail?: string }> {
+async function step_secret_detect(opts: BootstrapOptions): Promise<{ status: StepStatus; detail?: string }> {
+  // Detect the source the auth secret WILL come from; do not read the
+  // value. Auth mode (oauth | api) is set via --auth.
+  if (opts.auth === "oauth") {
+    if (process.env.CLAUDE_CODE_OAUTH_TOKEN && process.env.CLAUDE_CODE_OAUTH_TOKEN.length > 0) {
+      return { status: "ok", detail: "source=env (CLAUDE_CODE_OAUTH_TOKEN)" };
+    }
+    const tokenFile = join(homedir(), ".config", "claude", "oauth-token");
+    if (existsSync(tokenFile)) {
+      return { status: "ok", detail: `source=file:${tokenFile}` };
+    }
+    return { status: "manual-wait", detail: "no local OAuth token; will prompt for `claude setup-token`" };
+  }
+  // api mode
   if (process.env.ANTHROPIC_API_KEY && process.env.ANTHROPIC_API_KEY.length > 0) {
-    return { status: "ok", detail: "source=env" };
+    return { status: "ok", detail: "source=env (ANTHROPIC_API_KEY)" };
   }
   const keyFile = join(homedir(), ".config", "anthropic", "key");
   if (existsSync(keyFile)) {
     return { status: "ok", detail: `source=file:${keyFile}` };
   }
-  return { status: "manual-wait", detail: "no local source; will prompt at gh secret set" };
+  return { status: "manual-wait", detail: "no local API key; will prompt at gh secret set" };
 }
 
 async function step_app_install_prompt(opts: BootstrapOptions, fullName: string): Promise<{ status: StepStatus; detail?: string }> {
@@ -379,41 +412,50 @@ async function step_app_install_wait(opts: BootstrapOptions, fullName: string): 
 }
 
 async function step_secret_set(opts: BootstrapOptions, fullName: string): Promise<{ status: StepStatus; detail?: string }> {
+  const secretName = AUTH_SECRET_NAMES[opts.auth];
   const list = gh(["secret", "list", "--repo", fullName]);
-  if (list.code === 0 && /^ANTHROPIC_API_KEY/m.test(list.stdout)) {
-    return { status: "skipped", detail: "ANTHROPIC_API_KEY already set" };
+  if (list.code === 0 && new RegExp(`^${secretName}`, "m").test(list.stdout)) {
+    return { status: "skipped", detail: `${secretName} already set` };
   }
 
-  if (process.env.ANTHROPIC_API_KEY && process.env.ANTHROPIC_API_KEY.length > 0) {
-    const r = spawnSync("gh", ["secret", "set", "ANTHROPIC_API_KEY", "--repo", fullName], {
-      input: process.env.ANTHROPIC_API_KEY,
+  // Auto-detect source: env var first, then file, then prompt.
+  const envValue = opts.auth === "oauth"
+    ? process.env.CLAUDE_CODE_OAUTH_TOKEN
+    : process.env.ANTHROPIC_API_KEY;
+  if (envValue && envValue.length > 0) {
+    const r = spawnSync("gh", ["secret", "set", secretName, "--repo", fullName], {
+      input: envValue,
       encoding: "utf8",
     });
     if (r.status !== 0) return { status: "failed", detail: r.stderr?.trim() ?? "gh secret set failed" };
-    return { status: "ok", detail: "set from env (stdin pipe)" };
+    return { status: "ok", detail: `${secretName} set from env (stdin pipe)` };
   }
 
-  const keyFile = join(homedir(), ".config", "anthropic", "key");
-  if (existsSync(keyFile)) {
-    const value = readFileSync(keyFile, "utf8").trim();
-    const r = spawnSync("gh", ["secret", "set", "ANTHROPIC_API_KEY", "--repo", fullName], {
+  const filePath = opts.auth === "oauth"
+    ? join(homedir(), ".config", "claude", "oauth-token")
+    : join(homedir(), ".config", "anthropic", "key");
+  if (existsSync(filePath)) {
+    const value = readFileSync(filePath, "utf8").trim();
+    const r = spawnSync("gh", ["secret", "set", secretName, "--repo", fullName], {
       input: value,
       encoding: "utf8",
     });
     if (r.status !== 0) return { status: "failed", detail: r.stderr?.trim() ?? "gh secret set failed" };
-    return { status: "ok", detail: "set from file (stdin pipe)" };
+    return { status: "ok", detail: `${secretName} set from file (stdin pipe)` };
   }
 
-  process.stderr.write(`\n  -> No local API key found.\n     Get one at: ${ANTHROPIC_CONSOLE_KEYS_URL}\n     Then run, in another terminal:\n       gh secret set ANTHROPIC_API_KEY --repo ${fullName}\n     The bootstrap will wait.\n\n`);
+  // No automatic source. Tell the operator to set it; wait for it to appear.
+  const howto = AUTH_HOWTO[opts.auth].replace(/<repo>/g, fullName);
+  process.stderr.write(`\n  -> No local ${opts.auth === "oauth" ? "OAuth token" : "API key"} found.\n     ${howto}\n     The bootstrap will wait.\n\n`);
   const deadline = Date.now() + opts.timeoutMin * 60_000;
   while (Date.now() < deadline) {
     const list2 = gh(["secret", "list", "--repo", fullName]);
-    if (list2.code === 0 && /^ANTHROPIC_API_KEY/m.test(list2.stdout)) {
-      return { status: "ok", detail: "set by operator (interactive)" };
+    if (list2.code === 0 && new RegExp(`^${secretName}`, "m").test(list2.stdout)) {
+      return { status: "ok", detail: `${secretName} set by operator (interactive)` };
     }
     await sleep(5_000);
   }
-  return { status: "failed", detail: `timed out waiting for ANTHROPIC_API_KEY (${opts.timeoutMin} min)` };
+  return { status: "failed", detail: `timed out waiting for ${secretName} (${opts.timeoutMin} min)` };
 }
 
 async function step_seed_issue(opts: BootstrapOptions, fullName: string): Promise<{ status: StepStatus; detail?: string }> {
@@ -478,6 +520,7 @@ function parseArgs(): BootstrapOptions {
   const args = process.argv.slice(2);
   const opts: Partial<BootstrapOptions> = {
     visibility: "public",
+    auth: "oauth",
     seedIssue: false,
     openBrowser: true,
     timeoutMin: 5,
@@ -487,6 +530,14 @@ function parseArgs(): BootstrapOptions {
     if (a === "--repo") opts.repo = args[++i];
     else if (a === "--owner") opts.owner = args[++i];
     else if (a === "--visibility") opts.visibility = args[++i] as "public" | "private";
+    else if (a === "--auth") {
+      const v = args[++i];
+      if (v !== "oauth" && v !== "api") {
+        console.error(`--auth must be 'oauth' or 'api'; got '${v}'`);
+        process.exit(2);
+      }
+      opts.auth = v;
+    }
     else if (a === "--slack-webhook") opts.slackWebhook = args[++i];
     else if (a === "--seed-issue") opts.seedIssue = true;
     else if (a === "--seed-issue-body") opts.seedIssueBodyPath = args[++i];
@@ -495,6 +546,7 @@ function parseArgs(): BootstrapOptions {
     else if (a === "--timeout-min") opts.timeoutMin = Number(args[++i]);
     else if (a === "--help" || a === "-h") {
       console.log("usage: setup-bootstrap --repo NAME [--owner OWNER] [--visibility public|private]");
+      console.log("                       [--auth oauth|api] (default oauth: subscription quota)");
       console.log("                       [--seed-issue] [--seed-issue-body PATH] [--seed-issue-title TEXT]");
       console.log("                       [--slack-webhook URL] [--no-open-browser] [--timeout-min 5]");
       process.exit(0);
@@ -533,7 +585,7 @@ async function main(): Promise<void> {
     runStep("labels", () => step_labels(fullName)),
     runStep("actions_enable", () => step_actions_enable(fullName)),
     runStep("visibility", () => step_visibility_flip(opts, fullName)),
-    runStep("secret_detect", () => step_secret_detect()),
+    runStep("secret_detect", () => step_secret_detect(opts)),
     runStep("app_install_prompt", () => step_app_install_prompt(opts, fullName)),
   ]);
 

@@ -482,6 +482,63 @@ export const TASKS: ReadonlyArray<TaskDefinition> = [
     },
   },
   {
+    id: "T9",
+    category: "tricky",
+    name: "every claude-code-action invocation passes both auth inputs",
+    rationale:
+      "Earned 2026-05-28 session 2 follow-up: workflows originally passed only `anthropic_api_key`, forcing operators to pay per chain step even if they had a Pro/Max subscription. Dual-input wiring lets the operator pick either auth path at setup time and switch later by setting the other secret. If a workflow drops one input, that auth path becomes unreachable.",
+    check: () => {
+      const workflowFiles = [
+        ".github/workflows/ribosome.yml",
+        ...SCOUT_NAMES.map(s => `.github/workflows/scout-${s}.yml`),
+      ];
+      const missing: string[] = [];
+      for (const path of workflowFiles) {
+        if (!existsSync(path)) {
+          missing.push(`${path} missing`);
+          continue;
+        }
+        const yml = readFile(path);
+        // Skip workflows that don't invoke the action at all (e.g., checks.yml).
+        if (!/uses:\s*anthropics\/claude-code-action/.test(yml)) continue;
+        if (!/claude_code_oauth_token:\s*\$\{\{\s*secrets\.CLAUDE_CODE_OAUTH_TOKEN/.test(yml)) {
+          missing.push(`${path} lacks claude_code_oauth_token input`);
+        }
+        if (!/anthropic_api_key:\s*\$\{\{\s*secrets\.ANTHROPIC_API_KEY/.test(yml)) {
+          missing.push(`${path} lacks anthropic_api_key input`);
+        }
+      }
+      if (missing.length > 0) return fail(missing.join("; "));
+      return pass();
+    },
+  },
+  {
+    id: "TR9",
+    category: "trap",
+    name: "setup-bootstrap.ts must default --auth to 'oauth', not 'api'",
+    rationale:
+      "Subscription quota is the recommended path; API spend is a fallback for users without Max. The default should always prefer subscription so operators don't pay by accident. Catches a regression where someone flips the default to api.",
+    check: () => {
+      const content = readFile("scripts/setup-bootstrap.ts");
+      // Strip comments before matching so historical notes don't trigger.
+      const code = content
+        .replace(/\/\*[\s\S]*?\*\//g, "")
+        .split("\n")
+        .filter(l => !/^\s*\/\//.test(l) && !/^\s*\*/.test(l))
+        .join("\n");
+      // The default appears in parseArgs as `auth: "oauth"`. Match the
+      // literal initializer.
+      if (!/auth:\s*"oauth"/.test(code)) {
+        return fail("scripts/setup-bootstrap.ts does not default auth to 'oauth'");
+      }
+      // Also confirm the type union exists and lists both modes.
+      if (!/AuthMode\s*=\s*"oauth"\s*\|\s*"api"/.test(code)) {
+        return fail("scripts/setup-bootstrap.ts AuthMode union does not list both 'oauth' and 'api'");
+      }
+      return pass();
+    },
+  },
+  {
     id: "TR4",
     category: "trap",
     name: "no scout workflow uses --dangerously-skip-permissions",

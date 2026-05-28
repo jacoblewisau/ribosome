@@ -85,16 +85,35 @@ if (remote.ok) {
   printCheck("gh_repo", { ok: false, reason: "no remote configured" });
 }
 
-// 7. ANTHROPIC_API_KEY secret set
+// 7. Auth secret set. The workflows accept either CLAUDE_CODE_OAUTH_TOKEN
+//    (Pro/Max subscription quota; recommended) or ANTHROPIC_API_KEY (pay-
+//    per-token). Either one is sufficient. Earned 2026-05-28 session 2
+//    follow-up: previously hardcoded ANTHROPIC_API_KEY only, hiding the
+//    OAuth path from operators who could have used their subscription.
 if (ghRepoFull) {
-  const secretList = tryRun(`gh secret list --repo ${ghRepoFull} 2>&1 | grep -E '^ANTHROPIC_API_KEY' || echo MISSING`);
-  if (secretList.ok && secretList.value !== "MISSING") {
-    printCheck("anthropic_api_key", secretList, undefined);
+  const all = tryRun(`gh secret list --repo ${ghRepoFull} 2>&1`);
+  if (!all.ok) {
+    printCheck("auth_secret", { ok: false, reason: "cannot list secrets" }, "gh permissions?");
   } else {
-    printCheck("anthropic_api_key", { ok: false, reason: "secret not set" }, "run: gh secret set ANTHROPIC_API_KEY --repo " + ghRepoFull);
+    const hasOauth = /^CLAUDE_CODE_OAUTH_TOKEN/m.test(all.value);
+    const hasApi = /^ANTHROPIC_API_KEY/m.test(all.value);
+    if (hasOauth && hasApi) {
+      printCheck("auth_secret", { ok: true, value: "both (oauth preferred)" });
+    } else if (hasOauth) {
+      printCheck("auth_secret", { ok: true, value: "oauth (CLAUDE_CODE_OAUTH_TOKEN)" });
+    } else if (hasApi) {
+      printCheck("auth_secret", { ok: true, value: "api (ANTHROPIC_API_KEY)" });
+    } else {
+      printCheck(
+        "auth_secret",
+        { ok: false, reason: "no auth secret set (need CLAUDE_CODE_OAUTH_TOKEN or ANTHROPIC_API_KEY)" },
+        "oauth (recommended): claude setup-token | gh secret set CLAUDE_CODE_OAUTH_TOKEN --repo " + ghRepoFull +
+        "    OR    api: gh secret set ANTHROPIC_API_KEY --repo " + ghRepoFull
+      );
+    }
   }
 } else {
-  printCheck("anthropic_api_key", { ok: false, reason: "cannot check without remote" });
+  printCheck("auth_secret", { ok: false, reason: "cannot check without remote" });
 }
 
 // 8. Claude GitHub App installed (we can detect via the app's pulls API; absence is harder to confirm without listing user installations)

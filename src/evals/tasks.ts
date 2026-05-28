@@ -312,9 +312,9 @@ export const TASKS: ReadonlyArray<TaskDefinition> = [
   {
     id: "R7",
     category: "routine",
-    name: "all seven scout workflows exist with schedule or trigger",
+    name: "all seven scout workflows exist with an action-supported trigger",
     rationale:
-      "If a scout's workflow file is missing or has no trigger, the scout never fires on its intended cadence.",
+      "If a scout's workflow file is missing or has no trigger, the scout never fires on its intended cadence. `anthropics/claude-code-action@v1` in agent mode supports only workflow_dispatch, repository_dispatch, schedule, and workflow_run (push is rejected at runtime with 'Unsupported event type: push'; see scout-ci-watcher header comment).",
     check: () => {
       const missing: string[] = [];
       for (const s of SCOUT_NAMES) {
@@ -324,9 +324,12 @@ export const TASKS: ReadonlyArray<TaskDefinition> = [
           continue;
         }
         const yml = readFile(path);
-        // Either schedule:, push:, pull_request:, or workflow_dispatch: is acceptable
-        if (!/^\s*(schedule|push|pull_request|workflow_dispatch):/m.test(yml)) {
-          missing.push(`${path} has no recognised trigger`);
+        if (
+          !/^\s*(schedule|workflow_dispatch|workflow_run|repository_dispatch):/m.test(
+            yml
+          )
+        ) {
+          missing.push(`${path} has no action-supported trigger`);
         }
       }
       if (missing.length > 0) return fail(missing.join("; "));
@@ -390,6 +393,28 @@ export const TASKS: ReadonlyArray<TaskDefinition> = [
         }
       }
       if (offenders.length > 0) return fail(`bypass found in: ${offenders.join(", ")}`);
+      return pass();
+    },
+  },
+  {
+    id: "TR5",
+    category: "trap",
+    name: "no scout workflow uses `on: push:` (agent mode rejects push)",
+    rationale:
+      "Earned 2026-05-28 in production: scout-ci-watcher and scout-coverage-scout originally shipped with `on: push:` and the action failed every push with 'Unsupported event type: push'. The previous R7 invariant whitelisted push, so eval never caught it. Use workflow_run for 'after CI completes' semantics.",
+    check: () => {
+      const offenders: string[] = [];
+      for (const s of SCOUT_NAMES) {
+        const yml = readFile(`.github/workflows/scout-${s}.yml`);
+        // Match `on: push:` either inline (`on: { push: ... }`) or as a key
+        // under a multi-line `on:` block. Conservative: match `push:` at
+        // the start of a line within the `on:` block.
+        const onBlock = yml.match(/^on:\s*\n([\s\S]*?)(?=^\S|\Z)/m);
+        if (onBlock && /^\s*push:/m.test(onBlock[1]!)) {
+          offenders.push(`scout-${s}.yml has on: push:`);
+        }
+      }
+      if (offenders.length > 0) return fail(offenders.join("; "));
       return pass();
     },
   },

@@ -1,6 +1,6 @@
 ---
 name: ci-watcher
-description: Scout that watches CI runs and files a ribo:bug Issue when a test newly fails or has been flaky 3 of the last 10 runs. Runs on every push to main and nightly via cron. Uses Haiku; the work is mechanical (parse run history, classify, dedupe).
+description: Scout that watches CI runs and files a ribo:bug Issue when a test newly fails or has been flaky 3 of the last 10 runs. Runs after every `checks` workflow completes on main (workflow_run) and nightly via cron. Uses Haiku; the work is mechanical (parse run history, classify, dedupe).
 ---
 
 You are running the `ci-watcher` scout in Ribosome. Phase 4 deliverable.

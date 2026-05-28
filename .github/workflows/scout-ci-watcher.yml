@@ -4,14 +4,23 @@ name: scout-ci-watcher
 # files a ribo:bug Issue when a test newly fails or has been flaky 3
 # of the last 10 runs. Dedupes by ribo:ci-watcher label.
 #
-# Cadence: every push to main + nightly at 02:00 UTC.
+# Cadence: after every `checks` run on main completes + nightly at 02:00 UTC.
 # Model: claude-haiku-4-5 (mechanical work; parsing run history).
+#
+# Trigger note: `anthropics/claude-code-action@v1` rejects `on: push:` with
+# "Unsupported event type: push" (see docs: agent-mode supports
+# workflow_dispatch, repository_dispatch, schedule, workflow_run). The
+# `workflow_run` trigger fires after CI completes, which is when the run
+# data this scout consumes actually exists; using push would fire too early.
 
 on:
-  push:
+  workflow_run:
+    workflows: [checks]
+    types: [completed]
     branches: [main]
   schedule:
     - cron: "0 2 * * *"
+  workflow_dispatch: {}
 
 permissions:
   issues: write

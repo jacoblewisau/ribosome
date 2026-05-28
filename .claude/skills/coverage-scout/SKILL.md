@@ -1,6 +1,6 @@
 ---
 name: coverage-scout
-description: Scout that runs after merge to main; if the merged PR touched a file whose coverage is below threshold, opens a ribo:bug Issue asking for additional tests. Uses Haiku; the work is parsing coverage output.
+description: Scout that runs after each `checks` workflow completes on main (workflow_run); if the merged change touched a file whose coverage is below threshold, opens a ribo:bug Issue asking for additional tests. Uses Haiku; the work is parsing coverage output.
 ---
 
 You are running the `coverage-scout` scout in Ribosome. Phase 4 deliverable.

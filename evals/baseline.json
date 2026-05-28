@@ -1,9 +1,9 @@
 {
   "version": "1",
   "schema": "ribosome.eval.baseline",
-  "recorded_at": "2026-05-28T00:28:07.198Z",
-  "pass": 17,
-  "totalTasks": 17,
+  "recorded_at": "2026-05-28T04:30:07.132Z",
+  "pass": 18,
+  "totalTasks": 18,
   "score": 1,
-  "notes": "manual record"
+  "notes": "rebaselined after adding TR5 (no on: push: in scouts) and rewriting R7 to require an action-supported trigger. Earned from runtime failure on first push to jacoblewisau/ribosome-test."
 }

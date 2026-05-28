@@ -5,12 +5,21 @@ name: scout-coverage-scout
 # Currently no coverage provider is wired; the scout no-ops cleanly in
 # that case (per its skill body).
 #
-# Cadence: every push to main.
+# Cadence: after every `checks` run on main completes.
 # Model: claude-haiku-4-5 (parses coverage output).
+#
+# Trigger note: `anthropics/claude-code-action@v1` rejects `on: push:`
+# (agent-mode supports workflow_dispatch, repository_dispatch, schedule,
+# workflow_run). `workflow_run` also matches design intent better:
+# coverage is only emitted after tests run, so firing on push would race
+# the test job.
 
 on:
-  push:
+  workflow_run:
+    workflows: [checks]
+    types: [completed]
     branches: [main]
+  workflow_dispatch: {}
 
 permissions:
   issues: write
@@ -27,6 +36,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          # On workflow_run, GITHUB_SHA defaults to default-branch HEAD (per
+          # GitHub docs). For coverage diffs we want the exact SHA CI ran
+          # against, so check that out explicitly. workflow_dispatch falls
+          # back to the default github.sha.
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
           fetch-depth: 2 # need previous commit to diff file list
       - uses: actions/setup-node@v4
         with:
@@ -36,7 +50,7 @@ jobs:
       - uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          prompt: "/coverage-scout repo=${{ github.repository }} sha=${{ github.sha }}"
+          prompt: "/coverage-scout repo=${{ github.repository }} sha=${{ github.event.workflow_run.head_sha || github.sha }}"
           claude_args: |
             --model claude-haiku-4-5
             --max-turns 20

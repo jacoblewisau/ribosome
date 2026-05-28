@@ -48,7 +48,7 @@ export function TodoApp({ initial = initialState, now = () => Date.now() }: Todo
 
   return (
     <section {...attrs}>
-      <h2 data-verify-unit-label="TodoApp">Todos</h2>
+      <h2 data-verify-unit-label="TodoApp">My todos</h2>
       <TodoForm
         onSubmit={(text, tags, dueDate) =>
           setState((s) => addTodo(s, text, tags, dueDate, nowMs))

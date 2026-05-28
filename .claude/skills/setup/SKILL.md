@@ -1,196 +1,93 @@
 ---
 name: setup
-description: Walks a maintainer through bootstrapping Ribosome on a GitHub repository. Idempotent; detects what's already done and only prompts for what's missing. Used once per fresh checkout to: create the remote, install the Claude GitHub App, set the ANTHROPIC_API_KEY secret, apply branch protection. Non-coder-friendly prose at every step.
+description: Bootstraps a fresh Ribosome repo on GitHub end to end via the `npm run setup` orchestrator. Walks the maintainer through the one unavoidable manual step (Claude App install). Idempotent; re-running on a bootstrapped repo is a sub-5s no-op. Target: ready to open an Issue in under 10 minutes from `git clone`.
 ---
 
-You are running the `setup` skill in Ribosome. Your job: take a fresh checkout of this repo and get it to the point where opening an Issue with a `ribo:feature` label triggers the workflow, the bot posts a story, and the operator's `/approve` reply advances the chain.
+You are running the `setup` skill in Ribosome. Your job: take a fresh checkout of this repo and get it to the point where an operator can open an Issue and the chain takes over.
 
-You are the FIRST thing a new maintainer runs after `git clone`. The operator (non-coder) never runs you; you exist for the maintainer.
+You are the FIRST thing a new maintainer runs after `git clone`. The operator (non-coder, GitHub UI only) never runs you; you exist for the maintainer.
 
 ## How to run
 
-1. Invoke `npm run setup:check`. The output is plain text key=value lines like:
-   ```
-   gh_cli=ok value="..."
-   gh_auth=ok value="..."
-   git_remote=missing reason="..."  hint="..."
-   ```
-2. Read each line. For every `=missing`, walk the maintainer through the fix below in the order they appear.
-3. After each fix, re-run `npm run setup:check` to confirm the line flipped to `=ok`. Do not advance to the next missing item until the previous one is `ok`.
-4. When every line is `ok`, run the final verification (below) and stop.
-
-You speak plainly. Use a numbered list when there are sub-steps. Show the exact command the maintainer should run. After they run it, ask "did that work?" and then re-check.
-
-## What to do for each `missing` item
-
-### `gh_cli=missing`
-
-Install the GitHub CLI:
+The bootstrap is one command. The orchestrator does everything programmatic in parallel and waits at the two human-gated steps (Claude App install, ANTHROPIC_API_KEY if not already on the local machine).
 
 ```
-# macOS
-brew install gh
-
-# Linux: see https://github.com/cli/cli/blob/trunk/docs/install_linux.md
-# Windows: see https://github.com/cli/cli#installation
+npm run setup -- --repo <repo-name> --visibility public --seed-issue
 ```
 
-Verify with `gh --version`. Then re-run `npm run setup:check`.
+That command:
 
-### `gh_auth=missing`
+1. Verifies preflight (gh CLI installed and authenticated, in a git repo, on `main`).
+2. Creates the GitHub remote and pushes `main`.
+3. Fans out, **in parallel**: label batch (five `ribo:*` labels), Actions enablement, visibility flip if needed, ANTHROPIC_API_KEY source detection, Claude App install URL pre-opened in the browser.
+4. Waits for the first `checks.yml` run on `main` to complete.
+5. Applies branch protection (strict status checks `typecheck`/`test`/`verify`, linear history, no force pushes or deletions, `enforce_admins=true`).
+6. Waits for the Claude App to be detected via `GET /repos/{owner}/{repo}/installation` and for `ANTHROPIC_API_KEY` to be detected via `gh secret list`.
+7. Opens a seed `[tweak]` Issue (only when `--seed-issue` is passed) so the chain has its first input.
 
-Authenticate. The interactive flow opens a browser:
+Every step emits one `key=value` line on stderr at start and at end. The final JSON summary lands on stdout. Both are readable by humans and parsers.
 
-```
-gh auth login
-```
+## Flags
 
-Choose: GitHub.com, HTTPS or SSH (either works; SSH is fine), Login with web browser, follow the prompts. Token scopes needed: `repo`, `admin:org` (for branch protection), `gist` (optional). After completing, run `gh auth status` to confirm.
+| Flag | Default | Effect |
+|---|---|---|
+| `--repo NAME` | required | Repository name under your gh-authenticated user (or `--owner`). |
+| `--owner OWNER` | gh-authenticated user | Override the owner (use for org repos). |
+| `--visibility public\|private` | `public` | `private` only works on Pro+ tiers (branch protection requires public on Free). |
+| `--seed-issue` | off | After bootstrap, open the seed `[tweak]` Issue and stop. The chain takes over from there. |
+| `--no-open-browser` | off | Suppress `open` for the Claude App install URL. Useful in headless contexts. |
+| `--timeout-min N` | `5` | Per-step timeout for the waits (first-checks-run, App install, secret set). |
 
-### `node=missing` or `npm=missing`
+## What the operator sees
 
-Install Node.js 22 or newer from https://nodejs.org. The workflow uses Node 22 in CI; matching locally makes debugging easier.
+Once `npm run setup` finishes successfully, the operator can open `https://github.com/<owner>/<repo>/issues/new/choose`, pick the Feature or Tweak template, fill in plain-language fields, and submit. From that point, the chain runs autonomously through three gates:
 
-### `git_repo=missing`
+1. **Gate 1**: bot posts the story; operator replies `/approve` or `/changes ...`.
+2. **Gate 2**: bot posts the spec; operator replies `/approve` or `/changes ...`.
+3. **Gate 3**: bot opens a draft PR with validator report; operator merges with the green button.
 
-You are not in a Ribosome checkout. `cd` into the repository root (the directory containing `CLAUDE.md` and `.claude/`) and try again.
+All of that is documented in `OPERATOR.md`.
 
-### `git_remote=missing`
+## What the bootstrap does not automate
 
-No GitHub remote is configured. Ask the maintainer what repo name they want. Default suggestion: keep it private to start. Then:
+These are the irreducibly manual steps. The orchestrator waits at each; do not paper over them.
 
-```
-gh repo create <repo-name> --private --source=. --push
-```
+### Claude GitHub App install
 
-This creates the GitHub repo, sets `origin` to point at it, and pushes the local `main` branch. After it completes, re-run `npm run setup:check` and `git_remote` and `gh_repo` should both flip to `ok`.
+The Claude App must be installed on the new repo. There is **no programmatic install path** for a GitHub App (the `repository_ids` URL parameter does not exist for App installation; the manifest flow is a 3-step handshake that is more complex than the official App for a single-repo install).
 
-If the maintainer wants the repo under an organization, use `--owner <org>` on the same command.
+The orchestrator opens `https://github.com/apps/claude/installations/new` in the browser and waits for `GET /repos/{owner}/{repo}/installation` to start returning the Claude App. Click Install, choose the repo, click Install again.
 
-### `gh_repo=missing` (with a remote configured)
+### ANTHROPIC_API_KEY creation
 
-The remote is set but `gh` cannot reach the repo. Common causes:
+The Anthropic Admin API supports managing existing keys but **API key creation is still console-only**. If the operator already has a key on the local machine (env var `$ANTHROPIC_API_KEY` or file `~/.config/anthropic/key`), the orchestrator pipes it via stdin so the value never appears on the CLI or process listing. If neither source exists, the orchestrator prints the console URL and waits for the operator to run `gh secret set ANTHROPIC_API_KEY --repo <repo>` in another terminal.
 
-- The remote URL is wrong. Run `git remote -v` and confirm.
-- The repo is in an organization the maintainer does not have access to. Check `gh org list`.
-- The repo was deleted. Run `gh repo view <owner>/<name>` to confirm.
+## What you do
 
-### Issue labels missing (preflight: not a `setup:check` line but required)
+You are the skill the maintainer triggers when `/setup` is invoked. Your job:
 
-The Issue templates declare default labels (`ribo:feature`, `ribo:bug`, `ribo:tweak`) and the workflow's `if:` condition matches on those labels. **Labels do not auto-create from templates.** The maintainer must create them before opening the first Issue, or `gh issue create --label "ribo:feature"` fails with "label not found". Run once:
-
-```
-while IFS="|" read -r name color description; do
-  [ -z "$name" ] && continue
-  gh label create "$name" --color "$color" --description "$description" --repo <owner>/<name>
-done <<'LABELS'
-ribo:feature|1d76db|operator-requested feature
-ribo:bug|d73a4a|operator-reported bug
-ribo:tweak|cfd3d7|small wording or copy change
-ribo:auto-pr|0e8a16|PR opened by Ribosome
-ribo:digest|a371f7|weekly Dreaming digest
-LABELS
-```
-
-`gh label create` returns 422 if the label already exists; that error is safe to ignore on re-runs. Adjust colours to taste.
-
-### `claude_app=missing`
-
-The Claude GitHub App is not installed on this repo. Installation requires a browser:
-
-1. Open https://github.com/apps/claude in a browser.
-2. Click "Install".
-3. Choose the account or organization that owns this repo.
-4. Choose "Only select repositories" and pick the repo name shown in `setup:check` output (`repo_full=`).
-5. Click "Install" again. The App now has Contents / Issues / Pull requests read+write on this repo.
-
-Re-run `npm run setup:check`. The `claude_app` line should flip to `ok`. If it still shows missing, the App's installation API is sometimes slow to propagate; wait 30 seconds and retry once.
-
-Alternative if the maintainer wants a branded custom GitHub App instead of the official one: see README "GitHub setup" notes. For a first test, the official App is correct.
-
-### `anthropic_api_key=missing`
-
-The repo needs an `ANTHROPIC_API_KEY` secret so the workflow can call the Anthropic API. Get the key from https://console.anthropic.com (Settings -> API Keys). Then:
-
-```
-gh secret set ANTHROPIC_API_KEY --repo <owner>/<name>
-# pastes the key when prompted
-```
-
-Or, if the maintainer already has the key in a local file or env var:
-
-```
-echo "$ANTHROPIC_API_KEY" | gh secret set ANTHROPIC_API_KEY --repo <owner>/<name>
-```
-
-Secrets are repository-scoped; no env or org-scoped variant needed.
-
-Re-run `npm run setup:check`. The `anthropic_api_key` line should flip to `ok`.
-
-### `workflow_file=missing` or `checks_workflow=missing`
-
-These should never be missing in a Ribosome checkout. If they are, the maintainer has deleted them or is in the wrong directory. Run `git status` to confirm; if files were deleted accidentally, run `git restore .github/workflows/ribosome.yml .github/workflows/checks.yml`.
-
-### `branch_protection=blocked` (GitHub Free + private repo)
-
-GitHub Free does not allow branch protection on private repositories; the API returns `403 Upgrade to GitHub Pro or make this repository public to enable this feature.` Two paths:
-
-```
-# Option A: make the repo public (test repos usually fine; ribosome scaffolding contains no secrets):
-gh repo edit <owner>/<name> --visibility public --accept-visibility-change-consequences
-
-# Option B: upgrade to GitHub Pro (paid).
-```
-
-After Option A, re-run `npm run setup:check`; `branch_protection` will flip from `blocked` to `missing`, then continue below to apply the rules.
-
-### `branch_protection=missing`
-
-Apply the protection rules on `main`. Use this command, substituting the actual `<owner>/<name>`:
-
-```
-gh api -X PUT repos/<owner>/<name>/branches/main/protection \
-  -F required_pull_request_reviews.dismiss_stale_reviews=true \
-  -F required_pull_request_reviews.required_approving_review_count=1 \
-  -F "required_status_checks.contexts[]=typecheck" \
-  -F "required_status_checks.contexts[]=test" \
-  -F "required_status_checks.contexts[]=verify" \
-  -F required_status_checks.strict=true \
-  -F enforce_admins=true \
-  -F allow_force_pushes=false \
-  -F allow_deletions=false \
-  -F required_linear_history=true
-```
-
-This requires that the `checks` workflow has run at least once on `main` (so the three named status checks exist). If it has not, push a trivial commit first so GitHub Actions runs `checks.yml` once. Then apply the protection.
-
-If the maintainer is running solo (no team), they may want `required_approving_review_count=1` or just drop the review requirement entirely. The default above requires one review, which works because the Claude App's PR counts as approvable by the operator.
-
-## Final verification
-
-When every line in `npm run setup:check` is `ok`:
-
-1. Confirm by re-running `npm run setup:check` one more time.
-2. Open a test Issue using the Feature template at https://github.com/<owner>/<name>/issues/new/choose . Fill in plain-language fields.
-3. Within a minute, the workflow should start a run. Watch via `gh run watch` or `https://github.com/<owner>/<name>/actions`.
-4. Within ~5 minutes, the bot should post a Story comment on the Issue. Confirm by viewing the Issue.
-5. Reply `/approve` to the Story comment. Watch the next workflow run produce a Spec comment.
-6. Reply `/approve` to the Spec. Watch the builder run produce a draft PR.
-
-If any step does not happen as expected, check the workflow run logs: `gh run view --log` for the most recent failure. Common first-run issues:
-
-- **API key error in logs**: the secret is set but with wrong value (no trailing newline; check by re-pasting).
-- **Permissions error on PR create**: the App was installed without `Pull requests` permission. Re-install with all three permissions.
-- **The workflow never starts**: confirm Actions are enabled in repo Settings -> Actions. Some orgs disable them by default.
-- **The workflow starts but does nothing**: the `if:` condition may not match. Confirm the label name was exactly `ribo:feature` (or another `ribo:*` value).
+1. Read the current state via `npm run setup:check`. If everything is `=ok`, congratulate the maintainer and stop.
+2. Otherwise, walk the maintainer through `npm run setup -- ...`. Pick the right flags from their answers to at most three questions: repo name, visibility, whether to open a seed Issue.
+3. Stream the orchestrator's stderr lines back to the maintainer (they are parseable; you can render them as a progress list).
+4. When the orchestrator pauses at the Claude App install, tell the maintainer plainly what to do in the browser.
+5. When the orchestrator pauses at `ANTHROPIC_API_KEY`, tell the maintainer how to set it (env, file, or `gh secret set` interactive).
+6. When the orchestrator finishes, run `npm run setup:check` once more and confirm every line is `ok`. Open the Issues page URL in their browser.
 
 ## What you do not do
 
 - You do not commit anything. Setup is config; the maintainer commits intentionally.
-- You do not store the ANTHROPIC_API_KEY anywhere except as a repo secret. Do not write it to a file, do not paste it back into chat, do not log it.
-- You do not ask the maintainer to give you the API key in chat. They paste it into `gh secret set` directly.
-- You do not modify the workflow YAML or any agent/skill body during setup. Setup configures the repo, not the chain.
+- You do not store `ANTHROPIC_API_KEY` anywhere except as a repo secret. Do not write it to a file, do not paste it back into chat, do not log it. The orchestrator follows the same rule.
+- You do not modify any agent or skill file during setup. Setup configures the GitHub side; the chain's body is unchanged.
+- You do not iterate on `jacoblewisau/ribosome-test` (the session-1 reference). Use fresh names like `ribosome-test-2`.
+
+## See also
+
+- `.claude/skills/setup/slack.md`: Slack integration options (incoming webhook, bot app, workflow builder, official GitHub-Slack app) with trade-offs and copy-paste snippets.
+- `scripts/setup-bootstrap.ts`: the orchestrator source. Inputs, steps, and the DAG in code.
+- `scripts/setup-check.ts`: the idempotent gap report. Reads-only; never mutates.
+- `goals/setup-skill-rebuild.md`: the design brief that drove this rewrite.
+- `OPERATOR.md`: what the operator sees after bootstrap.
 
 ## Style
 
-No en or em dashes. No emoji. Plain English. Each instruction is one or two commands the maintainer can copy and paste. After each, wait for them to say "done" or for `setup:check` to confirm before moving on.
+No en or em dashes. No emoji. Plain English. Each instruction is one command or one click. After each, wait for the orchestrator's stderr line confirming the step before moving on.

@@ -1,9 +1,9 @@
 {
   "version": "1",
   "schema": "ribosome.eval.baseline",
-  "recorded_at": "2026-05-28T07:06:00.000Z",
-  "pass": 20,
-  "totalTasks": 20,
+  "recorded_at": "2026-05-28T10:00:00.000Z",
+  "pass": 24,
+  "totalTasks": 24,
   "score": 1,
-  "notes": "rebaselined after T7 (agent prompts do not direct use of tools not in their allowlist). Earned from chain 0005 run 1 stall: researcher.md and validator.md instructed 'Write your findings ... using the Write tool' while their tools frontmatter excluded Write. Fix: agents return inline; coordinator persists. T7 locks the invariant."
+  "notes": "rebaselined after iteration 1 of /setup rebuild. Adds R8 (setup-bootstrap.ts exists), T8 (orchestrator invokes gh auth setup-git), TR7 (no --source=. in repo create), TR8 (no --body in gh secret set call sites). Earned from F1 (origin clash on --source=.), F2 (HTTPS push needs credential helper), and the safe-secret-handling discipline."
 }

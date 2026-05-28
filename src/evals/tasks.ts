@@ -406,6 +406,82 @@ export const TASKS: ReadonlyArray<TaskDefinition> = [
     },
   },
   {
+    id: "R8",
+    category: "routine",
+    name: "setup-bootstrap.ts exists and is non-empty",
+    rationale:
+      "The orchestrator is the source of truth for the bootstrap DAG. If it disappears or is truncated, `/setup` no longer works.",
+    check: () => {
+      const path = "scripts/setup-bootstrap.ts";
+      if (!existsSync(path)) return fail(`${path} is missing`);
+      const content = readFile(path);
+      if (content.length < 1000) return fail(`${path} is suspiciously short (${content.length} bytes)`);
+      if (!content.includes("step_repo_create") || !content.includes("step_branch_protect")) {
+        return fail(`${path} missing one of the canonical step functions`);
+      }
+      return pass();
+    },
+  },
+  {
+    id: "T8",
+    category: "tricky",
+    name: "setup-bootstrap.ts calls gh auth setup-git before pushing",
+    rationale:
+      "Earned 2026-05-28 iteration 1: HTTPS push to a fresh repo failed with 'Device not configured' because git had no credential helper for github.com. `gh auth setup-git` is idempotent and configures gh as the helper. If a future refactor drops this call, every fresh-clone bootstrap regresses for users without SSH keys.",
+    check: () => {
+      const content = readFile("scripts/setup-bootstrap.ts");
+      if (!/gh\(\["auth",\s*"setup-git"\]\)|"auth",\s*"setup-git"/.test(content)) {
+        return fail("scripts/setup-bootstrap.ts does not invoke `gh auth setup-git`");
+      }
+      return pass();
+    },
+  },
+  {
+    id: "TR7",
+    category: "trap",
+    name: "setup-bootstrap.ts must not use `gh repo create --source=.`",
+    rationale:
+      "Earned 2026-05-28 iteration 1: `gh repo create --source=. --push` fails with 'Unable to add remote origin' when the local checkout already has an origin pointing somewhere else (e.g., the iteration-N test repo when iterating from a working ribosome checkout). The orchestrator creates without --source and pushes directly so the local origin is preserved.",
+    check: () => {
+      const content = readFile("scripts/setup-bootstrap.ts");
+      // Strip single-line and block comments before matching so historical
+      // notes in comments don't trigger false positives.
+      const code = content
+        .replace(/\/\*[\s\S]*?\*\//g, "")
+        .split("\n")
+        .filter(l => !/^\s*\/\//.test(l) && !/^\s*\*/.test(l))
+        .join("\n");
+      if (/--source=\./.test(code)) {
+        return fail("scripts/setup-bootstrap.ts uses --source=. in executable code; clashes with existing local origin");
+      }
+      return pass();
+    },
+  },
+  {
+    id: "TR8",
+    category: "trap",
+    name: "setup-bootstrap.ts must not use `gh secret set --body`",
+    rationale:
+      "`--body` puts the secret value on the command line, which means it ends up in the shell's history and in the process listing (ps). The orchestrator pipes via stdin (spawnSync input:) so the value never leaves the process. Catches a regression where someone replaces the pipe with `--body` for terseness. Match is scoped to gh-secret-set call sites only; `gh issue create --body` (for Issue body text) is allowed.",
+    check: () => {
+      const content = readFile("scripts/setup-bootstrap.ts");
+      // Look for any literal occurrence of `gh secret set` in close proximity
+      // to `--body`. Conservative pattern: same line or within ~200 chars.
+      const lines = content.split("\n");
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i]!;
+        if (/"secret"\s*,\s*"set"/.test(line) || /gh\s+secret\s+set/.test(line)) {
+          // Look in this line and the next 5 lines for --body.
+          const window = lines.slice(i, i + 6).join("\n");
+          if (/"--body"|--body[\s"]/.test(window)) {
+            return fail(`scripts/setup-bootstrap.ts uses --body for gh secret set near line ${i + 1}`);
+          }
+        }
+      }
+      return pass();
+    },
+  },
+  {
     id: "TR4",
     category: "trap",
     name: "no scout workflow uses --dangerously-skip-permissions",

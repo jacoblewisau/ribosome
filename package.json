@@ -18,6 +18,7 @@
     "chain:list": "node --experimental-strip-types scripts/chain-show.ts list",
     "dream:show": "node --experimental-strip-types scripts/dream-show.ts",
     "dream:forget": "node --experimental-strip-types scripts/dream-forget.ts",
+    "setup": "node --experimental-strip-types scripts/setup-bootstrap.ts",
     "setup:check": "node --experimental-strip-types scripts/setup-check.ts",
     "eval": "node --experimental-strip-types scripts/eval.ts"
   },

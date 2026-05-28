@@ -1,0 +1,96 @@
+name: eval
+
+# Phase 5 deliverable per plan §11/§12. Runs the 12-task eval harness
+# on every PR that touches the chain's definitions (.claude/**) and
+# blocks merge if the score drops by more than 1 task vs the recorded
+# baseline at evals/baseline.json.
+#
+# The eval is structural (no Claude API calls); runs in seconds. A
+# future opt-in behavioural mode would invoke the real chain at $5-9
+# per task; not wired here. The maintainer records a new baseline
+# manually after intentionally adding or removing a check:
+#   npm run eval -- --record evals/baseline.json
+# and commits the updated baseline.json.
+
+on:
+  pull_request:
+    paths:
+      - ".claude/**"
+      - "evals/**"
+      - "src/evals/**"
+      - "scripts/eval.ts"
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  eval:
+    name: eval
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Run eval with gate
+        id: eval
+        run: |
+          set -o pipefail
+          npm run --silent eval -- --gate evals/baseline.json | tee eval-output.txt
+
+      - name: Capture eval JSON for PR comment
+        if: always()
+        run: |
+          node --experimental-strip-types scripts/eval.ts --json --out eval-report.json
+        continue-on-error: true
+
+      - name: Post / update PR comment with eval summary
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('node:fs');
+            let body;
+            try {
+              const report = JSON.parse(fs.readFileSync('eval-report.json', 'utf8'));
+              const passLine = `Score: **${report.pass}/${report.totalTasks}** (${report.score.toFixed(3)})`;
+              const fails = report.results.filter(r => r.result === 'FAIL');
+              const failBlock = fails.length === 0
+                ? 'No failures.'
+                : fails.map(f => `- **${f.id}** (${f.category}): ${f.name}\n  reason: ${f.reason || '(none)'}`).join('\n');
+              body = `### Ribosome eval (Phase 5)\n\n${passLine}\n\nBaseline gate: ${ '${{ steps.eval.outcome }}' }\n\n#### Failures\n\n${failBlock}\n\n<sub>schema: ${report.schema} v${report.version} | generated: ${report.generated_at}</sub>\n<!-- ribosome:eval-comment v1 -->\n`;
+            } catch (e) {
+              body = `### Ribosome eval (Phase 5)\n\nCould not parse eval report: ${e.message}\n\n<!-- ribosome:eval-comment v1 -->\n`;
+            }
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c =>
+              c.user && c.user.type === 'Bot' && c.body && c.body.includes('<!-- ribosome:eval-comment v1 -->')
+            );
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }

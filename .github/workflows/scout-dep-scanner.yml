@@ -1,0 +1,41 @@
+name: scout-dep-scanner
+
+# Phase 4 deliverable. Weekly dependency scan; opens one ribo:tweak per
+# ecosystem with a grouped lockfile bump proposal.
+#
+# Cadence: Monday 06:00 UTC.
+# Model: claude-haiku-4-5 (parses `npm outdated` output and groups).
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch: {}
+
+permissions:
+  issues: write
+  contents: read
+
+concurrency:
+  group: scout-dep-scanner
+  cancel-in-progress: false
+
+jobs:
+  dep-scanner:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+      - name: Install deps (for accurate outdated check)
+        run: npm ci --no-audit --no-fund
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: "/dep-scanner repo=${{ github.repository }} run_id=${{ github.run_id }}"
+          claude_args: |
+            --model claude-haiku-4-5
+            --max-turns 20
+            --allowedTools "Read,Glob,Grep,Bash(gh:*),Bash(jq:*),Bash(npm:*),Bash(date:*)"

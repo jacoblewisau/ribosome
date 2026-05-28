@@ -1,0 +1,38 @@
+name: scout-shepherd
+
+# Phase 4 deliverable. Daily nudge for stalled draft PRs (> 3 days
+# without activity) and weekly summary Issue listing every in-flight
+# chain.
+#
+# Cadence: 09:00 UTC daily; the skill body distinguishes weekly vs
+# daily mode by the day of the week (Monday = weekly + daily).
+# Model: claude-haiku-4-5 (reads metadata + simple time math).
+
+on:
+  schedule:
+    - cron: "0 9 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  issues: write
+  pull-requests: write
+  contents: read
+
+concurrency:
+  group: scout-shepherd
+  cancel-in-progress: false
+
+jobs:
+  shepherd:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: "/shepherd repo=${{ github.repository }} run_id=${{ github.run_id }} day_of_week=$(date -u +%u)"
+          claude_args: |
+            --model claude-haiku-4-5
+            --max-turns 20
+            --allowedTools "Read,Glob,Grep,Bash(gh:*),Bash(jq:*),Bash(date:*)"

@@ -69,6 +69,19 @@ const SIX_SLASH_COMMANDS = [
   "/forget",
 ];
 
+const SCOUT_NAMES = [
+  "ci-watcher",
+  "dep-scanner",
+  "coverage-scout",
+  "doc-drift",
+  "shepherd",
+  "rule-miner",
+  "dreamer-digest",
+];
+
+const MECHANICAL_SCOUTS = ["ci-watcher", "dep-scanner", "coverage-scout", "shepherd"];
+const JUDGMENT_SCOUTS = ["doc-drift", "rule-miner", "dreamer-digest"];
+
 export const TASKS: ReadonlyArray<TaskDefinition> = [
   // -------- Routine (5): should always pass --------
   {
@@ -269,6 +282,114 @@ export const TASKS: ReadonlyArray<TaskDefinition> = [
       if (/\bWrite\b/.test(tools) || /\bEdit\b/.test(tools)) {
         return fail(`pr-shepherd tools list includes Write/Edit: ${tools}`);
       }
+      return pass();
+    },
+  },
+
+  // -------- Phase 4 additions: seven scouts --------
+  {
+    id: "R6",
+    category: "routine",
+    name: "all seven scout skills exist with description frontmatter",
+    rationale:
+      "Each scout's behaviour is its skill body. A missing skill means the workflow's `/scout-name` invocation fails on the action's first turn.",
+    check: () => {
+      const missing: string[] = [];
+      for (const s of SCOUT_NAMES) {
+        const path = `.claude/skills/${s}/SKILL.md`;
+        if (!existsSync(path)) {
+          missing.push(`${path} missing`);
+          continue;
+        }
+        if (!frontmatterHas(path, ["description"])) {
+          missing.push(`${path} has no description`);
+        }
+      }
+      if (missing.length > 0) return fail(missing.join("; "));
+      return pass();
+    },
+  },
+  {
+    id: "R7",
+    category: "routine",
+    name: "all seven scout workflows exist with schedule or trigger",
+    rationale:
+      "If a scout's workflow file is missing or has no trigger, the scout never fires on its intended cadence.",
+    check: () => {
+      const missing: string[] = [];
+      for (const s of SCOUT_NAMES) {
+        const path = `.github/workflows/scout-${s}.yml`;
+        if (!existsSync(path)) {
+          missing.push(`${path} missing`);
+          continue;
+        }
+        const yml = readFile(path);
+        // Either schedule:, push:, pull_request:, or workflow_dispatch: is acceptable
+        if (!/^\s*(schedule|push|pull_request|workflow_dispatch):/m.test(yml)) {
+          missing.push(`${path} has no recognised trigger`);
+        }
+      }
+      if (missing.length > 0) return fail(missing.join("; "));
+      return pass();
+    },
+  },
+  {
+    id: "T5",
+    category: "tricky",
+    name: "every scout workflow uses an --allowedTools allowlist (no implicit bypass)",
+    rationale:
+      "Phase 3 learned: without --allowedTools, the action's permission gates deny everything and Claude exhausts max-turns. Without an allowlist a scout is silently broken on first run.",
+    check: () => {
+      const missing: string[] = [];
+      for (const s of SCOUT_NAMES) {
+        const yml = readFile(`.github/workflows/scout-${s}.yml`);
+        if (!/--allowedTools/.test(yml)) {
+          missing.push(`scout-${s}.yml missing --allowedTools`);
+        }
+      }
+      if (missing.length > 0) return fail(missing.join("; "));
+      return pass();
+    },
+  },
+  {
+    id: "T6",
+    category: "tricky",
+    name: "scout cost discipline: mechanical scouts use Haiku, judgment scouts use Sonnet",
+    rationale:
+      "Haiku is roughly 5x cheaper than Sonnet. Using Sonnet for mechanical work (dep diffs, log grep) wastes budget; using Haiku for judgment (doc-drift) misses subtleties. Catches model-string drift in either direction.",
+    check: () => {
+      const wrong: string[] = [];
+      for (const s of MECHANICAL_SCOUTS) {
+        const yml = readFile(`.github/workflows/scout-${s}.yml`);
+        if (!/--model\s+claude-haiku-4-5/.test(yml)) {
+          wrong.push(`${s} should use claude-haiku-4-5`);
+        }
+      }
+      for (const s of JUDGMENT_SCOUTS) {
+        const yml = readFile(`.github/workflows/scout-${s}.yml`);
+        if (!/--model\s+claude-sonnet-4-6/.test(yml)) {
+          wrong.push(`${s} should use claude-sonnet-4-6`);
+        }
+      }
+      if (wrong.length > 0) return fail(wrong.join("; "));
+      return pass();
+    },
+  },
+  {
+    id: "TR4",
+    category: "trap",
+    name: "no scout workflow uses --dangerously-skip-permissions",
+    rationale:
+      "Bypass mode would defeat the per-scout allowlist discipline T5 enforces. Catches a re-introduction.",
+    check: () => {
+      const offenders: string[] = [];
+      for (const s of SCOUT_NAMES) {
+        const yml = readFile(`.github/workflows/scout-${s}.yml`);
+        if (/dangerously-skip-permissions/.test(yml)) {
+          offenders.push(`scout-${s}.yml`);
+        }
+      }
+      if (offenders.length > 0) return fail(`bypass found in: ${offenders.join(", ")}`);
       return pass();
     },
   },

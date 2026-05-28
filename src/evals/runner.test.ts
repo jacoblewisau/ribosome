@@ -188,8 +188,8 @@ describe("Phase 5 eval runner", () => {
     });
   });
 
-  describe("the 12 seeded tasks against current repo", () => {
-    it("all 12 pass (this is also the chain's regression guard)", () => {
+  describe("the seeded tasks against current repo", () => {
+    it("every task passes (this is also the chain's regression guard)", () => {
       const report = runEval(TASKS);
       const failures = report.results.filter((r) => r.result === "FAIL");
       if (failures.length > 0) {
@@ -197,8 +197,10 @@ describe("Phase 5 eval runner", () => {
         // eslint-disable-next-line no-console
         console.error(`Eval failures (${failures.length}):\n${lines}`);
       }
-      expect(report.totalTasks).toBe(12);
-      expect(report.pass).toBe(12);
+      // The total grows as the chain surface grows; the invariant is
+      // "every task passes", not a fixed count.
+      expect(report.totalTasks).toBeGreaterThanOrEqual(12);
+      expect(report.pass).toBe(report.totalTasks);
       expect(report.fail).toBe(0);
       expect(report.score).toBe(1);
     });

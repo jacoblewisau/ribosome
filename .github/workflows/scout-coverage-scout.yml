@@ -1,0 +1,43 @@
+name: scout-coverage-scout
+
+# Phase 4 deliverable. After each merge to main, if the merged change
+# touched files with coverage below threshold, opens a ribo:bug Issue.
+# Currently no coverage provider is wired; the scout no-ops cleanly in
+# that case (per its skill body).
+#
+# Cadence: every push to main.
+# Model: claude-haiku-4-5 (parses coverage output).
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  issues: write
+  contents: read
+
+concurrency:
+  group: scout-coverage-scout
+  cancel-in-progress: false
+
+jobs:
+  coverage-scout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2 # need previous commit to diff file list
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+      - run: npm ci --no-audit --no-fund
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: "/coverage-scout repo=${{ github.repository }} sha=${{ github.sha }}"
+          claude_args: |
+            --model claude-haiku-4-5
+            --max-turns 20
+            --allowedTools "Read,Glob,Grep,Bash(gh:*),Bash(jq:*),Bash(git:*),Bash(npm:*),Bash(date:*)"

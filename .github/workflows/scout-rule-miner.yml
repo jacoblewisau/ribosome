@@ -1,0 +1,44 @@
+name: scout-rule-miner
+
+# Phase 4 deliverable. Weekly scan of corrections.jsonl and the
+# distilled store; if a rule has met the promotion threshold (refs >=
+# 3 AND confidence >= 0.7 per the rule-miner skill body), opens a PR
+# against CLAUDE.md proposing the rule.
+#
+# Cadence: Monday 08:00 UTC.
+# Model: claude-sonnet-4-6 (requires synthesis judgment).
+
+on:
+  schedule:
+    - cron: "0 8 * * 1"
+  workflow_dispatch: {}
+
+permissions:
+  issues: write
+  pull-requests: write
+  contents: write # for the PR branch
+
+concurrency:
+  group: scout-rule-miner
+  cancel-in-progress: false
+
+jobs:
+  rule-miner:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Configure git identity
+        run: |
+          git config user.name "ribosome-bot"
+          git config user.email "ribosome-bot@users.noreply.github.com"
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: "/rule-miner repo=${{ github.repository }} run_id=${{ github.run_id }}"
+          claude_args: |
+            --model claude-sonnet-4-6
+            --max-turns 30
+            --allowedTools "Read,Glob,Grep,Edit,Bash(gh:*),Bash(jq:*),Bash(git:*),Bash(date:*)"

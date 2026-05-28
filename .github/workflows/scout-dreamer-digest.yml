@@ -1,0 +1,43 @@
+name: scout-dreamer-digest
+
+# Phase 4 / Phase 4.5 carryover. Weekly digest of distilled memory
+# items for the operator to /keep or /forget. Updates a single
+# ribo:digest Issue in place (does not create new each week).
+#
+# Cadence: Monday 10:00 UTC (after rule-miner so any promoted rules
+# are already merged out of distilled).
+# Model: claude-sonnet-4-6 (human-language rendering of structured
+# items; small but quality-sensitive).
+
+on:
+  schedule:
+    - cron: "0 10 * * 1"
+  workflow_dispatch: {}
+
+permissions:
+  issues: write
+  contents: read
+
+concurrency:
+  group: scout-dreamer-digest
+  cancel-in-progress: false
+
+jobs:
+  dreamer-digest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+      - run: npm ci --no-audit --no-fund
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: "/dreamer-digest repo=${{ github.repository }} run_id=${{ github.run_id }}"
+          claude_args: |
+            --model claude-sonnet-4-6
+            --max-turns 20
+            --allowedTools "Read,Glob,Grep,Bash(gh:*),Bash(jq:*),Bash(npm:*),Bash(date:*)"

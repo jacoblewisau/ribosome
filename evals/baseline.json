@@ -1,9 +1,9 @@
 {
   "version": "1",
   "schema": "ribosome.eval.baseline",
-  "recorded_at": "2026-05-28T00:10:58.039Z",
-  "pass": 12,
-  "totalTasks": 12,
+  "recorded_at": "2026-05-28T00:28:07.198Z",
+  "pass": 17,
+  "totalTasks": 17,
   "score": 1,
   "notes": "manual record"
 }

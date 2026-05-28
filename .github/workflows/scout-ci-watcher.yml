@@ -1,0 +1,39 @@
+name: scout-ci-watcher
+
+# Phase 4 deliverable. Watches CI runs of the `checks` workflow and
+# files a ribo:bug Issue when a test newly fails or has been flaky 3
+# of the last 10 runs. Dedupes by ribo:ci-watcher label.
+#
+# Cadence: every push to main + nightly at 02:00 UTC.
+# Model: claude-haiku-4-5 (mechanical work; parsing run history).
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 2 * * *"
+
+permissions:
+  issues: write
+  contents: read
+  actions: read
+
+# One scout run at a time per scout type; queue rather than cancel.
+concurrency:
+  group: scout-ci-watcher
+  cancel-in-progress: false
+
+jobs:
+  ci-watcher:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: "/ci-watcher repo=${{ github.repository }} run_id=${{ github.run_id }}"
+          claude_args: |
+            --model claude-haiku-4-5
+            --max-turns 20
+            --allowedTools "Read,Glob,Grep,Bash(gh:*),Bash(jq:*),Bash(date:*)"

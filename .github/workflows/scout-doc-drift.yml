@@ -1,0 +1,39 @@
+name: scout-doc-drift
+
+# Phase 4 deliverable. Weekly comparison of code's public API surface
+# against the docs (README, OPERATOR.md, CLAUDE.md, .claude/skills/*).
+# Opens ribo:tweak Issues for stale doc sections.
+#
+# Cadence: Monday 07:00 UTC (one hour after dep-scanner).
+# Model: claude-sonnet-4-6 (requires judgment about what counts as
+#        drift vs intentional simplification).
+
+on:
+  schedule:
+    - cron: "0 7 * * 1"
+  workflow_dispatch: {}
+
+permissions:
+  issues: write
+  contents: read
+
+concurrency:
+  group: scout-doc-drift
+  cancel-in-progress: false
+
+jobs:
+  doc-drift:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # need history to date-check exports
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: "/doc-drift repo=${{ github.repository }} run_id=${{ github.run_id }}"
+          claude_args: |
+            --model claude-sonnet-4-6
+            --max-turns 25
+            --allowedTools "Read,Glob,Grep,Bash(gh:*),Bash(jq:*),Bash(git:*),Bash(diff:*),Bash(date:*)"

@@ -38,11 +38,14 @@ After acting, write a new bot comment that includes both the operator-visible co
 
 | Trigger event | Current state | Next action |
 |---|---|---|
-| Issue labeled `ribo:*` | no state | Allocate chain id (next sequential, zero-padded, four digits). Initialise state. Invoke `researcher` subagent. Then run `story-writer` skill. Post story + state comment. |
+| Issue labeled `ribo:feature`, `ribo:bug`, or `ribo:tweak` | no state | Allocate chain id (next sequential, zero-padded, four digits). Initialise state. Invoke `researcher` subagent. Then run `story-writer` skill. Post story + state comment. |
+| Issue labeled `ribo:project` | no state | Run the `planner` skill (the transcription layer). Initialise state with `id` set to the project Issue number, `current_step: planner`, `gate_state.roadmap: pending`. Post the roadmap proposal + state comment. Do NOT allocate a feature chain or invoke researcher / story-writer; this is decomposition, not a build. |
 | `/approve` on Issue | `current_step: story-writer`, gate_state.story: pending | Mark story approved. Run `spec-writer` skill. Post spec + state comment. |
 | `/changes <note>` on Issue | `current_step: story-writer` | Run `bash .claude/hooks/record-correction.sh <id> story-writer "<note>" github-issue-comment`. Re-run `story-writer` with the note appended. Post revised story + state comment. |
 | `/approve` on Issue | `current_step: spec-writer`, gate_state.spec: pending | Mark spec approved. Create branch `ribosome/<id>`. Invoke `builder` subagent (builder writes both implementation and the acceptance test at `tests/acceptance/<id>.spec.ts`, within `scope_paths`). Run `verify-contracts` skill. Invoke `validator` subagent. If validator clean: invoke `pr-shepherd`. Post PR link + state comment. |
 | `/changes <note>` on Issue | `current_step: spec-writer` | Run `bash .claude/hooks/record-correction.sh <id> spec-writer "<note>" github-issue-comment`. Re-run `spec-writer` with the note appended. Post revised spec + state comment. |
+| `/approve` on Issue | `current_step: planner`, `gate_state.roadmap: pending` | Per the `planner` skill, file the child Feature Issues as native sub-issues of this Issue. Label only the tracer-bullet first slice `ribo:feature` so exactly one chain starts; create the rest unlabelled and queued. Mark `gate_state.roadmap: approved`. Post the filed list + state comment. |
+| `/changes <note>` on Issue | `current_step: planner` | Run `bash .claude/hooks/record-correction.sh <id> planner "<note>" github-issue-comment` (id = the project Issue number). Re-run the `planner` skill with the note. Re-post the roadmap proposal + state comment. |
 | `/cancel` on Issue | any | Close the chain. Comment "Cancelled by operator at step <current_step>." Update state to `current_step: cancelled`. Delete branch if it exists. |
 | `/explain <q>` on Issue | any | One-shot researcher invocation answering the operator's question. Post answer as comment. Do NOT advance state. |
 | `/keep <id>` on Issue (only if this Issue is a dreamer-digest) | n/a | Acknowledge as comment. Phase 4 wires the digest scout; until then, no-op with a friendly note. |

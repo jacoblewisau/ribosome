@@ -40,7 +40,8 @@ jobs:
         (
           contains(github.event.label.name, 'ribo:feature') ||
           contains(github.event.label.name, 'ribo:bug') ||
-          contains(github.event.label.name, 'ribo:tweak')
+          contains(github.event.label.name, 'ribo:tweak') ||
+          contains(github.event.label.name, 'ribo:project')
         )
       )
       ||

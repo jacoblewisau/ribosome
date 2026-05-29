@@ -1,9 +1,9 @@
 {
   "version": "1",
   "schema": "ribosome.eval.baseline",
-  "recorded_at": "2026-05-29T22:16:54.703Z",
-  "pass": 34,
-  "totalTasks": 34,
+  "recorded_at": "2026-05-29T23:19:27.137Z",
+  "pass": 37,
+  "totalTasks": 37,
   "score": 1,
-  "notes": "rebaselined for slice 1 of the operator-as-non-coder goal (session 5). Added R12 (operator-translation + decision-records skills exist), T11 (spec-writer carries the three-bucket Decisions-captured protocol), TR11 (decision-records keeps the three-criteria ADR gate and propose-through-gate guardrail), T12 (operator-translation carries a brevity / volume discipline, since volume is itself a rubber-stamp trigger for the operator). Split now 11 routine / 12 tricky / 11 trap = 34."
+  "notes": "rebaselined for slice 2 of the operator-as-non-coder goal (the planner). Added R13 (Project Issue Form + planner skill + ribo:project label exist), T13 (chain routes ribo:project to the planner, not the feature chain; no broad ribo:* start row), TR12 (planner files children only after /approve and keeps the ADR-0002 sub-issue + task-list fallback). Split now 13 routine / 13 tricky / 11 trap = 37. Slice 2 is stacked on slice 1 (PR #1) since slice 1 is not yet merged."
 }

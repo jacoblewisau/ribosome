@@ -16,6 +16,7 @@
 
 import { execSync } from "node:child_process";
 import { existsSync } from "node:fs";
+import { classifyClaudeApp, formatClaudeAppLine } from "../src/setup/claude-app.ts";
 
 type Check =
   | { ok: true; value: string }
@@ -116,18 +117,31 @@ if (ghRepoFull) {
   printCheck("auth_secret", { ok: false, reason: "cannot check without remote" });
 }
 
-// 8. Claude GitHub App installed (we can detect via the app's pulls API; absence is harder to confirm without listing user installations)
+// 8. Claude GitHub App installed. A user token cannot deterministically
+//    verify this: GET /repos/{owner}/{repo}/installation needs App-JWT auth
+//    and GET /user/installations needs an app-authorized token; both 403 for
+//    a gh user token (verified 2026-05-29). So we do a best-effort positive
+//    probe and otherwise report an honest `unknown` rather than the old
+//    false-negative `missing`, which scared operators on healthy repos and
+//    contradicted the orchestrator's already-honest stance. See
+//    src/setup/claude-app.ts for the full constraint.
 if (ghRepoFull) {
-  // The most reliable detection is to look for any prior PR opened by claude[bot] OR to check the installations API.
-  // Listing app installations requires admin scope. Simpler: check for a previous comment by claude[bot] across issues.
-  const claudeUserCheck = tryRun(`gh api repos/${ghRepoFull}/installation 2>&1 | head -5 | grep -E '"app_slug": "claude"' || echo MISSING`);
-  if (claudeUserCheck.ok && claudeUserCheck.value !== "MISSING") {
-    printCheck("claude_app", { ok: true, value: "installed" });
-  } else {
-    printCheck("claude_app", { ok: false, reason: "not detected (or installation API unavailable)" }, "install at https://github.com/apps/claude");
-  }
+  const probe = tryRun(`gh api repos/${ghRepoFull}/installation 2>&1`);
+  console.log(
+    formatClaudeAppLine(
+      classifyClaudeApp({
+        hasRemote: true,
+        installationApiOk: probe.ok,
+        installationApiBody: probe.ok ? probe.value : probe.reason,
+      })
+    )
+  );
 } else {
-  printCheck("claude_app", { ok: false, reason: "cannot check without remote" });
+  console.log(
+    formatClaudeAppLine(
+      classifyClaudeApp({ hasRemote: false, installationApiOk: false, installationApiBody: "" })
+    )
+  );
 }
 
 // 9. workflow file exists locally

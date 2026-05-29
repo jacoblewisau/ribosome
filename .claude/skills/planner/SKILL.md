@@ -22,7 +22,7 @@ Two things, in order.
 
 1. **A roadmap proposal**, posted as the operator-visible comment at the decomposition gate. Lead with the smallest useful slice (the tracer bullet: one real thing, end to end). Then the next slices in build order. Each slice is one plain-language line the operator can picture, plus a short "why this order". Keep the whole roadmap readable in under a minute. Then ask only the few domain questions that genuinely change the plan; the "what must never go wrong" answer is the first thing you triage, and it usually changes the first slice. End with: reply `/approve` to file these, or `/changes <note>` to adjust.
 
-2. **On `/approve` only: the child Issues.** Do not file anything before `/approve`. For each slice, create a Feature Issue whose body follows the Feature template shape (as a..., I want..., so that..., success looks like...), filled from the roadmap and the operator's answers. Link each child to the parent as a sub-issue (see "Filing" below). Apply the `ribo:feature` label to ONLY the first slice, so exactly one chain starts; create the rest without it and note in each "queued; starts when #<previous> merges". Post a closing comment listing what you filed.
+2. **On `/approve` only: the child Issues.** Do not file anything before `/approve`. For each slice, create a Feature Issue whose body follows the Feature template shape (as a..., I want..., so that..., success looks like...), filled from the roadmap and the operator's answers. Link each child to the parent as a sub-issue (see "Filing" below). Apply the `ribo:feature` label to ONLY the first slice, so exactly one chain starts; create the rest without it and note in each "queued; starts when #<previous> merges". Post a closing comment that lists what you filed and tells the operator how to confirm the start: the first piece should get a bot reply within a minute or two; if it stays silent the auto-start did not fire, so the operator should open that Issue and add the `ribo:feature` label themselves (an operator-applied label always triggers the chain). This makes a failed start a visible, recoverable hiccup rather than a silent stall.
 
 ## Sizing and sequencing
 
@@ -43,6 +43,8 @@ Per ADR-0002, the parent Project Issue tracks children as native sub-issues:
 3. Link it: `gh api --method POST repos/<owner>/<repo>/issues/<parent>/sub_issues -f sub_issue_id=<id>`.
 4. If step 3 fails, retry once. If it still fails, append `- [ ] #<number>` to the parent Issue body as a task-list fallback so the parent-child link is never lost.
 5. For the first slice only, start its chain: `gh issue edit <number> --add-label ribo:feature`.
+
+A bot-applied label only triggers the chain if the action's `gh` uses a GitHub App or PAT token, not the default `GITHUB_TOKEN` (GitHub does not re-trigger workflows from the default token). This is unverified in Ribosome's setup, which is exactly why the closing comment above always tells the operator how to nudge if the start does not fire. Do not remove that fallback.
 
 Advancing to the next slice when one merges is a future enhancement, not part of this skill.
 

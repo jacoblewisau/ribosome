@@ -838,6 +838,9 @@ export const TASKS: ReadonlyArray<TaskDefinition> = [
       if (!/- \[ \]|task-list/i.test(p)) {
         return fail("planner.md dropped the task-list fallback for the flaky sub-issue API");
       }
+      if (!/did not fire|stays silent/i.test(p)) {
+        return fail("planner.md dropped the loud-fallback: the operator is not told how to nudge if the bot-applied label does not start the chain (silent-stall risk)");
+      }
       return pass();
     },
   },

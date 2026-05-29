@@ -356,6 +356,35 @@ with the prototype skill:
 These are resolved in a research-plus-prototype step before any planner code is
 written. Findings and the chosen shapes append here.
 
+### Slice 2 shapes resolved (session 5, maintainer via prototype)
+
+Grounded in GitHub primary docs (Issue Forms syntax; sub-issues REST API; task
+lists), then compared in a throwaway prototype. The maintainer chose, over the
+recommended low-risk defaults, the richer options:
+
+- **Project template: A2, the guided GitHub Issue Form (YAML).** Five fields:
+  what to build, who for, what it must do first, what must never go wrong
+  (optional), and a "roughly how big" dropdown. Lives at
+  `.github/ISSUE_TEMPLATE/project.yml`, auto-applies `ribo:project`, fields use
+  `required` validation. The "what must never go wrong" field is a domain signal
+  the planner triages first.
+- **Roadmap: B2, native GitHub sub-issues.** The parent Project Issue shows a
+  sub-issue progress bar; children are real sub-issues.
+
+Engineering note (inform-only, my call to make B2 robust): native sub-issues
+cannot be created with `gh issue create`, and the gh CLI cannot set a parent. The
+planner will create each child with `gh issue create`, read its integer id
+(`gh api repos/{o}/{r}/issues/{n} --jq .id`), then `POST
+/repos/{o}/{r}/issues/{parent}/sub_issues` with `sub_issue_id`. Because that
+endpoint has reported flakiness, the call retries once and, on persistent
+failure, falls back to appending a `- [ ] #n` task-list line to the parent so the
+parent-child link is never silently lost. A new structural invariant will assert
+the planner keeps both the sub-issue call and the task-list fallback.
+
+Sources: GitHub Issue Forms syntax, REST API for sub-issues, Adding sub-issues,
+About task lists, and cli/cli#10298 (gh cannot set a parent). The prototype
+(`/tmp/ribosome-proto/planner-shapes.html`) has served its purpose and is deleted.
+
 ---
 
 ## Decisions (settled session 5, maintainer)

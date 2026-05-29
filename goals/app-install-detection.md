@@ -40,6 +40,10 @@ If `unknown` is not good enough and you want `setup-check` (or a separate comman
 
 My recommendation: ship nothing further now (option 1 is already in place and honest). If you later want setup-time confidence, option 2 as an explicit `--probe-app` flag is the only real answer, and it must be framed as "did a real run succeed," not "is the App installed," because of the auth-vs-install ambiguity.
 
+## Decision (session 4)
+
+**Settled: option 1.** Maintainer confirmed: keep the honest `claude_app=unknown`; do not build the paid `--probe-app`. Rationale: it would only confirm at setup time what the first real chain run confirms for free, the failure signal is ambiguous (App-missing vs bad auth), and it cannot be validated offline. Revisit only if a future need for setup-time certainty outweighs those.
+
 ## Suggested eval invariant (deferred, not added)
 
 A trap guarding this fix was intentionally NOT added this session, because it would require editing `src/evals/tasks.ts` and regenerating `evals/baseline.json`, the two files your concurrent session-4 work is actively changing (merge-conflict risk). The unit tests already cover the regression. When your eval work settles, consider adding:

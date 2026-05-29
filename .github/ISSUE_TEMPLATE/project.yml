@@ -1,0 +1,60 @@
+name: Project
+description: A big idea for Ribosome to break into a sequence of smaller pieces.
+title: "[project] "
+labels: ["ribo:project"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this for a large idea, not a single feature. Describe it in plain
+        English. The bot will not build it all at once: it proposes a sequence
+        of small pieces, asks you to approve the plan, then files each piece as
+        its own Issue and starts with the smallest one.
+
+  - type: textarea
+    id: what
+    attributes:
+      label: What do you want to build?
+      description: One or two sentences. The whole idea, even if it is big.
+      placeholder: A tool where my lab uploads microscopy images and tags them.
+    validations:
+      required: true
+
+  - type: textarea
+    id: who
+    attributes:
+      label: Who is it for?
+      description: Just you, your lab, or outside collaborators?
+      placeholder: Me and four people in the lab to start.
+    validations:
+      required: true
+
+  - type: textarea
+    id: first
+    attributes:
+      label: What is the one thing it must do first?
+      description: If it only did one thing on day one, what would that be?
+      placeholder: Upload an image and see it in a list.
+    validations:
+      required: true
+
+  - type: textarea
+    id: never_wrong
+    attributes:
+      label: What must never go wrong?
+      description: What would be bad if it broke or leaked? Leave blank if nothing comes to mind.
+      placeholder: The images are unpublished results; they must stay private.
+    validations:
+      required: false
+
+  - type: dropdown
+    id: size
+    attributes:
+      label: Roughly how big does this feel?
+      description: A rough sense helps the bot size the pieces. A guess is fine.
+      options:
+        - One small feature
+        - A few features
+        - A big system with many parts
+    validations:
+      required: false

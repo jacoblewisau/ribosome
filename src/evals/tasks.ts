@@ -778,6 +778,72 @@ export const TASKS: ReadonlyArray<TaskDefinition> = [
       return pass();
     },
   },
+  {
+    id: "R13",
+    category: "routine",
+    name: "slice 2 scaffolding exists: Project Issue Form, planner skill, ribo:project label",
+    rationale:
+      "Earned 2026-05-30 (session 5, slice 2). The planner (transcription layer) needs three pieces present: the Project Issue Form the non-coder operator fills in (auto-applying ribo:project), the planner skill the coordinator runs, and the ribo:project label seeded so the form can apply it. If any is missing the Project flow is unreachable.",
+    check: () => {
+      const form = ".github/ISSUE_TEMPLATE/project.yml";
+      if (!existsSync(form)) return fail(`${form} is missing`);
+      const formText = readFile(form);
+      if (!/^labels:/m.test(formText) || !formText.includes("ribo:project")) {
+        return fail("project.yml does not auto-apply the ribo:project label");
+      }
+      const skill = ".claude/skills/planner/SKILL.md";
+      if (!existsSync(skill) || !frontmatterHas(skill, ["name", "description"])) {
+        return fail("planner skill missing or lacking name/description frontmatter");
+      }
+      if (!readFile("scripts/setup-bootstrap.ts").includes('"ribo:project"')) {
+        return fail("setup-bootstrap.ts REQUIRED_LABELS does not seed ribo:project");
+      }
+      return pass();
+    },
+  },
+  {
+    id: "T13",
+    category: "tricky",
+    name: "the chain routes ribo:project to the planner, not the feature chain",
+    rationale:
+      "Earned 2026-05-30 (session 5, slice 2). A ribo:project Issue must run the planner (decompose), not start a build. The bug this guards: the coordinator's old generic 'Issue labeled ribo:*' start row would have matched ribo:project and wrongly invoked researcher/story-writer. The dispatch must have a distinct ribo:project -> planner row, the start row must not use the broad ribo:* glob, and ribosome.yml must let the ribo:project label through.",
+    check: () => {
+      const coord = readFile(".claude/skills/coordinator/SKILL.md");
+      if (!/ribo:project[\s\S]*?planner/i.test(coord)) {
+        return fail("coordinator dispatch has no ribo:project -> planner row");
+      }
+      if (/Issue labeled `ribo:\*`/.test(coord)) {
+        return fail("coordinator still uses the broad `ribo:*` start row; ribo:project would wrongly start a feature chain");
+      }
+      if (!/ribo:project/.test(readFile(".github/workflows/ribosome.yml"))) {
+        return fail("ribosome.yml if-clause does not let ribo:project through");
+      }
+      return pass();
+    },
+  },
+  {
+    id: "TR12",
+    category: "trap",
+    name: "planner files children only after /approve and keeps the sub-issue + task-list fallback",
+    rationale:
+      "Earned 2026-05-30 (session 5, slice 2). Two regressions would break the Project flow's guarantees. First, filing child Issues before the operator approves the roadmap violates the propose-then-create-on-approve gate. Second, dropping the ADR-0002 robustness path (POST sub_issues plus a task-list fallback) means the flaky sub-issues API could silently drop the parent-child link. Both must stay in the planner skill.",
+    check: () => {
+      const p = readFile(".claude/skills/planner/SKILL.md");
+      if (!/do not file (any )?child Issue before/i.test(p)) {
+        return fail("planner.md dropped the 'do not file before /approve' gate");
+      }
+      if (!/sub_issues/.test(p)) {
+        return fail("planner.md no longer documents the sub_issues REST call");
+      }
+      if (!/- \[ \]|task-list/i.test(p)) {
+        return fail("planner.md dropped the task-list fallback for the flaky sub-issue API");
+      }
+      if (!/did not fire|stays silent/i.test(p)) {
+        return fail("planner.md dropped the loud-fallback: the operator is not told how to nudge if the bot-applied label does not start the chain (silent-stall risk)");
+      }
+      return pass();
+    },
+  },
 ];
 
 // Lazy execSync to avoid pulling node:child_process at module load

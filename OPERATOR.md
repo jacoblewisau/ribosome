@@ -7,7 +7,7 @@ whole manual.
 
 ## How to start work
 
-Open a new Issue in this repository and pick one of three templates.
+Open a new Issue in this repository and pick one of four templates.
 
 - **Feature.** You want something new. Fill in: who is it for, what should
   happen, why it matters, and what success looks like. Plain English.
@@ -15,9 +15,18 @@ Open a new Issue in this repository and pick one of three templates.
   happened, the steps to reproduce if you know them, and a screenshot or
   link if you have one.
 - **Tweak.** Small wording, colour, or copy change. One line is enough.
+- **Project.** A big idea, not a single feature. Answer a few plain questions
+  about what you want. The bot does not build it all at once: it proposes a
+  plan that breaks the idea into small pieces, smallest first.
 
 You never have to pick a tech stack, a priority, or a label. Submitting
 the Issue is the start signal.
+
+If you opened a Project, the bot's first move is to propose that plan: a short,
+ordered list of pieces, each in plain language, smallest useful one first. Reply
+`/approve` and the bot files each piece as its own Issue and starts building the
+first; reply `/changes` with a note to adjust the plan. Each piece then runs
+through the normal three gates on its own.
 
 ## What happens after you submit
 

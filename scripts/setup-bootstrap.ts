@@ -108,6 +108,7 @@ const REQUIRED_LABELS: Array<{ name: string; color: string; description: string 
   { name: "ribo:tweak", color: "cfd3d7", description: "small wording or copy change" },
   { name: "ribo:auto-pr", color: "0e8a16", description: "PR opened by Ribosome" },
   { name: "ribo:digest", color: "a371f7", description: "weekly Dreaming digest" },
+  { name: "ribo:project", color: "5319e7", description: "operator's big idea for the planner to decompose" },
 ];
 
 const CLAUDE_APP_INSTALL_URL = "https://github.com/apps/claude/installations/new";
@@ -260,7 +261,7 @@ async function step_labels(fullName: string): Promise<{ status: StepStatus; deta
   ]);
   const existingNames = new Set(existing?.map(l => l.name) ?? []);
   const missing = REQUIRED_LABELS.filter(l => !existingNames.has(l.name));
-  if (missing.length === 0) return { status: "skipped", detail: "all 5 labels present" };
+  if (missing.length === 0) return { status: "skipped", detail: `all ${REQUIRED_LABELS.length} labels present` };
 
   const results = await Promise.all(
     missing.map(l => Promise.resolve(gh([

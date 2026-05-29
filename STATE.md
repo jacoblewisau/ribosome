@@ -1,6 +1,6 @@
 # Session-handoff state
 
-**Last updated:** 2026-05-29, end of session 4.
+**Last updated:** 2026-05-30, end of session 5.
 
 The next session begins by reading this file. Skip rebuilding context that is already validated below.
 
@@ -8,74 +8,66 @@ The next session begins by reading this file. Skip rebuilding context that is al
 
 ## What is true right now
 
-- Local repo: `/Users/jacobl/projects/ribosome` is on `main`, in sync with `origin/main` (`061f601`).
-- **Canonical remote changed this session.** `origin` is now `git@github.com:jacoblewisau/ribosome` (public), created session 4 to replace the deleted `ribosome-test`. The full commit history lives there. `ribosome-test` is gone; do not reference it as a remote.
-- Eval suite: **30/30** against `evals/baseline.json` (schema `ribosome.eval.baseline`, version `"1"`).
-- Unit tests: **52/52** (`npm test`).
-- Typecheck clean (`npm run typecheck`).
-- `npm run setup -- --help` prints the `--auth oauth|api` flag (oauth default).
-- `npm run setup:check` reports honestly: `claude_app=unknown` is now an expected, acceptable line (see session-4 work below), not a gap.
+- Local repo: `/Users/jacobl/projects/ribosome`. `origin` is `git@github.com:jacoblewisau/ribosome` (public). Do not reference the deleted `ribosome-test` remote.
+- **Eval suite: 37/37** against `evals/baseline.json` (schema `ribosome.eval.baseline`, version `"1"`). 11 routine + 12 tricky baseline grew to 13 routine / 13 tricky / 11 trap = 37.
+- Unit tests: **52/52** (`npm test`). Typecheck clean (`npm run typecheck`).
+- The big new thing this session: the **operator-as-non-coder** goal (`goals/operator-as-non-coder.md`). Slices 1 and 2 are shipped; slice 3 remains.
 
-## What session 4 did
+## What session 5 built
 
-Two parallel efforts ran this session (the second session has since been closed).
+The premise (from the goal doc): the operator is a domain expert who does not code and "does not know what he does not know." The chain assumed well-formed Issues and evaluable gates; both are false for him. Two slices fix that.
 
-**Agent-behaviour and model work (commits `289bc02`, `5c9b824`, `cb948d6`):**
+**Slice 1 (merged, PR #1) - the coaching layer:**
 
-| Commit | What |
+| Artefact | What |
 |---|---|
-| `cb948d6` | Chain pinned to `claude-opus-4-8` + xhigh effort (builder, validator, `ribosome.yml`). New trap TR10 locks the 4.8 pin. |
-| `5c9b824` | Agent-behaviour tightening, items 1-4 from the session-3 review: `test-author` agent removed (was a stub; builder writes the acceptance test), researcher/validator JSON state contracts, validator coverage-first language, builder `<scope_discipline>` anti-overeagerness block. New invariants R10, R11, T10. |
-| `289bc02` | Queued the goal: `goals/agent-behaviour-tightening.md`. |
+| `.claude/skills/operator-translation/SKILL.md` | The protocol: triage (domain vs engineering), three buckets (ask / decide / inform-only), translate-to-consequence, the bounded interview, a **brevity guardrail** (volume is a rubber-stamp trigger for this operator), and two named guardrails (anti-rubber-stamp, default-to-autonomy). |
+| `.claude/skills/decision-records/SKILL.md` | ADR convention adapted from Matt Pocock's grill-with-docs: three altitudes (glossary / context-specific / system-wide), the three-criteria ADR gate, the format, propose-through-gate, and the promotion path to a CLAUDE.md rule. Distinct from CLAUDE.md rules and distilled lessons. |
+| `CONTEXT.md`, `docs/adr/0001`, `docs/adr/0002` | Seeded glossary; first ADR (adopt ADRs); ADR-0002 (roadmap uses native sub-issues). |
+| `spec-writer` enrichment, `OPERATOR.md` gate-2 reframe | Gate 2 is now a conversation, not a finished-brief drop. |
+| Evals R12, T11, TR11, T12 | Guard the protocol and the brevity discipline. |
 
-These four added invariants took the baseline 26 -> 30. See `src/evals/tasks.ts` rationales (R10, R11, T10, TR10) for the earned stories. Do not remove them.
+**Slice 2 (PR #3, assume merged) - the planner / transcription layer:**
 
-**setup-check honesty fix + decision notes (commits `3158dcb`, `7c520b5`, `061f601`):**
-
-| Commit | What |
+| Artefact | What |
 |---|---|
-| `3158dcb` | `setup-check.ts` no longer stamps a false-negative `claude_app=missing` on healthy repos. New pure classifier `src/setup/claude-app.ts` (+ `claude-app.test.ts`, 7 cases) returns `ok` only on a genuine positive signal, else `unknown`. `setup/SKILL.md` aligned. |
-| `7c520b5` | `goals/app-install-detection.md`: decision note. The session-3 "probe via parseable error string" premise was FALSIFIED from primary source. |
-| `061f601` | `goals/plugin-packaging.md`: plugin packaging draft + the plugin-vs-bootstrap split decision. |
+| `.claude/skills/planner/SKILL.md` | Turns a `ribo:project` Issue into a sequenced set of small child Feature Issues (tracer-bullet first) via a bounded interview; on `/approve` files them as native sub-issues per ADR-0002, labelling only the first slice `ribo:feature`. |
+| `.github/ISSUE_TEMPLATE/project.yml` | The guided "Project" Issue Form (5 fields, auto-applies `ribo:project`). Chosen via a prototype (A2 over A1; sub-issues B2 over task-list B1). |
+| coordinator, `ribosome.yml`, `setup-bootstrap.ts`, `OPERATOR.md` | Route `ribo:project` to the planner (not the feature chain); planner `/approve` + `/changes` gate rows; let the label through the workflow `if:`; seed the `ribo:project` label; document the fourth template + the decomposition gate. |
+| Evals R13, T13, TR12 | Guard the scaffolding, the routing, and the propose-then-create-on-approve + sub-issue fallback. |
 
-## Eval invariants: 30 total. Where the traps live
+## OPEN RISK - read before relying on slice 2
 
-Counts by session: 20 (s1) + 4 (s2: T9, TR9, plus session-2 set) + 4 (s4: R10, R11, T10, TR10) reaching 30. The category split is 10 routine / 10 tricky / 10 trap. Adding new invariants is fine; reshaping the runner is not.
+**The planner's auto-start of the first slice is NOT yet validated and could fail silently.** Root cause (verified from GitHub docs): events triggered by the default `GITHUB_TOKEN` do not create new workflow runs; only a GitHub App installation token or a PAT does. The planner starts slice 1 by labelling the child `ribo:feature` and relying on the `labeled` trigger.
 
-A suggested 31st invariant (guarding the `claude_app` honesty fix) is parked in `goals/app-install-detection.md`. It was deliberately NOT added this session to avoid colliding with the concurrent eval edits; add it when convenient. The fix is already covered by `src/setup/claude-app.test.ts`.
+- The action auto-generates a **GitHub App installation token** when no `github_token` is passed (Ribosome's config), and App-token events DO trigger workflows - so this should work.
+- UNVERIFIED (could not confirm from primary docs): whether the planner's **Bash `gh` call** uses the App token or the ambient `GITHUB_TOKEN` injected by Actions. If the latter, the child chain never starts and the failure is silent.
 
-## Two decisions waiting on the maintainer
+**Before trusting it:** run one cheap `ribo:project` Issue and watch whether the first child's workflow run queues in the Actions tab. Consider hardening the planner so its closing comment tells the operator to nudge if the child shows no bot reply within ~2 minutes (turns a silent stall into a visible hiccup). Tracked in PR #3's "honest caveat".
 
-1. **App-install deep check** (`goals/app-install-detection.md`). A user token cannot verify App install for free (both GitHub API paths 403; the action emits no parseable "not installed" string). The honest `unknown` fix shipped. Open question: accept `unknown` (recommended), or build an opt-in `--probe-app` run-conclusion check (paid, ambiguous)?
-2. **Plugin packaging** (`goals/plugin-packaging.md`). Plugins cannot ship GitHub Actions workflows, and the chain runs in the target repo's CI, so only the `/setup` tooling benefits from being a plugin. Open question: build a thin `ribosome-setup` plugin at all? Discussed live with the maintainer end of session 4.
+## Open work
 
-## Open work — pick one or wait for a fresh brief
-
-Still-valid candidates from prior sessions (none pinned):
-
-1. **Slack integration end-to-end exercise.** `.claude/skills/setup/slack.md` documents four shapes; none wired into `ribosome.yml`. Needs a live webhook secret + a paid chain run to validate end-to-end.
-2. **App-install `--probe-app`** (only if decision 1 above says yes).
-3. **Plugin packaging** (only if decision 2 above says yes).
-4. **Behavioural eval mode** (~$5-9/run; design cadence).
-5. **Custom branded GitHub App via manifest flow** (deferred; the official App is fine).
+1. **Validate the slice-2 trigger** (above). Highest priority before slice 3 leans on the Project flow.
+2. **Slice 3:** story-writer enrichment + inform-only polish across gates (in the goal doc).
+3. **Behavioural eval mode** (~$5-9/run, or subscription quota on OAuth): the only thing that verifies the coaching and planner actually *behave*, which structural eval cannot. The trigger validation above is a concrete first instance.
+4. Slack integration end-to-end (carried from session 4; documented, not wired).
 
 ## What not to do
 
-- Don't reference `ribosome-test` as a remote; it is deleted.
-- Don't touch chain internals (`researcher`, `builder`, `validator`, `pr-shepherd`) unless explicitly briefed.
-- Don't rework eval-runner mechanics; adding invariants is fine.
-- Don't spawn `ribosome.yml` chain runs to test changes locally; the chain costs $5-9 per run. Iterate locally on the Max subscription.
-- Don't reintroduce the App-JWT-only `claude_app` probe; it produces the false negative the session-4 fix removed.
+- Do not reference `ribosome-test` as a remote; it is deleted.
+- Do not rely on slice-2's auto-start in production until the trigger is validated.
+- Do not rework the eval runner; adding invariants is fine, reshaping is not.
+- Do not spawn `ribosome.yml` chain runs casually to test; each costs ~$5-9 (or quota on OAuth). Iterate locally.
+- Do not write to `docs/adr/` or `CONTEXT.md` system-wide from an autonomous producer without the gate; the maintainer authors ADRs directly during design (see decision-records).
 
 ## Useful pointers
 
-- `npm run setup -- --help`: orchestrator CLI surface.
-- `npm run setup:check`: idempotent gap report. `claude_app=unknown` is expected and acceptable (a user token cannot verify the App install).
-- `npm run eval`: 30-task structural eval.
-- `npm test`: 52 unit tests.
-- Cost reference: Opus 4.8 ~$5-9 per chain run; Haiku 4.5 ~$0.10-0.30 per scout; Sonnet 4.6 ~$1-3 per scout.
+- `goals/operator-as-non-coder.md`: the full vision, the settled decisions, both slice build definitions, and the resolved shapes.
+- `docs/adr/`: 0001 (adopt ADRs), 0002 (sub-issues roadmap mechanism + fallback).
+- `npm run eval`: 37-task structural eval. `npm test`: 52 unit tests.
+- Cost reference: Opus 4.8 ~$5-9 per chain run; Haiku scout ~$0.10-0.30; Sonnet scout ~$1-3.
 
 ## Memories worth re-reading at session start
 
-- `~/.claude/memory/user_role.md` — Jacob's profile.
-- The feedback memories on `no-em-dashes`, `no-emoji`, `first-principles`, `primary-source-verification`. Session 4 leaned hard on primary-source verification (it falsified the App-install probe premise) and on not deferring to a prior session's unverified claim.
+- `~/.claude/memory/user_role.md` - Jacob designs ambitious software but does not hand-code; surface decisions in plain language, never assume he can answer architecture questions, and keep it brief (volume makes him rubber-stamp).
+- The feedback memories on `no-em-dashes`, `no-emoji`, `first-principles`, `primary-source-verification`. Session 5 leaned hard on primary-source verification (the GitHub trigger rule, the Issue-forms and sub-issues APIs).

@@ -109,3 +109,11 @@ Install path for a maintainer (verbatim from discover-plugins.md):
 ## Recommendation
 
 Build it only if adoption beyond you is a near-term goal. If so, the thin `ribosome-setup` shape above is the right one: it is the only part that benefits from being a plugin, and it sidesteps the workflows-cannot-ship-in-a-plugin constraint by treating the chain as copy-in payload (which the bootstrap already does). Do not attempt to ship the chain agents/skills as plugin components: CI uses the target repo's files, so it would be dead weight.
+
+## Decision (session 4)
+
+Maintainer's answer to "audience?": just me now, others eventually. Conclusion:
+
+1. **Build nothing now.** Distribution machinery built ahead of demand rots: the bundled chain drifts from the live one while unused, and adoption-time rework is needed anyway. "Eventually" justifies deciding the primitive now, not building now. The `git clone + npm run setup` path is fine for an audience of one.
+2. **When the time comes, use a GitHub template repo, not a plugin.** `gh repo create <new> --template jacoblewisau/ribosome` drops the full chain AND the 9 workflows into the new repo natively, with the repo as the single source of truth: no asset bundling, no dual-path code in `setup-bootstrap.ts`, no drift. The orchestrator already ships in the repo, so the new flow is create-from-template then `npm run setup` (which is already idempotent about an existing repo). The plugin's only edge over this is skipping the clone, which does not pay for its sync tax. The plugin and template are not exclusive, but the template is the one to build first.
+3. **The real prerequisite is separating product from scaffolding.** The repo currently mixes the product (chain, workflows, `/setup`, evals) with project-local scaffolding (`STATE.md`, `goals/*`, `setup-runs.md`, `memory-snapshots/`, session handoffs). A template would wrongly carry the scaffolding into every new repo. The bulk of "make it adoptable" work is this separation, and it is independent of the plugin-vs-template choice. Tackle it first when adoption gets near.

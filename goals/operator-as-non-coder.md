@@ -308,6 +308,54 @@ Acceptance:
 Out of scope for slice 1: the planner, the Project template, story-writer
 enrichment. Those are slices 2 and 3.
 
+### Slice 2 build definition (proposed; Project-template and roadmap shape TBD)
+
+What to build:
+
+- A new `Project` Issue template plus a `ribo:project` label, so the operator can
+  file a large idea distinct from a single Feature.
+- A new skill `.claude/skills/planner/SKILL.md`: the transcription layer. On a
+  `ribo:project` Issue it decomposes the idea into a sequenced set of small
+  Feature Issues (tracer-bullet slice first), holding a bounded interview via the
+  operator-translation protocol (brief, domain-only). It produces a roadmap
+  artifact, and on the operator's `/approve` it files the child Feature Issues
+  linked to the parent. Reuses operator-translation and decision-records. Like
+  story-writer it is a skill the coordinator runs, not a subagent.
+- Coordinator wiring: one dispatch row for the `ribo:project` label (run the
+  planner, post the roadmap at the decomposition gate) and one for `/approve` on
+  a project Issue (file the children). The decomposition gate is framed as a
+  higher-altitude story gate, not a fourth gate.
+- OPERATOR.md: document the Project template (fourth template) and the
+  decomposition gate in plain language.
+
+Acceptance:
+
+- The planner skill exists with name and description frontmatter.
+- The Project template and `ribo:project` label exist; the coordinator routes the
+  label to the planner.
+- The planner proposes child Issues and a roadmap, and files children only on
+  `/approve`; nothing is filed silently (new structural invariants guard this).
+- Child Issues link back to the parent via the chosen mechanism (decided below).
+- typecheck / test / eval stay green; new invariants added deliberately.
+
+The genuinely new capability: this is the first time the bot CREATES Issues. The
+write is gated (propose, then create on `/approve`) and the privilege is granted
+narrowly. See decision 4.
+
+Two shape questions to resolve BEFORE building, grounded in primary sources, not
+intrinsic knowledge (maintainer's explicit instruction, session 5), and evaluated
+with the prototype skill:
+
+1. **Project template.** A structured GitHub Issue Form (YAML) versus a markdown
+   template. Which fields keep it answerable by a non-coder without overwhelming
+   him (the brevity guardrail applies to the template too).
+2. **Roadmap shape.** One parent Issue with native sub-issues, one parent Issue
+   with a task-list checklist, or a separate `plans/<id>.md` doc the parent links
+   to. Decided against GitHub's current documented capabilities.
+
+These are resolved in a research-plus-prototype step before any planner code is
+written. Findings and the chosen shapes append here.
+
 ---
 
 ## Decisions (settled session 5, maintainer)

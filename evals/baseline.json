@@ -1,9 +1,9 @@
 {
   "version": "1",
   "schema": "ribosome.eval.baseline",
-  "recorded_at": "2026-05-29T09:47:00.000Z",
-  "pass": 30,
-  "totalTasks": 30,
+  "recorded_at": "2026-05-29T22:16:54.703Z",
+  "pass": 34,
+  "totalTasks": 34,
   "score": 1,
-  "notes": "rebaselined after Opus 4.7 -> 4.8 upgrade. TR10 pins ribosome.yml --model to claude-opus-4-8 (latest Opus per Anthropic prompting docs). Chain now also passes --effort xhigh per the doc's recommendation for coding/agentic use cases. Builder.md and validator.md citation blocks updated to reference 4.8."
+  "notes": "rebaselined for slice 1 of the operator-as-non-coder goal (session 5). Added R12 (operator-translation + decision-records skills exist), T11 (spec-writer carries the three-bucket Decisions-captured protocol), TR11 (decision-records keeps the three-criteria ADR gate and propose-through-gate guardrail), T12 (operator-translation carries a brevity / volume discipline, since volume is itself a rubber-stamp trigger for the operator). Split now 11 routine / 12 tricky / 11 trap = 34."
 }

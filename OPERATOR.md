@@ -43,15 +43,20 @@ nothing. Wrong assumptions caught later cost time.
 
 The bot turns the approved story into a technical brief: which files will
 change, how the data flows, what tests will exist. You do not need to
-understand every detail. Skim it for anything that looks wrong on first
-read.
+understand every detail.
 
-If you see something off, reply `/changes` with a short sentence. If it
-looks fine, reply `/approve`.
+The bot does not just hand you a finished brief. It pulls out the few
+decisions that genuinely need you, each written as a plain-language choice
+with what each option costs you, and asks them before finalising. Answer in
+plain English with `/changes`. It folds your answers in, asks follow-ups if
+something was unclear, and reads back what it understood you want. When that
+matches, reply `/approve`.
 
-Common things to flag at this gate, even if you do not code: anything that
-talks about storing personal data in a new place, anything that mentions
-sending email from a new address, anything that mentions a third-party
+Decisions the bot can safely make on its own, it just makes; you never see
+them. Decisions it assumed from something you said, it lists one line each so
+you can wave them through or veto them. Skim for anything that looks wrong on
+first read. Things worth flagging even if you do not code: storing personal
+data in a new place, sending email from a new address, or any third-party
 service you do not recognise.
 
 ### Gate 3: merge the PR

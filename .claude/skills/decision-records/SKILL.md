@@ -63,7 +63,7 @@ One file per decision, numbered, in `docs/adr/`, named `NNNN-short-slug.md`
 - Status: proposed | accepted | superseded by NNNN
 - Altitude: system-wide | context-specific (name the area)
 - Decided: YYYY-MM-DD
-- Decided by: operator at gate N | agent (engineering call)
+- Decided by: operator at gate N | maintainer (design) | agent (engineering call)
 
 ## Context
 
@@ -96,7 +96,15 @@ is read-only by default. Instead:
 - It is written only on the operator's `/approve`.
 
 This mirrors how `rule-miner` proposes CLAUDE.md changes by PR rather than
-editing the file directly. System-wide writes go through a gate, always.
+editing the file directly. For an autonomous producer, system-wide writes go
+through a gate, always.
+
+Two authorship paths. The gate above governs autonomous chain producers running
+unattended. The maintainer also authors ADRs directly during design (ADRs 0001
+and 0002 here were written this way) and accepts them without a chain gate. The
+distinction is who is deciding: a producer running unattended must propose and
+wait; a human deciding in the open may write directly. Both paths use the same
+format and altitudes.
 
 ## The promotion path (soft to hard)
 

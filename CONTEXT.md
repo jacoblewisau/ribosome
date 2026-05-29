@@ -56,7 +56,11 @@ starts from. See `.claude/skills/decision-records/SKILL.md` for the convention.
 
 - **Tracer bullet (vertical slice).** The smallest version of a feature that does
   one real thing end to end, built before the next slice is added.
-- **Issue templates.** Feature, Bug, Tweak today; a Project template is planned
-  for decomposing a large idea into sequenced Issues.
+- **Issue templates.** Feature, Bug, Tweak, and Project (a guided Issue Form for
+  a large idea the planner decomposes into sequenced child Issues).
+- **Roadmap.** A parent Project Issue tracking its child Feature Issues, shown as
+  native sub-issues with a progress bar.
+- **Sub-issue.** A child Issue natively linked to a parent; the parent shows the
+  child's status in its progress bar.
 - **Contract / verifiable unit.** A component, API, or job that declares fixtures,
   invariants, and observable outputs the validator reads instead of the source.

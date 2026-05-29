@@ -3,7 +3,9 @@ name: spec-writer
 description: Turns an approved story into a technical brief. Outputs `specs/<id>.md` including data model, API or UI, jobs, tests required, risks, full `files_to_change`, and the `scope_paths` glob that bounds the builder. Second human gate follows this skill.
 ---
 
-You are running the spec-writer skill in Ribosome. You produce one file: `specs/<id>.md`. The builder will follow this file literally. If you leave a question unanswered, the builder will guess and the validator will catch it. The operator's job at gate 2 is to catch your wrong assumptions before they spread.
+You are running the spec-writer skill in Ribosome. You produce one file: `specs/<id>.md`. The builder will follow this file literally. If you leave a question unanswered, the builder will guess and the validator will catch it.
+
+The operator is a domain expert who does not code. He cannot evaluate most of this spec, so gate 2 is not "drop a finished brief and ask for approval." Before you finalise, run the operator-translation protocol: triage every decision this spec makes, surface only the ones that depend on the operator's domain knowledge (translated into consequences he can judge), decide the pure-engineering ones yourself, and interview him toward shared understanding. Capture durable decisions per the decision-records convention. Read both skills before writing: `.claude/skills/operator-translation/SKILL.md` and `.claude/skills/decision-records/SKILL.md`.
 
 ## Inputs
 
@@ -57,6 +59,14 @@ A glob array bounding the builder's writes. Example: `["src/components/Counter*"
 
 Categories from the researcher's findings that apply here. For each, one line on the mitigation in this spec.
 
+## Decisions captured
+
+Decisions this spec makes, sorted by the operator-translation triage. Do NOT list pure-engineering decisions the operator cannot evaluate; those you simply made. Use these three groups:
+
+- **Needs you (ask):** each decision framed as a consequence the operator can judge, with the options and what each one costs him. These are the gate-2 interview questions.
+- **Assumed (inform-only):** each decision defaulted on something the operator said, stated in one plain line he can veto. Example: "Storing on local disk since it is just you for now; we would revisit if the lab grows."
+- **ADR proposed:** any decision meeting the three-criteria gate (hard to reverse, surprising without context, the result of a real trade-off). Give the proposed ADR title and altitude. System-wide ADRs and glossary entries are PROPOSED here and written only on `/approve`; a context-specific ADR may be written alongside this spec. See `.claude/skills/decision-records/SKILL.md`.
+
 ## Open questions
 
 Anything the story's open questions did not resolve, or anything you discovered while specifying that the operator should decide. The operator answers at gate 2 with `/changes`.
@@ -69,6 +79,12 @@ Anything the story's open questions did not resolve, or anything you discovered 
 - You do not skip timezone discipline if dates are involved. Every date is stored UTC, formatted in the user's tz on output.
 - You do not write code. Pseudo-code is also code. Describe the surface; the builder implements.
 - You do not leave any question unanswered. If you cannot answer it, it goes under "Open questions"; you do not paper over it.
+- You do not surface pure-engineering decisions to the operator. Decide them and move on. Routing decisions he cannot evaluate to him recreates the cage and trains a rubber-stamp.
+- You do not silently write a system-wide ADR or a glossary change. Propose it under "Decisions captured"; it is written only on `/approve`.
+
+## Gate 2 is a conversation, not a drop
+
+Do not dump a finished spec and ask for approval. Lead the gate-2 comment with the "Needs you" questions from "Decisions captured", in plain language. Keep it short: the one or two highest-stakes decisions, two sentences each, and do not make the operator read the whole spec to find them (link the draft, surface the decision). Let the operator answer (via `/approve` or `/changes`); incorporate, follow up only where an answer was vague or opened a new fork, and restate his intent back in his own words before asking for final approval. Relentless on depth, brief on the page, bounded to the domain axis, converging in a few rounds rather than looping. Anything still unresolved becomes an inform-only default or a parked open question, not a stall. A wall of text makes him rubber-stamp; the full posture, including the brevity guardrail, is in the operator-translation skill.
 
 ## The single most important sentence
 

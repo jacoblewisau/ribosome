@@ -694,6 +694,90 @@ export const TASKS: ReadonlyArray<TaskDefinition> = [
       return pass();
     },
   },
+  {
+    id: "R12",
+    category: "routine",
+    name: "operator-translation and decision-records skills exist with name and description frontmatter",
+    rationale:
+      "Earned 2026-05-30 (session 5, slice 1 of the operator-as-non-coder goal). The coaching protocol and the decision-capture convention are skills the spec-writer (and later the planner) reference by name. If either file is missing or loses its frontmatter, Claude has no signal to load it, spec-writer's references dangle, and gate 2 reverts to a rubber-stamp for a non-coder operator.",
+    check: () => {
+      const files = [
+        ".claude/skills/operator-translation/SKILL.md",
+        ".claude/skills/decision-records/SKILL.md",
+      ];
+      const missing = files.filter(
+        (p) => !existsSync(p) || !frontmatterHas(p, ["name", "description"])
+      );
+      if (missing.length > 0) {
+        return fail(`missing or lacking name/description frontmatter: ${missing.join(", ")}`);
+      }
+      return pass();
+    },
+  },
+  {
+    id: "T11",
+    category: "tricky",
+    name: "spec-writer references the coaching skills and carries the three-bucket Decisions-captured protocol",
+    rationale:
+      "Earned 2026-05-30 (session 5, slice 1). The structural guarantee that gate 2 triages and translates rather than dropping a finished brief at a non-coder operator. spec-writer must reference operator-translation and decision-records and expose the three buckets (Needs you / inform-only / ADR proposed) under a Decisions captured section. Structural eval cannot confirm the model behaves, only that the protocol words are present; if a refactor strips them, gate 2 silently reverts to a rubber-stamp.",
+    check: () => {
+      const content = readFile(".claude/skills/spec-writer/SKILL.md");
+      const needles = [
+        "operator-translation",
+        "decision-records",
+        "Decisions captured",
+        "Needs you",
+        "inform-only",
+        "ADR proposed",
+      ];
+      const missing = needles.filter((n) => !content.includes(n));
+      if (missing.length > 0) {
+        return fail(`spec-writer.md missing: ${missing.join(", ")}`);
+      }
+      return pass();
+    },
+  },
+  {
+    id: "TR11",
+    category: "trap",
+    name: "decision-records keeps the three-criteria ADR gate and the propose-through-gate guardrail",
+    rationale:
+      "Earned 2026-05-30 (session 5, slice 1). Two regressions would breach Ribosome's read-only-by-default guardrail. First, dropping the three-criteria ADR gate (hard to reverse / surprising / real trade-off) lets ADRs proliferate. Second, dropping the rule that system-wide records are proposed and written only on operator approval lets a producer silently write a repo-wide decision or glossary change. Both must stay in the decision-records skill, and spec-writer must keep its matching do-not line.",
+    check: () => {
+      const dr = readFile(".claude/skills/decision-records/SKILL.md");
+      if (!/hard to reverse/i.test(dr) || !/surprising/i.test(dr) || !/trade-off/i.test(dr)) {
+        return fail("decision-records.md missing one of the three ADR criteria (hard to reverse / surprising / trade-off)");
+      }
+      if (!/written only on/i.test(dr) || !/\/approve/.test(dr)) {
+        return fail("decision-records.md missing the propose-through-gate rule (written only on /approve)");
+      }
+      const spec = readFile(".claude/skills/spec-writer/SKILL.md");
+      if (!/do not silently write a system-wide ADR/i.test(spec)) {
+        return fail("spec-writer.md dropped the 'do not silently write a system-wide ADR' guardrail line");
+      }
+      return pass();
+    },
+  },
+  {
+    id: "T12",
+    category: "tricky",
+    name: "operator-translation carries a brevity / volume discipline",
+    rationale:
+      "Earned 2026-05-30 (session 5, slice 1). The operator skims under volume and approves to get through; a wall of text is a rubber-stamp trigger just as surely as an unanswerable question. The coaching protocol must keep the brevity discipline (lead with one thing, ask the few highest-stakes decisions, short questions, readable in under a minute). If a refactor drops it, the protocol defeats the jargon failure but reintroduces the volume failure.",
+    check: () => {
+      const content = readFile(".claude/skills/operator-translation/SKILL.md");
+      if (!/brevity/i.test(content)) {
+        return fail("operator-translation.md no longer mentions brevity");
+      }
+      if (!/rubber-stamp/i.test(content)) {
+        return fail("operator-translation.md brevity discipline must tie volume to the rubber-stamp failure");
+      }
+      if (!/under a minute|too much to read|wall of text|skims/i.test(content)) {
+        return fail("operator-translation.md missing the volume-discipline framing");
+      }
+      return pass();
+    },
+  },
 ];
 
 // Lazy execSync to avoid pulling node:child_process at module load

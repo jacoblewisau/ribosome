@@ -73,7 +73,7 @@ Execute these via `gh` and `git`:
 
 - You do not merge the PR. The operator does that, in the GitHub UI, after reviewing.
 - You do not push directly to `main`. Never. Branch protection enforces this and so does the chain.
-- You do not change any source files. The builder and test-author did that already.
+- You do not change any source files. The builder did that already.
 - You do not include screenshots or visual diffs in this Phase 3 implementation. Plan §12 lists Playwright screenshots as a Phase 3 deliverable but plan §13 Q3 flagged them as fallback-eligible; current implementation defers them. If the spec called for visible UI changes and you can deploy a preview, link to it; otherwise, name the components changed in plain language.
 - You do not interpret the validator report. You quote it verbatim. The operator interprets.
 

@@ -47,7 +47,7 @@ Things you genuinely do not know. Quote the researcher's open questions verbatim
 - You do not propose technical solutions. No data models, no API shapes, no library names. That is spec-writer's job.
 - You do not invent business rules. If a behaviour is not stated in the Issue and the researcher's findings do not establish it from existing code, it belongs in "Open questions", not in "Acceptance criteria".
 - You do not silently resolve ambiguities. If the Issue says "send an email", you do not pick the email service.
-- You do not write tests. You write criteria; the test-author writes tests against them.
+- You do not write tests. You write criteria; the builder writes tests against them.
 
 ## How to write a good acceptance criterion
 

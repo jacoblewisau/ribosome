@@ -58,7 +58,7 @@ does none of this.
 ## Cost expectation
 
 The workflow uses Claude Opus 4.7 for every step. A full six-step chain
-(researcher, story-writer, spec-writer, builder, test-author / validator,
+(researcher, story-writer, spec-writer, builder, validator,
 pr-shepherd) is roughly $5 to $9 in API tokens. Each `/approve` advances
 one step. The maintainer can switch to Sonnet by editing the `--model`
 flag in `.github/workflows/ribosome.yml`. See `MEMORY.md` and the dream
@@ -115,8 +115,8 @@ What the live demo showed (chain 0005, "rename heading to My Todos"):
 - Researcher + story-writer ran (~7:48 wall clock) and posted a
   structured story with gate 1 instructions.
 - `/approve` triggered spec-writer (~3:09); spec posted with gate 2.
-- `/approve` triggered the build cascade (builder + test-author +
-  validator + pr-shepherd) (~6:47); draft PR #2 opened on branch
+- `/approve` triggered the build cascade (builder + validator +
+  pr-shepherd) (~6:47); draft PR #2 opened on branch
   `ribosome/0005` with a clean validator report and the acceptance
   test for the change.
 - Total wall clock from Issue to draft PR: ~17 minutes of chain work,

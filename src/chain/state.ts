@@ -42,7 +42,6 @@ export type Role =
   | "story-writer"
   | "spec-writer"
   | "builder"
-  | "test-author"
   | "validator"
   | "pr-shepherd";
 

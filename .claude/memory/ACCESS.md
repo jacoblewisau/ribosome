@@ -17,9 +17,7 @@ For each chain run with id `<id>`:
   story.md                    # story-writer's output (or stories/<id>.md by reference)
   spec.md                     # spec-writer's output (or specs/<id>.md by reference)
   builder.md                  # builder's final summary
-  builder.inflight.md         # builder in-flight notes (resumption point)
-  test-author.md              # test-author's summary (Phase 3+)
-  validator.md                # validator's report (latest)
+  builder.inflight.md         # builder in-flight notes (resumption point)  validator.md                # validator's report (latest)
   validator.previous.md       # prior validator report if amended (manual)
   pr-shepherd.md              # PR-shepherd summary (Phase 3)
 ```
@@ -35,9 +33,7 @@ a mid-run role.
 | researcher     | yes       | `researcher.md`, `researcher.inflight.md`| yes (none yet, Phase 4.5)    | no               |
 | story-writer   | yes       | none in live (writes stories/<id>.md)    | yes                          | no               |
 | spec-writer    | yes       | none in live (writes specs/<id>.md)      | yes                          | no               |
-| builder        | yes       | `builder.md`, `builder.inflight.md`      | yes                          | no               |
-| test-author    | yes       | `test-author.md`, `test-author.inflight.md` | yes (patterns + traps)  | no               |
-| validator      | yes       | `validator.md`                           | yes (anti-patterns + traps)  | no               |
+| builder        | yes       | `builder.md`, `builder.inflight.md`      | yes                          | no               || validator      | yes       | `validator.md`                           | yes (anti-patterns + traps)  | no               |
 | pr-shepherd    | yes       | `pr-shepherd.md`                         | yes (operator preferences)   | no               |
 | coordinator    | yes       | `chain.json`                             | no                           | no               |
 | Dreaming job   | n/a       | n/a                                      | yes (consumes prior)         | yes (only writer)|

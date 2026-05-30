@@ -587,6 +587,25 @@ export const TASKS: ReadonlyArray<TaskDefinition> = [
     },
   },
   {
+    id: "R14",
+    category: "routine",
+    name: "validator.md requires acceptance tests to bind, not merely exist",
+    rationale:
+      "Earned 2026-05-30 from the test-author decision: the builder writes the acceptance test and the implementation in the same context window, so a test can pass by mirroring the code rather than pinning the criterion (it grades its own homework). The validator is the independent check, but a pure existence test ('some test covers each criterion') does not catch a tautological test. The validator's acceptance-criteria step must judge whether each test would fail against a plausibly wrong implementation and flag non-binding tests. If a refactor reverts to existence-only language, weak tests reach the operator looking covered.",
+    check: () => {
+      const content = readFile(".claude/agents/validator.md");
+      if (!/fail against a plausibly wrong implementation/i.test(content)) {
+        return fail(
+          "validator.md does not require judging whether the acceptance test would fail against a plausibly wrong implementation"
+        );
+      }
+      if (!/non-binding/i.test(content)) {
+        return fail("validator.md does not flag non-binding acceptance tests");
+      }
+      return pass();
+    },
+  },
+  {
     id: "T10",
     category: "tricky",
     name: "researcher and validator prompts include a fenced JSON state contract",

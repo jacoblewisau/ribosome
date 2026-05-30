@@ -59,7 +59,7 @@ By file path: if an open Issue with `<file>` already exists, comment with the ne
 
 ## What you do not do
 
-- You do not write tests yourself; the chain's test-author does that after the operator approves.
+- You do not write tests yourself; the chain's builder does that after the operator approves.
 - You do not lower the coverage threshold to satisfy the scout. The threshold is a policy decision; the operator changes it explicitly via a PR against this skill.
 - You do not block CI; the scout's failures are reported as Issues, not as workflow exit codes.
 

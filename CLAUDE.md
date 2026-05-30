@@ -239,5 +239,7 @@ CHANGELOG
             the prior Phase 0 hook-install section. Identity reflects shipped
             phases (0/1/2/2.5/3/4.5/6). Length: ~230 lines.
 2026-05-30: Added Process rule 15 (STATE.md is updated as part of done).
-            Length: ~240 lines.
+            Freshness pass: phases 0-6 all shipped (none remaining), opus-4-8
+            pin, 52 tests, four Issue templates. Session 5 (operator-as-non-coder
+            slices 1-3 shipped; allowed_bots fix; validator binding). ~243 lines.
 -->

@@ -9,7 +9,8 @@ The next session begins by reading this file. Skip rebuilding context that is al
 ## What is true right now
 
 - Local repo: `/Users/jacobl/projects/ribosome`. `origin` is `git@github.com:jacoblewisau/ribosome` (public). Do not reference the deleted `ribosome-test` remote.
-- **Eval suite: 37/37** against `evals/baseline.json` (schema `ribosome.eval.baseline`, version `"1"`). 11 routine + 12 tricky baseline grew to 13 routine / 13 tricky / 11 trap = 37.
+- **Eval suite: 38/38** against `evals/baseline.json` (schema `ribosome.eval.baseline`, version `"1"`). 13 routine / 13 tricky / 12 trap = 38 (TR13 added after the live test).
+- **The repo is now operational:** `CLAUDE_CODE_OAUTH_TOKEN` is set and the Claude App is installed. The chain has now actually run here (session 5 live test).
 - Unit tests: **52/52** (`npm test`). Typecheck clean (`npm run typecheck`).
 - The big new thing this session: the **operator-as-non-coder** goal (`goals/operator-as-non-coder.md`). Slices 1 and 2 are shipped; slice 3 remains.
 
@@ -36,14 +37,32 @@ The premise (from the goal doc): the operator is a domain expert who does not co
 | coordinator, `ribosome.yml`, `setup-bootstrap.ts`, `OPERATOR.md` | Route `ribo:project` to the planner (not the feature chain); planner `/approve` + `/changes` gate rows; let the label through the workflow `if:`; seed the `ribo:project` label; document the fourth template + the decomposition gate. |
 | Evals R13, T13, TR12 | Guard the scaffolding, the routing, and the propose-then-create-on-approve + sub-issue fallback. |
 
-## OPEN RISK - read before relying on slice 2
+## Live-tested in session 5 - the planner WORKS (one bug found + fixed)
 
-**The planner's auto-start of the first slice is NOT yet validated and could fail silently.** Root cause (verified from GitHub docs): events triggered by the default `GITHUB_TOKEN` do not create new workflow runs; only a GitHub App installation token or a PAT does. The planner starts slice 1 by labelling the child `ribo:feature` and relying on the `labeled` trigger.
+The FIRST real chain run on this repo was a live Project test (issue #6, the
+financial-data-analyst gold-standard idea, since closed). Observed end to end:
 
-- The action auto-generates a **GitHub App installation token** when no `github_token` is passed (Ribosome's config), and App-token events DO trigger workflows - so this should work.
-- UNVERIFIED (could not confirm from primary docs): whether the planner's **Bash `gh` call** uses the App token or the ambient `GITHUB_TOKEN` injected by Actions. If the latter, the child chain never starts and the failure is silent.
+- Planner decomposed the idea into 4 sequenced sub-issues, tracer-bullet first.
+- It triaged the "unpublished data" constraint first and translated the one real
+  decision (an outside AI service) into a plain-language (a)/(b)/(c) choice -
+  slice 1's coaching protocol working live.
+- It filed the children as native GitHub sub-issues (ADR-0002 mechanism works)
+  and recorded the privacy decision as an ADR via a gated PR (decision-records
+  works; that test PR #11 was closed as an artifact).
+- The bot-applied `ribo:feature` label DID trigger the first child's workflow -
+  the App-token path, confirmed by observation, not inference.
 
-**Before trusting it:** run one cheap `ribo:project` Issue and watch whether the first child's workflow run queues in the Actions tab. Consider hardening the planner so its closing comment tells the operator to nudge if the child shows no bot reply within ~2 minutes (turns a silent stall into a visible hiccup). Tracked in PR #3's "honest caveat".
+The one bug, found only by running it live: claude-code-action then aborted the
+child run with "Workflow initiated by non-human actor: claude" because
+`allowed_bots` defaults to empty. Fixed in **PR #12** (set `allowed_bots` to the
+Claude bot, not `*`; ADR-0003; invariant TR13). The planner's hardened closing
+comment would have surfaced this to the operator, so it was never a silent stall.
+
+**Remaining (one cheap run): after PR #12 merges, re-trigger one child and
+confirm its chain runs past the actor check.** The fix is well-grounded (the
+error names the exact cause) but the post-fix child run is not yet observed.
+Likely follow-up: the scouts (workflow_run-initiated) probably need the same
+`allowed_bots` fix.
 
 ## Open work
 

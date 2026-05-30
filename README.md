@@ -10,7 +10,8 @@ instruction (mRNA) and synthesises a new working object (a protein). The
 design document is at `/Users/jacobl/research/software-factory/PLAN.md`.
 
 If you are the operator, read `OPERATOR.md` and stop there; it is the
-whole manual and it is two pages long. If you are the maintainer, read
+whole manual and it is two pages long. For a guided, clickable version, open
+`docs/tutorial.html` in a browser. If you are the maintainer, read
 `CLAUDE.md` next for the architectural rules, then the plan. Phase 3
 (GitHub interface) ships with this commit; Phase 4 (proactive scouts)
 and Phase 6 (mechanical scope hooks) are the next planned phases.

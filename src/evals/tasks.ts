@@ -587,6 +587,25 @@ export const TASKS: ReadonlyArray<TaskDefinition> = [
     },
   },
   {
+    id: "R14",
+    category: "routine",
+    name: "validator.md requires acceptance tests to bind, not merely exist",
+    rationale:
+      "Earned 2026-05-30 from the test-author decision: the builder writes the acceptance test and the implementation in the same context window, so a test can pass by mirroring the code rather than pinning the criterion (it grades its own homework). The validator is the independent check, but a pure existence test ('some test covers each criterion') does not catch a tautological test. The validator's acceptance-criteria step must judge whether each test would fail against a plausibly wrong implementation and flag non-binding tests. If a refactor reverts to existence-only language, weak tests reach the operator looking covered.",
+    check: () => {
+      const content = readFile(".claude/agents/validator.md");
+      if (!/fail against a plausibly wrong implementation/i.test(content)) {
+        return fail(
+          "validator.md does not require judging whether the acceptance test would fail against a plausibly wrong implementation"
+        );
+      }
+      if (!/non-binding/i.test(content)) {
+        return fail("validator.md does not flag non-binding acceptance tests");
+      }
+      return pass();
+    },
+  },
+  {
     id: "T10",
     category: "tricky",
     name: "researcher and validator prompts include a fenced JSON state contract",
@@ -879,6 +898,22 @@ export const TASKS: ReadonlyArray<TaskDefinition> = [
         }
       }
       if (offenders.length > 0) return fail(offenders.join("; "));
+      return pass();
+    },
+  },
+  {
+    id: "T14",
+    category: "tricky",
+    name: "story-writer references operator-translation and carries the gate-1 Needs-you / inform-only protocol",
+    rationale:
+      "Earned 2026-05-30 (slice 3 of the operator-as-non-coder goal). Gate 1 is the most important gate and the one where over-asking is most tempting (at the requirements level almost everything 'depends on what the operator wants'). The story-writer must apply the coaching protocol: reference operator-translation, expose the Needs-you / inform-only buckets (the same labels the spec-writer uses at gate 2, for cross-gate consistency), and keep the anti-over-ask guardrail. Structural eval cannot confirm the model behaves, only that the protocol words are present; if a refactor strips them, gate 1 silently reverts to a rubber-stamp.",
+    check: () => {
+      const content = readFile(".claude/skills/story-writer/SKILL.md");
+      const needles = ["operator-translation", "Needs you", "inform-only", "over-ask"];
+      const missing = needles.filter(n => !content.includes(n));
+      if (missing.length > 0) {
+        return fail(`story-writer.md missing: ${missing.join(", ")}`);
+      }
       return pass();
     },
   },

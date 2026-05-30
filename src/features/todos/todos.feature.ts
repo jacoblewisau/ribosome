@@ -3,7 +3,7 @@
  *
  * The UI components (TodoApp, TodoList, TodoItem, TodoForm, TodoStats)
  * call these functions; the feature itself is what the spec-writer and
- * the test-author talk about. Keeping it React-free is what lets the
+ * the validator talk about. Keeping it React-free is what lets the
  * `todos.feature.verify.ts` spec exercise it directly.
  */
 

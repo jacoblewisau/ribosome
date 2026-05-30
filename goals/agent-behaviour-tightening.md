@@ -32,6 +32,8 @@ If any of these four drifts in a future change, the operator's experience degrad
 
 ### Item 1: resolve `test-author`
 
+**Resolved (session 4, 2026-05-29): option A.** The `test-author` agent file was removed; the builder writes `tests/acceptance/<id>.spec.ts` as part of its `scope_paths` work, and the validator's Coverage matrix verifies criteria coverage. The coordinator's build-cascade row no longer references it. Rationale is recorded at `src/evals/tasks.ts:46`. The original problem statement below is retained for history; its present-tense claims (a stub file on disk, a coordinator line 44 invocation) no longer hold.
+
 Today `.claude/agents/test-author.md` is a stub ("Stub. Phase 1 deliverable.") but `.claude/skills/coordinator/SKILL.md` line 44 invokes it. The chain has worked end-to-end so far because the builder also has Write within `scope_paths` and writes the acceptance test as part of its work. Test-author is functionally redundant today.
 
 **Two acceptable resolutions; the executor picks based on which is cleaner:**

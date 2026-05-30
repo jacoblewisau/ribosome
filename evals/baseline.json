@@ -1,9 +1,9 @@
 {
   "version": "1",
   "schema": "ribosome.eval.baseline",
-  "recorded_at": "2026-05-30T00:57:08.283Z",
-  "pass": 39,
-  "totalTasks": 39,
+  "recorded_at": "2026-05-30T07:03:09.520Z",
+  "pass": 41,
+  "totalTasks": 41,
   "score": 1,
-  "notes": "added TR14 (every scout workflow names the Claude bot in allowed_bots, not '*') alongside the scouts allowed_bots fix. Scouts are workflow_run/cron-initiated (bot actor) and would hit the same actor block the live Project run found. See ADR-0003. Split now 13 routine / 13 tricky / 13 trap = 39."
+  "notes": "slice 3 of operator-as-non-coder (story-writer gate-1 coaching), stacked on PR #20 (R14 validator binding). Added T14: story-writer references operator-translation and carries the Needs-you / inform-only buckets (same labels as spec-writer at gate 2, for cross-gate consistency) plus the anti-over-ask guardrail. Total 41."
 }

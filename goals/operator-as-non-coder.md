@@ -273,7 +273,15 @@ talk to the operator using it. So build the primitive first.
 2. **Slice 2: the planner / decomposition layer.** Bigger, and it touches the
    operator contract (see open decisions). Build it on top of the protocol from
    slice 1.
-3. **Slice 3: story-writer enrichment and inform-only polish across gates.**
+3. **Slice 3 (BUILT, session 5): story-writer enrichment and inform-only polish
+   across gates.** Applies the operator-translation protocol to the story-writer
+   at gate 1: the Needs-you / inform-only buckets (the same labels the
+   spec-writer uses at gate 2, which is the cross-gate "polish"), a reframed
+   "Open questions", and an anti-over-ask guardrail (gate 1 is where over-asking
+   is most tempting, since at the requirements level almost everything depends on
+   what the operator wants). OPERATOR.md gate 1 reframed; invariant T14. Built
+   stacked on PR #20 (test-author reconciliation), which the story-writer change
+   depended on.
 
 Each slice is gated and eval-guarded (new structural invariants for the new
 prompts; see "Downstream" below).

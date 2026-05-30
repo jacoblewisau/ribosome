@@ -102,6 +102,13 @@ maintainability; the numbers are stable (do not renumber when adding).
    merge. Everything else runs.
 7. **Idempotent setup.** Re-running setup is safe. Agents and skills
    register without duplication.
+15. **STATE.md is updated as part of done, not on request.** The session
+   handoff doc (`STATE.md`) is the next session's starting context. Any change
+   that lands updates it in the same PR: eval and test counts, what shipped,
+   open work, what-not-to-do. Do not end a unit of work by asking the operator
+   whether to refresh it. Earned 2026-05-30: STATE.md repeatedly went stale
+   (wrong eval count, "slice 3 remains" after it had shipped) because it was
+   treated as an optional epilogue and surfaced as a question.
 
 ### Memory
 
@@ -229,4 +236,6 @@ CHANGELOG
             Commands section now lists all npm scripts. Hooks table replaces
             the prior Phase 0 hook-install section. Identity reflects shipped
             phases (0/1/2/2.5/3/4.5/6). Length: ~230 lines.
+2026-05-30: Added Process rule 15 (STATE.md is updated as part of done).
+            Length: ~240 lines.
 -->

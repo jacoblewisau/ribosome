@@ -1,9 +1,9 @@
 {
   "version": "1",
   "schema": "ribosome.eval.baseline",
-  "recorded_at": "2026-05-30T00:49:03.335Z",
-  "pass": 38,
-  "totalTasks": 38,
+  "recorded_at": "2026-05-30T00:57:08.283Z",
+  "pass": 39,
+  "totalTasks": 39,
   "score": 1,
-  "notes": "added TR13 after the first live Project run: the planner's bot-applied ribo:feature label triggered the child workflow but claude-code-action aborted on the bot-actor check (allowed_bots default empty). TR13 asserts ribosome.yml names the Claude bot in allowed_bots and does not use the unsafe '*'. See ADR-0003. Split now 13 routine / 13 tricky / 12 trap = 38."
+  "notes": "added TR14 (every scout workflow names the Claude bot in allowed_bots, not '*') alongside the scouts allowed_bots fix. Scouts are workflow_run/cron-initiated (bot actor) and would hit the same actor block the live Project run found. See ADR-0003. Split now 13 routine / 13 tricky / 13 trap = 39."
 }

@@ -34,6 +34,7 @@ jobs:
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          allowed_bots: "claude[bot],claude" # workflow_run/cron-initiated (bot actor); see ADR-0003
           prompt: "/doc-drift repo=${{ github.repository }} run_id=${{ github.run_id }}"
           claude_args: |
             --model claude-sonnet-4-6

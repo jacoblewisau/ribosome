@@ -861,6 +861,27 @@ export const TASKS: ReadonlyArray<TaskDefinition> = [
       return pass();
     },
   },
+  {
+    id: "TR14",
+    category: "trap",
+    name: "every scout workflow allows the Claude bot via allowed_bots (and not the unsafe '*')",
+    rationale:
+      "Earned 2026-05-30 alongside TR13. The scouts are initiated by workflow_run or schedule (cron), i.e. a non-human actor, so claude-code-action's default allowed_bots=\"\" would abort them on the bot-actor check the same way it aborted the planner-started child run. Each scout must name the Claude bot in allowed_bots, and not use the bare '*' the action docs warn against on a public repo. See ADR-0003.",
+    check: () => {
+      const offenders: string[] = [];
+      for (const s of SCOUT_NAMES) {
+        const yml = readFile(`.github/workflows/scout-${s}.yml`);
+        if (!/allowed_bots:\s*["'][^"'\n]*claude/.test(yml)) {
+          offenders.push(`scout-${s}.yml missing allowed_bots naming the Claude bot`);
+        }
+        if (/allowed_bots:\s*["']\*["']/.test(yml)) {
+          offenders.push(`scout-${s}.yml uses allowed_bots: "*" (unsafe)`);
+        }
+      }
+      if (offenders.length > 0) return fail(offenders.join("; "));
+      return pass();
+    },
+  },
 ];
 
 // Lazy execSync to avoid pulling node:child_process at module load

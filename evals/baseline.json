@@ -1,9 +1,9 @@
 {
   "version": "1",
   "schema": "ribosome.eval.baseline",
-  "recorded_at": "2026-05-30T00:57:08.283Z",
-  "pass": 39,
-  "totalTasks": 39,
+  "recorded_at": "2026-05-30T06:57:59.005Z",
+  "pass": 40,
+  "totalTasks": 40,
   "score": 1,
-  "notes": "added TR14 (every scout workflow names the Claude bot in allowed_bots, not '*') alongside the scouts allowed_bots fix. Scouts are workflow_run/cron-initiated (bot actor) and would hit the same actor block the live Project run found. See ADR-0003. Split now 13 routine / 13 tricky / 13 trap = 39."
+  "notes": "rebaselined to 40 for R14 (validator binding check). The PR added R14 to tasks.ts but had not committed the matching baseline bump, so the --gate check failed on a totalTasks 39 vs 40 mismatch though the run was 40/40. This commit supplies the intended baseline."
 }

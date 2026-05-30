@@ -5,6 +5,10 @@ you do happens inside GitHub: you open an Issue, you comment a couple of
 times, and you merge a pull request when it is ready. This page is the
 whole manual.
 
+Prefer to learn by clicking? Open the interactive walkthrough in a browser:
+`docs/tutorial.html`. It covers everything here, with clickable examples
+(including a real Project decomposition).
+
 ## How to start work
 
 Open a new Issue in this repository and pick one of four templates.

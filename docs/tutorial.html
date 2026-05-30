@@ -1,0 +1,483 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Using Ribosome - an interactive tutorial</title>
+<style>
+  :root{
+    --bg:#0d1117; --panel:#161b22; --panel2:#1c2230; --border:#30363d; --fg:#e6edf3;
+    --muted:#9198a1; --accent:#7c8cff; --green:#2ea043; --green-h:#3fb950;
+    --blue:#4493f8; --purple:#bc8cff; --yellow:#e3b341; --pill:#21262d; --good:#238636;
+    --radius:10px;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--fg);
+    font:15px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;}
+  a{color:var(--blue);text-decoration:none} a:hover{text-decoration:underline}
+  code{background:#ffffff14;border:1px solid var(--border);border-radius:5px;padding:1px 6px;font-size:.86em;
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  .layout{display:flex;min-height:100vh}
+  /* sidebar */
+  nav.side{width:268px;flex:0 0 268px;background:var(--panel);border-right:1px solid var(--border);
+    position:sticky;top:0;height:100vh;overflow:auto;padding:22px 16px}
+  nav.side .brand{font-weight:700;font-size:18px;letter-spacing:.2px;margin:2px 8px 4px}
+  nav.side .tag{color:var(--muted);font-size:12px;margin:0 8px 18px;display:block}
+  nav.side button{display:flex;gap:10px;align-items:center;width:100%;text-align:left;background:none;border:0;
+    color:var(--muted);padding:9px 10px;border-radius:8px;cursor:pointer;font:inherit;font-size:14px}
+  nav.side button:hover{background:#ffffff0c;color:var(--fg)}
+  nav.side button.active{background:#7c8cff1f;color:#fff}
+  nav.side button .n{flex:0 0 22px;height:22px;border-radius:50%;background:#ffffff14;display:grid;place-items:center;
+    font-size:12px;color:var(--muted)}
+  nav.side button.active .n{background:var(--accent);color:#0d1117;font-weight:700}
+  nav.side button.done .n{background:var(--good);color:#fff}
+  .progwrap{margin:6px 8px 14px} .progbar{height:6px;background:#ffffff14;border-radius:6px;overflow:hidden}
+  .progbar > i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--purple));transition:width .35s}
+  .progtxt{color:var(--muted);font-size:11px;margin-top:5px}
+  /* main */
+  main{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;padding:40px 28px 120px}
+  .pane{display:none;max-width:820px;width:100%;animation:fade .3s ease}
+  .pane.active{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  h1{font-size:30px;margin:0 0 6px;letter-spacing:-.3px}
+  h2{font-size:21px;margin:30px 0 10px;border-bottom:1px solid var(--border);padding-bottom:7px}
+  h3{font-size:16px;margin:20px 0 6px;color:#fff}
+  .lead{color:var(--muted);font-size:16px;margin:0 0 18px}
+  p{margin:10px 0}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin:14px 0}
+  .grid{display:grid;gap:12px} .g2{grid-template-columns:1fr 1fr} .g3{grid-template-columns:1fr 1fr 1fr}
+  @media(max-width:760px){.g2,.g3{grid-template-columns:1fr}}
+  .pill{display:inline-block;background:var(--pill);border:1px solid var(--border);border-radius:20px;
+    padding:2px 10px;font-size:12px;color:var(--muted);margin:0 4px 4px 0}
+  .pill.feature{color:#79c0ff;border-color:#1f6feb55}.pill.bug{color:#ff9b95;border-color:#da363355}
+  .pill.tweak{color:#cdd9e5}.pill.project{color:#d2a8ff;border-color:#8957e555}
+  .note{background:#e3b3410f;border:1px solid #e3b34144;border-radius:8px;padding:11px 14px;color:#f2d68a;font-size:14px}
+  .good{background:#2ea0430f;border:1px solid #2ea04344;border-radius:8px;padding:11px 14px;color:#7ee2a8;font-size:14px}
+  ul{margin:8px 0;padding-left:22px} li{margin:5px 0}
+  .kbd{font-family:ui-monospace,monospace;background:#0d1117;border:1px solid var(--border);border-radius:5px;padding:1px 6px}
+  .muted{color:var(--muted)}
+  /* nav buttons */
+  .navrow{display:flex;justify-content:space-between;margin-top:34px;gap:12px;max-width:820px;width:100%}
+  .btn{background:#21262d;border:1px solid var(--border);color:var(--fg);border-radius:8px;padding:9px 16px;
+    cursor:pointer;font:inherit;font-size:14px}
+  .btn:hover{background:#2a3140} .btn[disabled]{opacity:.4;cursor:default}
+  .btn.primary{background:var(--good);border-color:#2ea04300;color:#fff}.btn.primary:hover{background:var(--green-h)}
+  /* simulated github thread */
+  .issue{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:var(--panel);margin:14px 0}
+  .issue .head{padding:13px 16px;border-bottom:1px solid var(--border);background:var(--panel2)}
+  .issue .head .t{font-size:16px;font-weight:600} .issue .head .meta{color:var(--muted);font-size:12px;margin-top:3px}
+  .state{display:inline-block;border-radius:20px;padding:2px 10px;font-size:11px;font-weight:600;color:#fff}
+  .state.open{background:#238636}.state.merged{background:#8957e5}.state.closed{background:#6e7681}
+  .thread{padding:8px 14px 16px}
+  .cmt{display:flex;gap:10px;margin:12px 0}
+  .av{flex:0 0 30px;height:30px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;color:#0d1117}
+  .av.bot{background:linear-gradient(135deg,#7c8cff,#bc8cff)} .av.you{background:#3fb950}
+  .bubble{flex:1;border:1px solid var(--border);border-radius:8px;background:#0d1117}
+  .bubble .who{padding:6px 12px;border-bottom:1px solid var(--border);font-size:12px;color:var(--muted)}
+  .bubble .who b{color:var(--fg)} .bubble .body{padding:11px 13px;font-size:14px}
+  .bubble .body p{margin:7px 0} .bubble .body ol,.bubble .body ul{margin:7px 0}
+  .choices{display:flex;flex-wrap:wrap;gap:8px;padding:6px 14px 14px}
+  .opt{background:#21262d;border:1px solid var(--border);color:var(--fg);border-radius:8px;padding:7px 13px;
+    cursor:pointer;font:inherit;font-size:13px}
+  .opt:hover{background:#2a3140;border-color:var(--accent)}
+  .opt.approve{background:var(--good);border-color:#0000;color:#fff}.opt.approve:hover{background:var(--green-h)}
+  .opt.merge{background:#8957e5;border-color:#0000;color:#fff}
+  .sim-reset{font-size:12px;color:var(--muted);background:none;border:0;cursor:pointer;text-decoration:underline;margin-top:6px}
+  .tasklist{list-style:none;padding:0;margin:8px 0}
+  .tasklist li{display:flex;gap:8px;align-items:flex-start;padding:5px 0;border-bottom:1px solid #ffffff0d}
+  .chk{width:15px;height:15px;border:1.5px solid var(--border);border-radius:3px;margin-top:3px;flex:0 0 auto}
+  .chk.on{background:var(--good);border-color:var(--good)}
+  .iref{color:var(--blue);font-weight:600}
+  .badge{font-size:10px;background:#2ea04322;color:#7ee2a8;border:1px solid #2ea04355;border-radius:10px;padding:0 6px;margin-left:4px}
+  /* command table */
+  table{width:100%;border-collapse:collapse;margin:10px 0}
+  th,td{border:1px solid var(--border);padding:9px 11px;text-align:left;font-size:14px;vertical-align:top}
+  th{background:var(--panel2);color:#fff}
+  td code{white-space:nowrap}
+  details{border:1px solid var(--border);border-radius:8px;padding:0 14px;margin:8px 0;background:var(--panel)}
+  details summary{cursor:pointer;padding:11px 0;font-weight:600;list-style:none}
+  details summary::-webkit-details-marker{display:none}
+  details summary::before{content:"+ ";color:var(--accent)} details[open] summary::before{content:"- "}
+  details .inner{padding-bottom:12px;color:var(--muted);font-size:14px}
+  .flow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:14px 0}
+  .step{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px}
+  .step.gate{border-color:#e3b34188;color:#f2d68a}
+  .arr{color:var(--muted)}
+  .ex{font-size:13px;color:var(--muted);border-left:3px solid var(--border);padding:2px 0 2px 12px;margin:8px 0}
+</style>
+</head>
+<body>
+<div class="layout">
+  <nav class="side">
+    <span class="brand">Ribosome</span>
+    <span class="tag">From an idea to working software, without writing code.</span>
+    <div class="progwrap"><div class="progbar"><i id="prog"></i></div><div class="progtxt" id="progtxt"></div></div>
+    <div id="nav"></div>
+  </nav>
+  <main id="main"></main>
+</div>
+
+<script>
+/* ---------- content ---------- */
+const SECTIONS = [
+  {id:"welcome", title:"Welcome", body: welcome},
+  {id:"how", title:"How it works", body: how},
+  {id:"start", title:"Starting work", body: start},
+  {id:"gates", title:"The three gates", body: gates},
+  {id:"project", title:"Big ideas (Projects)", body: project},
+  {id:"coaching", title:"How the bot talks to you", body: coaching},
+  {id:"commands", title:"The six commands", body: commands},
+  {id:"digest", title:"Digest & rule changes", body: digest},
+  {id:"stop", title:"When to ask a human", body: stop},
+  {id:"glossary", title:"Glossary", body: glossary},
+];
+
+function welcome(){return `
+  <h1>Using Ribosome</h1>
+  <p class="lead">Ribosome turns a plain-English request into shipped, tested software. You work entirely on GitHub: open an issue, answer a few questions, click merge. You never open a terminal or write code.</p>
+  <div class="card">
+    <h3>The idea, in one breath</h3>
+    <p>The name is borrowed from biology: a ribosome reads an instruction (mRNA) and builds a working object (a protein). Here, your <b>issue</b> is the instruction and a <b>merged pull request</b> is the product. A small team of AI roles does the reading, designing, building, checking, and shipping. You stay in charge at three moments.</p>
+  </div>
+  <div class="good">You are the domain expert. The bot is the engineer. Your job is to say what you want and judge whether the result is right, in your own terms. The bot's job is everything technical, and to translate any decision that genuinely needs you into a plain choice you can make.</div>
+  <p class="muted" style="margin-top:18px">This tutorial is interactive. Use the sidebar, or Next at the bottom. The walkthroughs in "The three gates" and "Big ideas" are clickable, with a real example from this system.</p>
+`}
+
+function how(){return `
+  <h1>How it works</h1>
+  <p class="lead">Submit an issue, then the run pauses for you at three "gates". Between gates, the bot works on its own and you can close the tab.</p>
+  <div class="flow">
+    <span class="step">You open an issue</span><span class="arr">&rarr;</span>
+    <span class="step gate">Gate 1: approve the story</span><span class="arr">&rarr;</span>
+    <span class="step gate">Gate 2: approve the plan</span><span class="arr">&rarr;</span>
+    <span class="step gate">Gate 3: merge the PR</span><span class="arr">&rarr;</span>
+    <span class="step">Shipped</span>
+  </div>
+  <div class="grid g3">
+    <div class="card"><h3>Gate 1 - Story</h3><p class="muted">The bot restates what you asked as a short story with a checklist of what "done" means. Catch wrong assumptions here; it costs nothing.</p></div>
+    <div class="card"><h3>Gate 2 - Plan</h3><p class="muted">The bot turns the story into a technical plan and asks you only the decisions that genuinely need your judgment, in plain language.</p></div>
+    <div class="card"><h3>Gate 3 - Merge</h3><p class="muted">The bot writes the code and tests, opens a pull request with a plain summary, and you click the green Merge button.</p></div>
+  </div>
+  <div class="note">Three gates, not seven. Everything else - reading the code, writing the code, running the tests, opening the PR - happens without you.</div>
+`}
+
+function start(){return `
+  <h1>Starting work</h1>
+  <p class="lead">Open a new issue and pick one of four templates. You never pick a tech stack, a priority, or a label. Submitting the issue is the start signal.</p>
+  <div class="grid g2">
+    <div class="card"><span class="pill feature">Feature</span><h3>Something new</h3><p class="muted">You want the software to do something it does not do yet.</p>
+      <details><summary>What it asks</summary><div class="inner">Who is it for, what should happen, why it matters, and what success looks like. Plain English.</div></details></div>
+    <div class="card"><span class="pill bug">Bug</span><h3>Something is broken</h3><p class="muted">It used to work, or it should work, and it does not.</p>
+      <details><summary>What it asks</summary><div class="inner">What happened, what should have happened, how to reproduce it if you know, and a screenshot or link if you have one.</div></details></div>
+    <div class="card"><span class="pill tweak">Tweak</span><h3>A small change</h3><p class="muted">Wording, a colour, a label. One line is enough.</p>
+      <details><summary>What it asks</summary><div class="inner">Just describe the small change. No detail needed.</div></details></div>
+    <div class="card"><span class="pill project">Project</span><h3>A big idea</h3><p class="muted">A whole tool or app, not a single feature. The bot breaks it into small pieces first.</p>
+      <details><summary>What it asks</summary><div class="inner">What you want to build, who it is for, the one thing it must do first, what must never go wrong, and roughly how big it feels. See "Big ideas" in the sidebar.</div></details></div>
+  </div>
+  <div class="note">Not sure which? If it is one clear change, use Feature or Tweak. If it is "I want a whole tool that...", use Project and let the bot plan it with you.</div>
+`}
+
+function gates(){return `
+  <h1>The three gates</h1>
+  <p class="lead">Walk a Feature through its three gates below. Click the buttons the way you would reply on GitHub.</p>
+  <div id="sim-feature"></div>
+  <h2>What each gate is really for</h2>
+  <h3>Gate 1, the story - your most important moment</h3>
+  <p>The bot writes back a one-paragraph story and a checklist of what must be true to count as done. Read it and ask: is this what I actually meant? A wrong assumption caught here costs nothing. The same assumption caught after the code is written costs time.</p>
+  <h3>Gate 2, the plan</h3>
+  <p>The bot turns the story into a technical brief. You do not need to understand the technical parts. The bot pulls out the few decisions that genuinely need you and asks them as plain choices (see "How the bot talks to you"). Decisions it can safely make on its own, it just makes.</p>
+  <h3>Gate 3, the pull request</h3>
+  <p>The bot writes the code and the tests, runs them, and opens a draft pull request with a plain-language summary and a checker's report. If anything is labelled Critical, do not merge; the bot will fix it. If it is clean, click Merge.</p>
+`}
+
+function project(){return `
+  <h1>Big ideas (Projects)</h1>
+  <p class="lead">A Project is for something too big to be one feature. The bot does not build it all at once. It proposes a plan that breaks the idea into small pieces, smallest first, and you approve the plan before anything is filed.</p>
+  <div class="flow">
+    <span class="step">You describe the idea</span><span class="arr">&rarr;</span>
+    <span class="step gate">You approve the plan</span><span class="arr">&rarr;</span>
+    <span class="step">Pieces filed, smallest one starts</span><span class="arr">&rarr;</span>
+    <span class="step">Each piece runs its own 3 gates</span>
+  </div>
+  <p class="muted">A Project adds one approval up front - the plan - then every piece is just a normal Feature with the three gates you already know.</p>
+  <h2>Try it</h2>
+  <p>This is the real plan the bot produced for a lab data-analyst idea in a live run. Click through it.</p>
+  <div id="sim-project"></div>
+`}
+
+function coaching(){return `
+  <h1>How the bot talks to you</h1>
+  <p class="lead">The bot will never ask you a question you cannot answer. Its rule: a decision comes to you only when the answer depends on something only you know. Everything else it decides on its own.</p>
+  <div class="grid g3">
+    <div class="card"><h3>Ask you</h3><p class="muted">Depends on your world: who uses it, how private the data is, how bad it is if it breaks. Translated into a plain choice.</p></div>
+    <div class="card"><h3>Decide silently</h3><p class="muted">Pure engineering: which library, how the data is shaped, how it is tested. You never see these.</p></div>
+    <div class="card"><h3>Tell you (no action)</h3><p class="muted">An assumption it made from something you said, in one line, so you can object if it is wrong.</p></div>
+  </div>
+  <h3>It translates, it never makes you guess</h3>
+  <p>Instead of "what test coverage do we need on the upload endpoint?", which you cannot answer, it asks the version you can:</p>
+  <div class="ex">"Six months from now someone uploads a 4 GB file, or two people upload at once. Do you want the tool to (a) catch it and tell them clearly, (b) fail and you find out later, or (c) not care, it is a throwaway? Your answer decides what I test and how hard."</div>
+  <h3>A real decision from a live run - try it</h3>
+  <p>Building a tool to ask questions about lab data, the bot found one decision only you can make. Pick an option to see what it means:</p>
+  <div id="coach-q"></div>
+  <div class="note">It keeps it short on purpose. A wall of text is as bad as jargon; both push you to rubber-stamp. You will only ever see the few decisions that matter.</div>
+`}
+
+function commands(){return `
+  <h1>The six commands</h1>
+  <p class="lead">These are the only things you ever type. They go in an issue comment or a PR comment.</p>
+  <table>
+    <tr><th>Command</th><th>What it does</th></tr>
+    <tr><td><code>/approve</code></td><td>Advance to the next stage. Use at the story gate, the plan gate, and to approve a Project's plan.</td></tr>
+    <tr><td><code>/changes &lt;note&gt;</code></td><td>Send the current draft back with a short note. The bot rewrites and asks again.</td></tr>
+    <tr><td><code>/cancel</code></td><td>Stop the run and close the issue. Safe any time.</td></tr>
+    <tr><td><code>/explain &lt;question&gt;</code></td><td>Ask a question about the work. The bot answers in a comment; the run does not advance. Handy at the plan gate.</td></tr>
+    <tr><td><code>/keep</code></td><td>On the weekly digest only: keep a thing the bot learned.</td></tr>
+    <tr><td><code>/forget</code></td><td>On the weekly digest only: drop a thing the bot learned.</td></tr>
+  </table>
+  <div class="good">You merge pull requests with the normal green GitHub button, not a command. The bot never merges its own work.</div>
+`}
+
+function digest(){return `
+  <h1>Digest and rule changes</h1>
+  <h3>The weekly digest</h3>
+  <p>Once a week the bot opens an issue titled "weekly digest" listing things it learned from recent runs, in plain language. Reply <code>/keep</code> or <code>/forget</code> on each. If you do not reply within seven days, it keeps the item. This is how the bot gets better at your codebase over time. Skimming it once a week tightens the loop.</p>
+  <h3>When the bot proposes a rule</h3>
+  <p>Now and then the bot opens a small pull request that only edits a file called <code>CLAUDE.md</code> - its permanent memory of how your codebase works. The PR explains the new rule in plain language. If it sounds right, merge it. If not, close it with a comment and the bot will not propose it again.</p>
+  <div class="note">Decisions the bot makes during a build are also written down as short records (ADRs) so a later piece cannot quietly contradict an earlier choice. You do not have to read them; they are there if you ever ask "why was it built this way?".</div>
+`}
+
+function stop(){return `
+  <h1>When to stop and ask a human</h1>
+  <p class="lead">The bot is good at carrying out an approved plan. It is not the right judge of whether the plan is the right plan. Ask the maintainer of this repo when:</p>
+  <ul>
+    <li>The bot has asked the same question twice and you are unsure.</li>
+    <li>A pull request looks much larger than the issue suggested it would be.</li>
+    <li>The checker's report has a Critical item the bot has not fixed after two tries.</li>
+    <li>You are about to merge something touching logins, payments, or anything that could lose data or money if wrong.</li>
+  </ul>
+  <p>There is no penalty for stopping. <code>/cancel</code> is always available.</p>
+  <h2>What the bot will never do</h2>
+  <ul>
+    <li>Push directly to the main branch.</li>
+    <li>Merge a pull request on its own.</li>
+    <li>Close an issue you opened, unless you said <code>/cancel</code>.</li>
+    <li>Add a new outside service, or send email from a new address, without a plan you approved.</li>
+    <li>Commit secrets or keys. A safety hook blocks these even if it tries.</li>
+  </ul>
+  <div class="note">If any of these ever happen, the bot has a bug. Tell the maintainer.</div>
+`}
+
+function glossary(){return `
+  <h1>Glossary</h1>
+  <p class="lead">Plain definitions for the words you will see.</p>
+  <table>
+    <tr><th>Word</th><th>Means</th></tr>
+    <tr><td><b>Operator</b></td><td>You. The person who drives the bot through GitHub and does not write code.</td></tr>
+    <tr><td><b>Gate</b></td><td>A point where the run pauses for your approval. There are three.</td></tr>
+    <tr><td><b>Story</b></td><td>A one-paragraph statement of what a feature is, with a checklist of "done".</td></tr>
+    <tr><td><b>Plan</b></td><td>The technical brief the bot follows to build a piece. You approve it at gate 2.</td></tr>
+    <tr><td><b>Project</b></td><td>A big idea the bot breaks into a sequence of small pieces.</td></tr>
+    <tr><td><b>Roadmap</b></td><td>The ordered list of pieces a Project becomes, each a sub-issue of the Project.</td></tr>
+    <tr><td><b>Tracer bullet</b></td><td>The smallest first piece that does one real thing end to end, so you can see it working early.</td></tr>
+    <tr><td><b>Pull request (PR)</b></td><td>The finished, reviewable change. You merge it to ship.</td></tr>
+    <tr><td><b>Validator / checker</b></td><td>The role that reviews the build and reports concerns by severity before you merge.</td></tr>
+    <tr><td><b>ADR</b></td><td>A short written record of a decision and why it was made.</td></tr>
+  </table>
+  <div class="good">That is the whole system. Open an issue and try it - you can always <code>/cancel</code>.</div>
+`}
+
+/* ---------- interactive simulations ---------- */
+// generic thread renderer: steps is an array; each step is {add:[bubbles]} and optional choices
+function thread(containerId, scenario){
+  const el = document.getElementById(containerId); if(!el) return;
+  let idx = 0;
+  function render(){
+    const shown = scenario.steps.slice(0, idx+1);
+    let html = `<div class="issue"><div class="head"><span class="state ${scenario.stateAt(idx)}">${scenario.stateLabelAt(idx)}</span>
+      <div class="t" style="margin-top:6px">${scenario.title}</div><div class="meta">${scenario.meta}</div></div><div class="thread">`;
+    shown.forEach(s=> s.bubbles.forEach(b=>{
+      html += `<div class="cmt"><div class="av ${b.who==='you'?'you':'bot'}">${b.who==='you'?'YOU':'B'}</div>
+        <div class="bubble"><div class="who"><b>${b.who==='you'?'you':'ribosome-bot'}</b> ${b.who==='you'?'commented':'replied'}</div>
+        <div class="body">${b.html}</div></div></div>`;
+    }));
+    const cur = scenario.steps[idx];
+    if(cur.choices){
+      html += `<div class="choices">`;
+      cur.choices.forEach((c,i)=> html += `<button class="opt ${c.cls||''}" data-go="${c.to}">${c.label}</button>`);
+      html += `</div>`;
+    } else {
+      html += `<div style="padding:6px 14px 12px"><span class="good" style="display:inline-block">Done. ${scenario.endNote||''}</span></div>`;
+    }
+    html += `</div></div><button class="sim-reset" data-reset="1">Start over</button>`;
+    el.innerHTML = html;
+    el.querySelectorAll('[data-go]').forEach(btn=> btn.onclick=()=>{ idx = +btn.dataset.go; render(); });
+    el.querySelector('[data-reset]').onclick=()=>{ idx=0; render(); };
+  }
+  render();
+}
+
+const featureSim = {
+  title:"[feature] Highlight overdue todos",
+  meta:"opened by you",
+  stateAt:i=> i>=3?'merged':'open',
+  stateLabelAt:i=> i>=3?'Merged':'Open',
+  endNote:"That is one feature, shipped.",
+  steps:[
+    {bubbles:[
+      {who:'you', html:`<p>As a user, I want overdue todos highlighted so I can prioritise them.</p>`},
+      {who:'bot', html:`<p><b>Story for review (gate 1).</b></p><p>As a user, items past their due date are shown visually distinct on the list.</p>
+        <p class="muted">Done when: overdue items are clearly marked; non-overdue items are unchanged; the marking updates when a date passes.</p>
+        <p>Reply <code>/approve</code> to continue, or <code>/changes</code> with a note.</p>`}
+    ], choices:[
+      {label:"/approve", cls:"approve", to:1},
+      {label:"/changes \"also dim completed ones\"", to:0}
+    ]},
+    {bubbles:[
+      {who:'you', html:`<code>/approve</code>`},
+      {who:'bot', html:`<p><b>Plan for review (gate 2).</b> I will change the todo list component and add a test for each rule above.</p>
+        <p><b>One decision needs you:</b> what counts as "overdue" at the exact due moment - is an item due today at 5pm overdue at 5:00 sharp, or only after the day ends? Most people mean end of day; say the word if you mean the exact time.</p>
+        <p class="muted">Assumed (you can veto): the highlight is a colour plus an icon, so it is visible without relying on colour alone.</p>`}
+    ], choices:[
+      {label:"/approve (end of day is right)", cls:"approve", to:2},
+      {label:"/changes \"exact time, not end of day\"", to:1}
+    ]},
+    {bubbles:[
+      {who:'you', html:`<code>/approve</code>`},
+      {who:'bot', html:`<p><b>Pull request opened (gate 3).</b> Code and tests written, all green.</p>
+        <p>Checker's report: <span class="badge">no Critical</span> 1 minor note (a colour-contrast suggestion, already applied).</p>
+        <p>Screenshots of the before/after list are attached. Click the green <b>Merge</b> button to ship.</p>`}
+    ], choices:[
+      {label:"Merge pull request", cls:"merge", to:3}
+    ]},
+    {bubbles:[
+      {who:'bot', html:`<p>Merged and the issue is closed. The change is live.</p>`}
+    ]}
+  ]
+};
+
+const projectSim = {
+  title:"[project] Lab data analyst: upload data, ask questions, get charts",
+  meta:"opened by you",
+  stateAt:i=> 'open',
+  stateLabelAt:i=> 'Open',
+  endNote:"Each piece now runs the three gates from the section above.",
+  steps:[
+    {bubbles:[
+      {who:'you', html:`<p>A tool where my lab uploads a spreadsheet of experimental data, asks questions in plain English, and gets short answers plus simple charts.</p>
+        <p class="muted">For me and a few people in my lab. Must do first: upload a CSV and see it as a table. Must never go wrong: data can be unpublished results, must stay private.</p>`},
+      {who:'bot', html:`<p><b>Here is a plan, smallest piece first.</b></p>
+        <ol>
+        <li><b>Upload a CSV and see it as a table.</b> The first real thing, end to end. Runs entirely in your browser; nothing leaves your machine.</li>
+        <li><b>Pick a column and see a simple chart.</b> Still fully local.</li>
+        <li><b>Ask a question in plain English and get a short answer.</b> The first piece that needs an outside AI service (see the decision below).</li>
+        <li><b>Draw a chart automatically from your question.</b> A rough outline; it sharpens once piece 3 is built.</li>
+        </ol>
+        <p><b>One decision needs you (piece 3):</b> to answer a question, the tool must send something to an outside AI service. May it send (a) summaries only, never raw rows; (b) the raw rows too; or (c) nothing - keep pieces 1 and 2 only?</p>
+        <p>Reply <code>/approve</code> to file these and start the first, or <code>/changes</code>.</p>`}
+    ], choices:[
+      {label:"/approve (a) summaries only", cls:"approve", to:1},
+      {label:"/changes \"reorder, search first\"", to:0}
+    ]},
+    {bubbles:[
+      {who:'you', html:`<code>/approve</code> - summaries only, never raw rows.`},
+      {who:'bot', html:`<p><b>Plan approved. I filed the four pieces and started the first.</b></p>
+        <ul class="tasklist">
+          <li><span class="chk on"></span><div><span class="iref">#1</span> Upload a CSV and see it as a table <span class="badge">started</span></div></li>
+          <li><span class="chk"></span><div><span class="iref">#2</span> Pick a column and see a chart <span class="muted">- queued</span></div></li>
+          <li><span class="chk"></span><div><span class="iref">#3</span> Ask a question, get an answer <span class="muted">- queued</span></div></li>
+          <li><span class="chk"></span><div><span class="iref">#4</span> Auto-draw a chart from a question <span class="muted">- queued</span></div></li>
+        </ul>
+        <p>I recorded your privacy choice as this project's standing rule, so later pieces cannot quietly break it. The first piece will reply shortly to start its own story gate.</p>`}
+    ]}
+  ]
+};
+
+const coachQ = {
+  q:"To answer a plain-English question about your data, the tool must send something to an outside AI service. What may it send?",
+  opts:[
+    {k:"a", label:"(a) Summaries only", txt:"Column names, types, and computed numbers (averages, counts, ranges) - never the raw rows. Most questions answerable; your individual results never leave your machine. The safe default for unpublished data."},
+    {k:"b", label:"(b) The raw rows too", txt:"Any question becomes answerable, but your unpublished rows leave your machine to be read by the service. More power, less privacy."},
+    {k:"c", label:"(c) Nothing leaves, ever", txt:"Keep upload-and-chart only, fully private, and drop plain-English questions for now. Maximum privacy, fewer features."}
+  ]
+};
+
+function renderCoach(){
+  const el = document.getElementById('coach-q'); if(!el) return;
+  el.innerHTML = `<div class="card"><p style="margin-top:0"><b>${coachQ.q}</b></p>
+    <div class="choices" style="padding:0">${coachQ.opts.map(o=>`<button class="opt" data-k="${o.k}">${o.label}</button>`).join('')}</div>
+    <div id="coach-ans" class="ex" style="display:none;margin-top:12px"></div></div>`;
+  el.querySelectorAll('[data-k]').forEach(b=> b.onclick=()=>{
+    const o = coachQ.opts.find(x=>x.k===b.dataset.k);
+    const a = document.getElementById('coach-ans'); a.style.display='block';
+    a.innerHTML = `<b>${o.label}.</b> ${o.txt}`;
+    el.querySelectorAll('[data-k]').forEach(x=>x.style.opacity=.55); b.style.opacity=1;
+  });
+}
+
+/* ---------- shell: nav, panes, progress ---------- */
+const navEl = document.getElementById('nav');
+const mainEl = document.getElementById('main');
+const visited = new Set();
+let current = 0;
+
+SECTIONS.forEach((s,i)=>{
+  const pane = document.createElement('section');
+  pane.className='pane'; pane.id='pane-'+s.id; pane.innerHTML = s.body();
+  // nav row
+  const nb = document.createElement('button'); nb.dataset.i=i;
+  nb.innerHTML = `<span class="n">${i+1}</span><span>${s.title}</span>`;
+  nb.onclick=()=>go(i); navEl.appendChild(nb);
+  // prev/next row appended to pane
+  const row = document.createElement('div'); row.className='navrow';
+  row.innerHTML = `<button class="btn" data-prev ${i===0?'disabled':''}>&larr; Back</button>
+    <button class="btn primary" data-next>${i===SECTIONS.length-1?'Finish':'Next &rarr;'}</button>`;
+  pane.appendChild(row);
+  mainEl.appendChild(pane);
+});
+
+function go(i){
+  if(i<0||i>=SECTIONS.length) return;
+  current=i; visited.add(i);
+  document.querySelectorAll('.pane').forEach((p,j)=>p.classList.toggle('active', j===i));
+  navEl.querySelectorAll('button').forEach((b,j)=>{
+    b.classList.toggle('active', j===i); b.classList.toggle('done', visited.has(j)&&j!==i);
+  });
+  const pct = Math.round((visited.size)/SECTIONS.length*100);
+  document.getElementById('prog').style.width=pct+'%';
+  document.getElementById('progtxt').textContent = `${visited.size} of ${SECTIONS.length} sections`;
+  window.scrollTo({top:0,behavior:'instant'});
+  // wire interactive pieces lazily
+  if(SECTIONS[i].id==='gates') thread('sim-feature', featureSim);
+  if(SECTIONS[i].id==='project') thread('sim-project', projectSim);
+  if(SECTIONS[i].id==='coaching') renderCoach();
+}
+mainEl.addEventListener('click', e=>{
+  if(e.target.matches('[data-next]')){ current===SECTIONS.length-1 ? finishTutorial() : go(current+1); }
+  if(e.target.matches('[data-prev]')) go(current-1);
+});
+function finishTutorial(){
+  SECTIONS.forEach((_,j)=>visited.add(j));
+  document.getElementById('prog').style.width='100%';
+  document.getElementById('progtxt').textContent='Tutorial complete';
+  navEl.querySelectorAll('button').forEach((b,j)=>{ if(j!==current) b.classList.add('done'); });
+  const pane=document.getElementById('pane-'+SECTIONS[current].id);
+  const btn=pane.querySelector('[data-next]'); if(btn){ btn.textContent='Completed'; btn.setAttribute('disabled',''); }
+  let done=pane.querySelector('.finish-done');
+  if(!done){
+    done=document.createElement('div'); done.className='good finish-done'; done.style.marginTop='14px';
+    done.innerHTML='You have finished. You now know everything you need to use Ribosome. Open an issue to begin - you can always <code>/cancel</code>. <button class="sim-reset" data-tostart="1" style="margin-left:8px">Back to start</button>';
+    pane.querySelector('.navrow').after(done);
+    done.querySelector('[data-tostart]').onclick=()=>go(0);
+  }
+  done.scrollIntoView({behavior:'smooth',block:'center'});
+}
+document.addEventListener('keydown', e=>{
+  if(e.target.matches('input,textarea')) return;
+  if(e.key==='ArrowRight') go(current+1);
+  if(e.key==='ArrowLeft') go(current-1);
+});
+go(0);
+</script>
+</body>
+</html>

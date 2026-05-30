@@ -61,8 +61,8 @@ comment would have surfaced this to the operator, so it was never a silent stall
 **Remaining (one cheap run): after PR #12 merges, re-trigger one child and
 confirm its chain runs past the actor check.** The fix is well-grounded (the
 error names the exact cause) but the post-fix child run is not yet observed.
-Likely follow-up: the scouts (workflow_run-initiated) probably need the same
-`allowed_bots` fix.
+Done in PR #12: the seven scouts also got the `allowed_bots` fix (they are
+workflow_run/cron-initiated, same actor block), guarded by TR14. Eval now 39.
 
 ## Open work
 

@@ -844,6 +844,44 @@ export const TASKS: ReadonlyArray<TaskDefinition> = [
       return pass();
     },
   },
+  {
+    id: "TR13",
+    category: "trap",
+    name: "ribosome.yml allows the Claude bot to initiate runs (planner auto-start), and not the unsafe '*'",
+    rationale:
+      "Earned 2026-05-30 from the first live Project run: the planner's bot-applied ribo:feature label DID trigger the child workflow, but claude-code-action aborted with 'Workflow initiated by non-human actor: claude' because allowed_bots defaults to empty (no bots allowed). Without allowed_bots naming the Claude bot, the planner's auto-start silently stalls. The action docs warn that '*' on a public repo lets external Apps invoke the action, so the value must name the bot, not be a bare wildcard. See ADR-0003.",
+    check: () => {
+      const yml = readFile(".github/workflows/ribosome.yml");
+      if (!/allowed_bots:\s*["'][^"'\n]*claude/.test(yml)) {
+        return fail("ribosome.yml does not set allowed_bots to include the Claude bot; planner-started child chains will be blocked");
+      }
+      if (/allowed_bots:\s*["']\*["']/.test(yml)) {
+        return fail("ribosome.yml uses allowed_bots: \"*\" (unsafe on a public repo per the action docs); name the Claude bot explicitly");
+      }
+      return pass();
+    },
+  },
+  {
+    id: "TR14",
+    category: "trap",
+    name: "every scout workflow allows the Claude bot via allowed_bots (and not the unsafe '*')",
+    rationale:
+      "Earned 2026-05-30 alongside TR13. The scouts are initiated by workflow_run or schedule (cron), i.e. a non-human actor, so claude-code-action's default allowed_bots=\"\" would abort them on the bot-actor check the same way it aborted the planner-started child run. Each scout must name the Claude bot in allowed_bots, and not use the bare '*' the action docs warn against on a public repo. See ADR-0003.",
+    check: () => {
+      const offenders: string[] = [];
+      for (const s of SCOUT_NAMES) {
+        const yml = readFile(`.github/workflows/scout-${s}.yml`);
+        if (!/allowed_bots:\s*["'][^"'\n]*claude/.test(yml)) {
+          offenders.push(`scout-${s}.yml missing allowed_bots naming the Claude bot`);
+        }
+        if (/allowed_bots:\s*["']\*["']/.test(yml)) {
+          offenders.push(`scout-${s}.yml uses allowed_bots: "*" (unsafe)`);
+        }
+      }
+      if (offenders.length > 0) return fail(offenders.join("; "));
+      return pass();
+    },
+  },
 ];
 
 // Lazy execSync to avoid pulling node:child_process at module load

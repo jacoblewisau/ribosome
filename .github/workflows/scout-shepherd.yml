@@ -33,6 +33,7 @@ jobs:
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          allowed_bots: "claude[bot],claude" # workflow_run/cron-initiated (bot actor); see ADR-0003
           prompt: "/shepherd repo=${{ github.repository }} run_id=${{ github.run_id }} day_of_week=$(date -u +%u)"
           claude_args: |
             --model claude-haiku-4-5

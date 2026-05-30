@@ -42,15 +42,18 @@ you can close the tab.
 ### Gate 1: approve the story
 
 The bot turns your Issue into a one-paragraph user story with a short list
-of things that have to be true for the story to count as done. It also
-lists what is explicitly out of scope and any genuine open questions.
+of things that have to be true for it to count as done, plus what is out of
+scope.
 
-You read it. If it captures what you wanted, reply `/approve`. If it does
-not, reply `/changes` and a short sentence about what to change. The bot
-rewrites the story and asks again.
+It does not just hand you the story. It pulls out the few requirement
+questions that genuinely need you, each written as a plain-language choice,
+and lists the assumptions it made so you can veto any in one line. Answer in
+plain English with `/changes`, or reply `/approve` when the story matches.
+The bot rewrites and asks again as needed.
 
-This is the most important gate. Wrong assumptions caught here cost
-nothing. Wrong assumptions caught later cost time.
+This is the most important gate. Wrong assumptions caught here cost nothing;
+caught later they cost the whole build. Worth a careful read - but you will
+only ever be asked the few things that genuinely need you.
 
 ### Gate 2: approve the spec
 

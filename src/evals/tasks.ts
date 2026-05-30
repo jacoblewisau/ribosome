@@ -901,6 +901,22 @@ export const TASKS: ReadonlyArray<TaskDefinition> = [
       return pass();
     },
   },
+  {
+    id: "T14",
+    category: "tricky",
+    name: "story-writer references operator-translation and carries the gate-1 Needs-you / inform-only protocol",
+    rationale:
+      "Earned 2026-05-30 (slice 3 of the operator-as-non-coder goal). Gate 1 is the most important gate and the one where over-asking is most tempting (at the requirements level almost everything 'depends on what the operator wants'). The story-writer must apply the coaching protocol: reference operator-translation, expose the Needs-you / inform-only buckets (the same labels the spec-writer uses at gate 2, for cross-gate consistency), and keep the anti-over-ask guardrail. Structural eval cannot confirm the model behaves, only that the protocol words are present; if a refactor strips them, gate 1 silently reverts to a rubber-stamp.",
+    check: () => {
+      const content = readFile(".claude/skills/story-writer/SKILL.md");
+      const needles = ["operator-translation", "Needs you", "inform-only", "over-ask"];
+      const missing = needles.filter(n => !content.includes(n));
+      if (missing.length > 0) {
+        return fail(`story-writer.md missing: ${missing.join(", ")}`);
+      }
+      return pass();
+    },
+  },
 ];
 
 // Lazy execSync to avoid pulling node:child_process at module load

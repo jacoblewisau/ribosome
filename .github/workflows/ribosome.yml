@@ -102,6 +102,17 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           show_full_output: "true"
+          # Allow the Claude App bot to initiate runs. The planner (running as
+          # claude[bot]) labels the first child slice ribo:feature to auto-start
+          # its chain; that label event is bot-initiated, and the action blocks
+          # bot actors by default (allowed_bots=""), which silently stalls the
+          # auto-start. Earned 2026-05-30 from the first live Project run: the
+          # label fired the workflow, but the action self-aborted on the bot
+          # check ("Workflow initiated by non-human actor: claude"). NOT "*":
+          # the action docs warn that on a public repo "*" lets external Apps
+          # invoke the action with their own prompts. List the Claude bot
+          # explicitly, both forms, since the actor has shown as "claude".
+          allowed_bots: "claude[bot],claude"
           # The coordinator skill is the entry point. It reads the Issue
           # context, locates the state comment, picks the next chain step,
           # spawns subagents, posts the next comment, and updates the state.

@@ -1,9 +1,9 @@
 {
   "version": "1",
   "schema": "ribosome.eval.baseline",
-  "recorded_at": "2026-05-29T23:19:27.137Z",
-  "pass": 37,
-  "totalTasks": 37,
+  "recorded_at": "2026-05-30T00:49:03.335Z",
+  "pass": 38,
+  "totalTasks": 38,
   "score": 1,
-  "notes": "rebaselined for slice 2 of the operator-as-non-coder goal (the planner). Added R13 (Project Issue Form + planner skill + ribo:project label exist), T13 (chain routes ribo:project to the planner, not the feature chain; no broad ribo:* start row), TR12 (planner files children only after /approve and keeps the ADR-0002 sub-issue + task-list fallback). Split now 13 routine / 13 tricky / 11 trap = 37. Slice 2 is stacked on slice 1 (PR #1) since slice 1 is not yet merged."
+  "notes": "added TR13 after the first live Project run: the planner's bot-applied ribo:feature label triggered the child workflow but claude-code-action aborted on the bot-actor check (allowed_bots default empty). TR13 asserts ribosome.yml names the Claude bot in allowed_bots and does not use the unsafe '*'. See ADR-0003. Split now 13 routine / 13 tricky / 12 trap = 38."
 }

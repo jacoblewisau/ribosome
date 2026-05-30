@@ -26,8 +26,10 @@ product. The metaphor is documentation, not branding; file names stay
 functional (`builder.md`, not `large-subunit.md`).
 
 **Phases shipped:** 0 (foundations), 1 (chain), 2 (verify schema), 2.5 (live
-memory), 3 (GitHub workflow), 4.5 (dream + distilled), 6 (enforcement hooks).
-**Phases remaining:** 4 (proactive scouts), 5 (eval harness).
+memory), 3 (GitHub workflow), 4 (proactive scouts), 4.5 (dream + distilled),
+5 (eval harness, structural), 6 (enforcement hooks).
+**Phases remaining:** none. Open work is incremental, tracked in STATE.md
+(notably behavioural eval mode, the live-run counterpart to the structural suite).
 
 ---
 
@@ -41,7 +43,7 @@ memory), 3 (GitHub workflow), 4.5 (dream + distilled), 6 (enforcement hooks).
 | Verifier matrix | `src/verify/` (custom; emits canonical JSON for the validator) |
 | Schema validation | Zod (props on every VerifiableUnit) |
 | Date / timezone | Local-noon convention for `<input type="date">` |
-| GitHub automation | `anthropics/claude-code-action@v1`, opus-4-7 default |
+| GitHub automation | `anthropics/claude-code-action@v1`, opus-4-8 default (TR10) |
 
 ---
 
@@ -56,7 +58,7 @@ npm run setup:check
 
 # tests
 npm run typecheck        # tsc -b --noEmit
-npm test                 # vitest unit + chain + hook tests (32 currently)
+npm test                 # vitest unit + chain + hook tests (52 currently)
 npm run verify           # verifier matrix; writes tests/verify/last-run.json
 
 # chain inspection (maintainer only; the operator uses GitHub)
@@ -164,8 +166,8 @@ bot, generated stories and specs, validator reports, digests.
   or a repo pattern is wrong, say so and propose a fix. The upgrade path
   is a PR; do not silently work around.
 - **Plain language with the operator.** OPERATOR.md is the contract: six
-  slash commands, three gates, three Issue templates. Do not invent new
-  surface in operator-facing text.
+  slash commands, three gates, four Issue templates (Feature, Bug, Tweak,
+  Project). Do not invent new surface in operator-facing text.
 
 ---
 

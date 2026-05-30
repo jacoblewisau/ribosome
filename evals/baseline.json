@@ -1,9 +1,9 @@
 {
   "version": "1",
   "schema": "ribosome.eval.baseline",
-  "recorded_at": "2026-05-30T06:57:59.005Z",
-  "pass": 40,
-  "totalTasks": 40,
+  "recorded_at": "2026-05-30T07:03:09.520Z",
+  "pass": 41,
+  "totalTasks": 41,
   "score": 1,
-  "notes": "rebaselined to 40 for R14 (validator binding check). The PR added R14 to tasks.ts but had not committed the matching baseline bump, so the --gate check failed on a totalTasks 39 vs 40 mismatch though the run was 40/40. This commit supplies the intended baseline."
+  "notes": "slice 3 of operator-as-non-coder (story-writer gate-1 coaching), stacked on PR #20 (R14 validator binding). Added T14: story-writer references operator-translation and carries the Needs-you / inform-only buckets (same labels as spec-writer at gate 2, for cross-gate consistency) plus the anti-over-ask guardrail. Total 41."
 }

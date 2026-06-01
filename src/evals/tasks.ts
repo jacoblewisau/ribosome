@@ -902,6 +902,92 @@ export const TASKS: ReadonlyArray<TaskDefinition> = [
     },
   },
   {
+    id: "T15",
+    category: "tricky",
+    name: "ribosome.yml triggers project auto-advance on issue close and routes it to the coordinator",
+    rationale:
+      "Earned 2026-06-01 (planner auto-advance). When a project slice's PR merges, the linked Issue closes; that close must fire the workflow so the coordinator can start the next slice. Requires three things wired together: the `closed` type on the issues trigger, an if-branch matching a closed chain-labelled Issue, and the close action plumbed to the coordinator (action + state_reason args). If any is dropped, a roadmap stops dead after the tracer bullet with no signal.",
+    check: () => {
+      const yml = readFile(".github/workflows/ribosome.yml");
+      if (!/types:\s*\[[^\]]*\bclosed\b[^\]]*\]/.test(yml)) {
+        return fail("ribosome.yml issues trigger does not include the 'closed' type");
+      }
+      if (!/github\.event\.action == 'closed'/.test(yml)) {
+        return fail("ribosome.yml if-clause has no 'closed' action branch");
+      }
+      if (!/contains\(github\.event\.issue\.labels\.\*\.name, 'ribo:feature'\)/.test(yml)) {
+        return fail("ribosome.yml closed-branch does not gate on a chain label (ribo:feature)");
+      }
+      if (!/state_reason=\$\{\{\s*github\.event\.issue\.state_reason/.test(yml)) {
+        return fail("ribosome.yml does not pass state_reason to the coordinator (needed to tell merged from cancelled)");
+      }
+      return pass();
+    },
+  },
+  {
+    id: "T16",
+    category: "tricky",
+    name: "coordinator has the slice-closed auto-advance rows (completed advances, not_planned pauses, non-project no-ops)",
+    rationale:
+      "Earned 2026-06-01 (planner auto-advance). The coordinator owns advancing the roadmap one slice at a time. It must branch on state_reason: a completed (merged) slice starts the next queued sibling, a cancelled (not_planned) slice pauses with a recoverable note, and a closed Issue with no parent breadcrumb is a no-op. It also must verify the bot-applied-label re-trigger (the one fragile link) rather than ending blind. If these rows are stripped, auto-advance either never fires or silently stalls.",
+    check: () => {
+      const c = readFile(".claude/skills/coordinator/SKILL.md");
+      const needles = [
+        "Part of #<parent>",   // reads the planner breadcrumb
+        "state_reason",        // branches on merged vs cancelled
+        "not_planned",         // the pause branch
+        "pending_advance",     // records the watchdog handoff
+        "Roadmap complete",    // closes the parent on the last slice
+      ];
+      const missing = needles.filter((n) => !c.includes(n));
+      if (missing.length > 0) {
+        return fail(`coordinator.md missing auto-advance element(s): ${missing.join(", ")}`);
+      }
+      // The re-trigger guard: the coordinator must verify the start, not end blind.
+      if (!/gh run list/.test(c)) {
+        return fail("coordinator.md auto-advance does not verify the re-trigger (no `gh run list` check after labelling the next slice)");
+      }
+      return pass();
+    },
+  },
+  {
+    id: "TR15",
+    category: "trap",
+    name: "planner stamps the parent breadcrumb on each child and no longer defers auto-advance",
+    rationale:
+      "Earned 2026-06-01 (planner auto-advance). The coordinator finds the next slice by reading `Part of #<parent> - slice K of N` off the closed slice's body. If the planner stops stamping it, the coordinator cannot navigate the roadmap and advance dies after slice one. This trap also catches a stale reversion: the old skill said advancing was 'a future enhancement, not part of this skill'; that line must be gone now that it is wired.",
+    check: () => {
+      const p = readFile(".claude/skills/planner/SKILL.md");
+      if (!/Part of #<parent>/.test(p)) {
+        return fail("planner.md no longer stamps the 'Part of #<parent>' breadcrumb the coordinator needs to advance");
+      }
+      if (/future enhancement, not part of this skill/.test(p)) {
+        return fail("planner.md still claims auto-advance is a future enhancement; it is now wired via the coordinator");
+      }
+      return pass();
+    },
+  },
+  {
+    id: "T17",
+    category: "tricky",
+    name: "shepherd carries the auto-advance watchdog and routes recovery to an operator-applied label",
+    rationale:
+      "Earned 2026-06-01 (planner auto-advance, guard layer 3). If the coordinator's bot-applied-label re-trigger drops, the roadmap stalls silently. The shepherd is the backstop: it reads `pending_advance` off open project roadmaps and, if a queued slice has stayed unstarted past the threshold, escalates with a nudge. Critically it must NOT re-apply the label itself (same token caveat, may not re-trigger); it routes to the operator-applied label, which always triggers. If this section is dropped, a dropped re-trigger has no detector beyond the operator noticing.",
+    check: () => {
+      const s = readFile(".claude/skills/shepherd/SKILL.md");
+      if (!/pending_advance/.test(s)) {
+        return fail("shepherd.md has no auto-advance watchdog (does not read pending_advance)");
+      }
+      if (!/ribo:project/.test(s)) {
+        return fail("shepherd.md watchdog does not scan open ribo:project roadmaps");
+      }
+      if (!/operator-applied label always triggers/i.test(s)) {
+        return fail("shepherd.md watchdog does not route recovery to the always-reliable operator-applied label");
+      }
+      return pass();
+    },
+  },
+  {
     id: "T14",
     category: "tricky",
     name: "story-writer references operator-translation and carries the gate-1 Needs-you / inform-only protocol",

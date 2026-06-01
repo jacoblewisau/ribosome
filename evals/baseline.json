@@ -1,9 +1,9 @@
 {
   "version": "1",
   "schema": "ribosome.eval.baseline",
-  "recorded_at": "2026-05-30T07:03:09.520Z",
-  "pass": 41,
-  "totalTasks": 41,
+  "recorded_at": "2026-06-01T08:05:10.000Z",
+  "pass": 45,
+  "totalTasks": 45,
   "score": 1,
-  "notes": "slice 3 of operator-as-non-coder (story-writer gate-1 coaching), stacked on PR #20 (R14 validator binding). Added T14: story-writer references operator-translation and carries the Needs-you / inform-only buckets (same labels as spec-writer at gate 2, for cross-gate consistency) plus the anti-over-ask guardrail. Total 41."
+  "notes": "planner auto-advance (sequential, rides the merge gate). Added T15 (ribosome.yml triggers auto-advance on issue close and passes state_reason), T16 (coordinator slice-closed dispatch: completed advances, not_planned pauses, non-project no-ops, and verifies the bot-label re-trigger), TR15 (planner stamps the Part of #<parent> breadcrumb and no longer defers auto-advance), T17 (shepherd auto-advance watchdog routes recovery to an operator-applied label). Total 45."
 }

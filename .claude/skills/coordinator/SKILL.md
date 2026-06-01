@@ -51,6 +51,9 @@ After acting, write a new bot comment that includes both the operator-visible co
 | `/keep <id>` on Issue (only if this Issue is a dreamer-digest) | n/a | Acknowledge as comment. Phase 4 wires the digest scout; until then, no-op with a friendly note. |
 | `/forget <id>` on Issue (only if dreamer-digest) | n/a | Invoke `npm run dream:forget <id> -- "operator on issue #N"`. Comment confirming. |
 | Validator returned `needs fix` after builder | n/a | Loop back to builder with the validator report attached as the new input. Update state to `gate_state.spec: approved`, `current_step: builder` so this triggers a fresh builder run. Limit: two consecutive builder loops; if a third Critical surfaces, escalate to operator with a sticky comment and stop. |
+| Issue `closed` (`action=closed`), body has `Part of #<parent>`, `state_reason=completed` | any | Project auto-advance. The merged slice is done; start the next queued sibling. See "Auto-advance" below. |
+| Issue `closed`, body has `Part of #<parent>`, `state_reason` is `not_planned` (or empty) | any | Roadmap pause. The slice was cancelled or abandoned, not completed. Do NOT advance. Post on the parent: "Roadmap paused at slice K (#<closed> was closed without merging). To resume, add the `ribo:feature` label to the next slice yourself." See "Auto-advance" below. |
+| Issue `closed`, body has NO `Part of #<parent>` breadcrumb | any | No-op. A standalone (non-project) chain ends at merge; there is nothing to advance. Do not post. |
 
 ## Inputs and outputs each step
 
@@ -92,6 +95,25 @@ Advancement rules based on the parsed JSON:
 | validator | `verdict: "needs_fix"` | persist prose; loop back to builder with the validator JSON attached; advance state to `current_step: builder` (loop count incremented). Two-loop limit per the dispatch table. |
 
 If the JSON block is missing or `JSON.parse` throws, the coordinator posts a "step failed" comment quoting the parse error and stops without advancing state. The operator re-triggers via label cycle.
+
+## Auto-advance (project slices)
+
+When a chain slice's PR merges, GitHub closes the linked Issue (the PR body carries `Closes #<issue>`) with `state_reason: completed`. That close fires this workflow on the closed slice. The operator merging the PR is gate 3; the same merge is the signal to start the next slice, so auto-advance adds no new gate (ADR-0004). Sequencing is strictly one-at-a-time, in the planner's filing order.
+
+You receive `action`, `state_reason`, and `issue` (the closed slice) as args. Steps:
+
+1. **Confirm it is a project slice.** Read the closed Issue body: `gh issue view <issue> --json body,labels`. If the body has no `Part of #<parent>` breadcrumb line, this Issue is not part of a roadmap: no-op, post nothing, stop.
+2. **Branch on `state_reason`.** If it is not `completed` (i.e. `not_planned`, or empty from a manual close), do the "Roadmap pause" row: post the pause note on the parent and stop. Do not advance. (A completed-but-not-merged manual close still advances; the operator chose "completed".)
+3. **Find the next queued slice.** Parse `<parent>` and `K of N` from the breadcrumb. List the parent's children in order: `gh api repos/<owner>/<repo>/issues/<parent>/sub_issues --jq '.[] | "\(.number) \(.state)"'`. If that returns nothing (the ADR-0002 task-list fallback was used), parse `- [ ] #<n>` / `- [x] #<n>` lines from the parent body in order instead. The next slice is the first sibling after the closed one that is OPEN. 
+   - **Idempotency (rule 7):** before doing anything, check that sibling does not already carry `ribo:feature` and is not already closed. If it is already started, this is a duplicate close event: no-op, stop.
+   - **No next slice (the closed one was the last):** the roadmap is complete. Post on the parent "Roadmap complete: all N slices shipped." then close the parent: `gh issue close <parent> --reason completed`. Clear any `pending_advance` from the parent state. Stop. (Closing the parent does not re-trigger this workflow: the close `if` matches only `ribo:feature|bug|tweak`, never `ribo:project`.)
+4. **Start the next slice:** `gh issue edit <next> --add-label ribo:feature`. Record the expectation in the PARENT's sticky state comment: set `pending_advance: { "issue": <next>, "slice": "<K+1> of N", "labeled_at": "<ISO now>" }` (single field, latest wins; the shepherd watchdog reads it).
+5. **Verify the re-trigger (the guard).** The bot-applied label only re-fires the workflow under the App/PAT token, not the default `GITHUB_TOKEN`; this is the one fragile link. Do not end blind:
+   - `sleep 75`, then check for a fresh run on the next slice: `gh run list --workflow ribosome.yml --event issues --limit 5 --json createdAt,status,databaseId`. A run created after `labeled_at` (or a new bot state comment on `<next>`) means the chain started.
+   - **Confirmed started:** post on the parent: "Slice <K+1> (#<next>) is building. Watch #<next> for the story to review." Done.
+   - **Not confirmed:** post on the parent the recoverable nudge: "I started slice <K+1> (#<next>) but did not see its chain pick up. Open #<next> and add the `ribo:feature` label yourself to start it (an operator-applied label always triggers the chain)." The label is already applied, so the operator removing-and-re-adding, or the watchdog escalating, both recover it. A missed re-trigger is a visible, recoverable hiccup, never a silent stall.
+
+The verification in step 5 plus the shepherd watchdog (which escalates a `pending_advance` that stays unstarted) plus the always-certain operator-applied-label recovery are the three layers that keep a dropped re-trigger from silently stalling a roadmap.
 
 ## Operator-visible comments
 

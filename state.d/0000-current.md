@@ -10,14 +10,14 @@ record what a change shipped (see `state.d/README.md`).
 ## What is true right now
 
 - Local repo: `/Users/jacobl/projects/ribosome`. `origin` is `git@github.com:jacoblewisau/ribosome` (public). Do not reference the deleted `ribosome-test` remote.
-- **Eval suite: 44/44** against `evals/baseline.json`. Unit tests **58/58**. Typecheck clean.
+- **Eval suite: 48/48** against `evals/baseline.json`. Unit tests **58/58**. Typecheck clean.
 - **The repo is operational and behaviourally validated.** The auth secret and the Claude App are set; the chain has run live here. The full operator-as-non-coder pipeline (all three slices) is shipped and merged to `main`.
 
 ## Open work
 
 1. **Behavioural eval mode** (~$5-9/run, or subscription quota on OAuth). Structural eval confirms the prompts carry the protocol; only a live run proves the agents *behave* (ask well, do not over-ask, do not slide into recommending). A repeatable cadence is still undefined.
 2. **Slack integration end-to-end** (carried from session 4; documented, not wired).
-3. **Planner auto-advance** was designed and built on a branch (session 6, PR #26) but that PR was closed, so it is NOT on `main`: today the planner starts only the first slice. Re-open if wanted; the branch `claude/session-planning-3NdKu` has it.
+3. **Planner auto-advance is on `main`** (merged 2026-06-02). Remaining: live-verify the slice-N to slice-N+1 advance on a real Project (only slice-1 auto-start has run live), and decide whether to extend it to parallel slices (a dependency graph, deferred). See ADR-0004.
 4. **Browser-evidence goal** (`goals/browser-evidence.md`, on `main`) is fed into the chain as project Issue #34; the planner roadmap is pending at the decomposition gate.
 5. **Conflict-free STATE.md** (this change) ships the fragment mechanism. Remaining hardening is tracked in `goals/conflict-free-state.md`: a CI guard that blocks a feature PR from editing STATE.md directly (slice 2), and rebuilding STATE.md at session start (slice 3).
 

@@ -17,14 +17,14 @@ record what a change shipped (see `state.d/README.md`).
 ## What is true right now
 
 - Local repo: `/Users/jacobl/projects/ribosome`. `origin` is `git@github.com:jacoblewisau/ribosome` (public). Do not reference the deleted `ribosome-test` remote.
-- **Eval suite: 44/44** against `evals/baseline.json`. Unit tests **58/58**. Typecheck clean.
+- **Eval suite: 48/48** against `evals/baseline.json`. Unit tests **58/58**. Typecheck clean.
 - **The repo is operational and behaviourally validated.** The auth secret and the Claude App are set; the chain has run live here. The full operator-as-non-coder pipeline (all three slices) is shipped and merged to `main`.
 
 ## Open work
 
 1. **Behavioural eval mode** (~$5-9/run, or subscription quota on OAuth). Structural eval confirms the prompts carry the protocol; only a live run proves the agents *behave* (ask well, do not over-ask, do not slide into recommending). A repeatable cadence is still undefined.
 2. **Slack integration end-to-end** (carried from session 4; documented, not wired).
-3. **Planner auto-advance** was designed and built on a branch (session 6, PR #26) but that PR was closed, so it is NOT on `main`: today the planner starts only the first slice. Re-open if wanted; the branch `claude/session-planning-3NdKu` has it.
+3. **Planner auto-advance is on `main`** (merged 2026-06-02). Remaining: live-verify the slice-N to slice-N+1 advance on a real Project (only slice-1 auto-start has run live), and decide whether to extend it to parallel slices (a dependency graph, deferred). See ADR-0004.
 4. **Browser-evidence goal** (`goals/browser-evidence.md`, on `main`) is fed into the chain as project Issue #34; the planner roadmap is pending at the decomposition gate.
 5. **Conflict-free STATE.md** (this change) ships the fragment mechanism. Remaining hardening is tracked in `goals/conflict-free-state.md`: a CI guard that blocks a feature PR from editing STATE.md directly (slice 2), and rebuilding STATE.md at session start (slice 3).
 
@@ -60,6 +60,16 @@ Fixes the structural bug where every landed change rewrote `STATE.md` (rule 15),
 Researched the standard fix and challenged the obvious one: `.gitattributes merge=union` does NOT work for Ribosome because GitHub's web/API merge ignores user-defined merge drivers. The robust answer is the news-fragment pattern (Towncrier / Changesets): each change adds a uniquely named `state.d/<id>-<slug>.md`, and `STATE.md` is assembled from those fragments plus the curated head `state.d/0000-current.md`.
 
 Shipped (tracer bullet): `state.d/` with the curated head, a README, and seed log fragments; `src/state/build.ts` (pure assembler) + `scripts/state-build.ts` (`npm run state:build`, with `--check`); `STATE.md` regenerated with a generated-file banner; `.gitattributes` with `STATE.md merge=union` as local defense-in-depth; unit tests for the assembler; eval invariants R15 / T18 / TR16. Rule 15 reworded to require a fragment, not a STATE.md edit (CLAUDE.md change, left for the operator to merge). Full plan and remaining slices in `goals/conflict-free-state.md`.
+
+### 2026-06-01 - Planner auto-advance (sequential, rides the merge gate)
+
+A Project now runs to completion with the operator doing nothing but merging each PR. When a slice's PR merges, the linked Issue closes as `completed`; `ribosome.yml` triggers on `issues: closed`, and the coordinator reads the slice's `Part of #<parent> - slice K of N` breadcrumb, finds the next open sibling, and labels it `ribo:feature`. The merge gate (gate 3) doubles as the advance signal, so no fourth gate. Sequential only; a cancelled slice (`not_planned`) pauses the roadmap with a recoverable note; the last slice closes the parent. See ADR-0004.
+
+The bot-applied-label re-trigger (App/PAT token) is the one fragile link, and its failure is invisible. Guarded in three layers: (1) `setup:check` + eval TR13 assert `allowed_bots` names the bot; (2) the coordinator verifies the start in-run (`sleep` + `gh run list`) and posts either "building" or a one-click nudge; (3) the shepherd watchdog reads `pending_advance` off open roadmaps and escalates a stalled advance to the always-reliable operator-applied label.
+
+Files: `ribosome.yml`, `planner` / `coordinator` / `shepherd` skills, `setup-check.ts`, ADR-0004, OPERATOR.md. Evals T15 / T16 / T17 / TR15. Originally on branch `claude/session-planning-3NdKu` (PR #26, closed); reconciled onto the conflict-free-state main and merged 2026-06-02.
+
+Not yet live-verified: the slice-N to slice-N+1 advance has not run on a real Project; only the slice-1 auto-start has. The guard layers exist precisely because that path is once-validated.
 
 ### 2026-05-30 - Session 5: operator-as-non-coder pipeline
 

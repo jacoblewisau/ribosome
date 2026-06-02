@@ -2,7 +2,13 @@ name: Ribosome
 
 # Triggers:
 #   - Issue labeled with ribo:feature, ribo:bug, or ribo:tweak -> start a chain.
+#   - Issue labeled with ribo:project -> run the planner (decompose).
 #   - Issue comment containing one of the six slash commands -> advance the chain.
+#   - Issue closed (a chain slice) -> project auto-advance check. When a project
+#     slice closes (its PR merged, which closes the linked Issue as "completed"),
+#     the coordinator starts the next queued slice. The operator merging the PR
+#     is gate 3; that merge is also the green light for the next slice, so
+#     auto-advance adds no new gate. See ADR-0004.
 #
 # State machine: stored in a sticky comment on the Issue. The coordinator skill
 # reads prior bot comments for an HTML-comment-bracketed JSON payload to know
@@ -15,7 +21,7 @@ name: Ribosome
 
 on:
   issues:
-    types: [labeled]
+    types: [labeled, closed]
   issue_comment:
     types: [created]
 
@@ -37,11 +43,22 @@ jobs:
     if: |
       (
         github.event_name == 'issues' &&
+        github.event.action == 'labeled' &&
         (
           contains(github.event.label.name, 'ribo:feature') ||
           contains(github.event.label.name, 'ribo:bug') ||
           contains(github.event.label.name, 'ribo:tweak') ||
           contains(github.event.label.name, 'ribo:project')
+        )
+      )
+      ||
+      (
+        github.event_name == 'issues' &&
+        github.event.action == 'closed' &&
+        (
+          contains(github.event.issue.labels.*.name, 'ribo:feature') ||
+          contains(github.event.issue.labels.*.name, 'ribo:bug') ||
+          contains(github.event.issue.labels.*.name, 'ribo:tweak')
         )
       )
       ||
@@ -118,13 +135,13 @@ jobs:
           # spawns subagents, posts the next comment, and updates the state.
           # The skill body lives at .claude/skills/coordinator/SKILL.md.
           prompt: |
-            /coordinator event=${{ github.event_name }} issue=${{ github.event.issue.number }} repo=${{ github.repository }} actor=${{ github.actor }} label=${{ github.event.label.name }} command=${{ github.event.comment.body }} comment_id=${{ github.event.comment.id }} run_id=${{ github.run_id }}
+            /coordinator event=${{ github.event_name }} action=${{ github.event.action }} issue=${{ github.event.issue.number }} repo=${{ github.repository }} actor=${{ github.actor }} label=${{ github.event.label.name }} state_reason=${{ github.event.issue.state_reason }} command=${{ github.event.comment.body }} comment_id=${{ github.event.comment.id }} run_id=${{ github.run_id }}
           claude_args: |
             --model claude-opus-4-8
             --effort xhigh
             --max-turns 60
-            --allowedTools "Read,Write,Edit,Glob,Grep,Bash(gh:*),Bash(git:*),Bash(npm:*),Bash(node:*),Bash(jq:*),Bash(cat:*),Bash(ls:*),Bash(find:*),Bash(grep:*),Bash(sed:*),Bash(mkdir:*),Bash(cp:*),Bash(mv:*),Bash(echo:*),Bash(true)"
-            --append-system-prompt "You are running inside a GitHub Actions invocation triggered by event ${{ github.event_name }} on issue #${{ github.event.issue.number }} in ${{ github.repository }}. Read the operator-facing OPERATOR.md before any user-visible output. Post Issue comments with `gh issue comment`. Open draft PRs with `gh pr create --draft`. The chain state is encoded as a sticky HTML-comment-bracketed JSON in a bot comment on this Issue; if no such comment exists this is the first step. CRITICAL: do exactly ONE chain step per invocation. If this is the labeled event, run researcher and story-writer and post the story comment with the state marker, then STOP. Do not pre-emptively run spec-writer or builder; wait for the next /approve event. If this is a comment event, advance by exactly one step from the state in the prior bot comment, post the new artefact, update the state, then STOP."
+            --allowedTools "Read,Write,Edit,Glob,Grep,Bash(gh:*),Bash(git:*),Bash(npm:*),Bash(node:*),Bash(jq:*),Bash(cat:*),Bash(ls:*),Bash(find:*),Bash(grep:*),Bash(sed:*),Bash(mkdir:*),Bash(cp:*),Bash(mv:*),Bash(echo:*),Bash(sleep:*),Bash(true)"
+            --append-system-prompt "You are running inside a GitHub Actions invocation triggered by event ${{ github.event_name }} on issue #${{ github.event.issue.number }} in ${{ github.repository }}. Read the operator-facing OPERATOR.md before any user-visible output. Post Issue comments with `gh issue comment`. Open draft PRs with `gh pr create --draft`. The chain state is encoded as a sticky HTML-comment-bracketed JSON in a bot comment on this Issue; if no such comment exists this is the first step. CRITICAL: do exactly ONE chain step per invocation. If this is the labeled event, run researcher and story-writer and post the story comment with the state marker, then STOP. Do not pre-emptively run spec-writer or builder; wait for the next /approve event. If this is a comment event, advance by exactly one step from the state in the prior bot comment, post the new artefact, update the state, then STOP. If this is an issues 'closed' event, this is a project auto-advance check: follow the coordinator's slice-closed dispatch row (start the next queued slice, pause the roadmap, or no-op if the closed Issue is not part of a project), then STOP."
 
       # No explicit "push" step here: the Claude Code action drives all git
       # operations (commit, push, branch creation, PR open) via gh + git

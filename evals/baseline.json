@@ -1,9 +1,9 @@
 {
   "version": "1",
   "schema": "ribosome.eval.baseline",
-  "recorded_at": "2026-06-02T02:36:41.000Z",
-  "pass": 44,
-  "totalTasks": 44,
+  "recorded_at": "2026-06-02T02:55:00.000Z",
+  "pass": 48,
+  "totalTasks": 48,
   "score": 1,
-  "notes": "conflict-free STATE.md via the fragment pattern. STATE.md is generated from state.d/ by npm run state:build; concurrent PRs add unique fragments instead of editing the shared file, so they never conflict. Added R15 (mechanism present: state.d head, src/state/build.ts, npm script), T18 (STATE.md carries the generated banner and rule 15 points at the fragment, not a STATE.md edit), TR16 (.gitattributes merge=union defense-in-depth and the head is not the only fragment). Total 44."
+  "notes": "Merge of planner auto-advance onto the conflict-free-state main. Combines the auto-advance invariants (T15 ribosome.yml close-trigger wiring, T16 coordinator slice-closed dispatch + re-trigger verify, TR15 planner breadcrumb, T17 shepherd watchdog) with the STATE.md fragment invariants (R15 mechanism, T18 generated banner + rule 15, TR16 merge=union). Total 48."
 }

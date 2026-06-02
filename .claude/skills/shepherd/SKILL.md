@@ -42,34 +42,39 @@ Do not comment more than once per 3-day window on the same PR. Read the PR's exi
 
 ## Weekly mode
 
-Compose a summary block describing every open chain Issue and its current chain step (read from the most recent bot comment on each Issue, parsing the sticky state marker per the coordinator skill convention).
+The coordinator now rebuilds the Mission Control board (the `ribo:in-flight`
+Issue) on every chain step, so the board is normally already current. Your
+weekly job is a **reconcile-and-prune backstop**: rebuild it from a full scan in
+case a chain step failed to refresh it, and so merged or cancelled chains roll
+off the "Done this week" section after seven days.
 
-Find or create the `ribo:in-flight` Issue (one for the whole repo):
+Use the same deterministic renderer the coordinator uses; do not hand-build a
+table (that path drifted in formatting and is retired).
 
-```
-# Find:
-gh issue list --label ribo:in-flight --state open --json number --jq '.[0].number'
+1. Gather every open chain Issue and any closed in the last 7 days
+   (`ribo:feature|bug|tweak|project`), reading each one's sticky state marker
+   per the coordinator convention.
+2. Build the JSON inputs array (`{ issue, title, current_step, gate_state, waiting }`
+   per chain; `current_step: "completed"` for recently merged) and render:
+   ```
+   printf '%s' "$ROWS" \
+     | node --experimental-strip-types scripts/mission-control.ts --updated "$(date -u '+%Y-%m-%d %H:%M UTC')" \
+     > /tmp/board.json
+   ```
+3. Upsert the one `ribo:in-flight` Issue:
+   ```
+   # Find:
+   gh issue list --label ribo:in-flight --state open --json number --jq '.[0].number'
+   # If found:
+   gh issue edit <number> --title "$(jq -r .title /tmp/board.json)" --body "$(jq -r .body /tmp/board.json)"
+   # If not found:
+   gh issue create --title "$(jq -r .title /tmp/board.json)" \
+     --label "ribo:in-flight,ribo:shepherd" --body "$(jq -r .body /tmp/board.json)"
+   ```
 
-# If found, update via API edit:
-gh issue edit <number> --body "<new summary>"
-
-# If not found, create:
-gh issue create \
-  --title "[in-flight] Open chains as of <WEEK>" \
-  --label "ribo:in-flight,ribo:shepherd" \
-  --body "<summary>"
-```
-
-The summary body is a simple table:
-
-```
-| Issue | Title | Step | Started |
-|---|---|---|---|
-| #<n> | <title> | <current_step> | <ISO date> |
-| #<n> | <title> | <current_step> | <ISO date> |
-
-Last updated: <ISO now>
-```
+Do not fight the coordinator's live updates with a different layout; you call
+the same `scripts/mission-control.ts`, so the board reads identically whether it
+was last refreshed by a chain step or by you.
 
 ## Idempotence
 

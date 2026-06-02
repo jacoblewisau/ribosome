@@ -18,7 +18,10 @@ Open a new Issue in this repository and pick one of four templates.
 - **Bug.** Something is broken. Fill in: what happened, what should have
   happened, the steps to reproduce if you know them, and a screenshot or
   link if you have one.
-- **Tweak.** Small wording, colour, or copy change. One line is enough.
+- **Tweak.** Small wording, colour, or copy change. One line is enough. The bot
+  does not hold a planning gate for a tweak: it just makes the change and opens a
+  pull request for you to look at and merge. If the change turns out bigger than
+  a tweak, the bot stops and asks you first.
 - **Project.** A big idea, not a single feature. Answer a few plain questions
   about what you want. The bot does not build it all at once: it proposes a
   plan that breaks the idea into small pieces, smallest first.
@@ -39,6 +42,17 @@ the codebase. From that point, the run pauses for you at three moments
 called gates. At every other moment, the bot is working on its own and
 you can close the tab.
 
+### One place to see everything: the board
+
+You do not have to hunt through Issues and pull requests to know what is going
+on. The bot keeps one pinned Issue, titled like "Ribosome: 2 things need you",
+that is always up to date. Open it and you see every job in three plain groups:
+**Needs you** (waiting on your OK or your merge), **Working** (the bot is on it,
+nothing for you to do), and **Done this week**. The count in the title tells you
+at a glance whether anything is waiting. It is read only: to act, click into the
+job's own Issue and use the commands below. Bookmark this one Issue and it is
+the only status page you need.
+
 ### Gate 1: approve the story
 
 The bot turns your Issue into a one-paragraph user story with a short list
@@ -55,25 +69,22 @@ This is the most important gate. Wrong assumptions caught here cost nothing;
 caught later they cost the whole build. Worth a careful read - but you will
 only ever be asked the few things that genuinely need you.
 
-### Gate 2: approve the spec
+### Gate 2: the plan (only when it touches something real)
 
-The bot turns the approved story into a technical brief: which files will
-change, how the data flows, what tests will exist. You do not need to
-understand every detail.
+The bot turns the approved story into a technical plan: which files change, how
+the data flows, what tests will exist. Most of the time there is nothing here
+that needs you, so the bot does not stop. It tells you in one line that the plan
+needed no decisions and it is building, and you can close the tab. If you ever
+want to look or change direction, reply `/changes` and it pulls the build back
+to this point.
 
-The bot does not just hand you a finished brief. It pulls out the few
-decisions that genuinely need you, each written as a plain-language choice
-with what each option costs you, and asks them before finalising. Answer in
-plain English with `/changes`. It folds your answers in, asks follow-ups if
-something was unclear, and reads back what it understood you want. When that
-matches, reply `/approve`.
-
-Decisions the bot can safely make on its own, it just makes; you never see
-them. Decisions it assumed from something you said, it lists one line each so
-you can wave them through or veto them. Skim for anything that looks wrong on
-first read. Things worth flagging even if you do not code: storing personal
-data in a new place, sending email from a new address, or any third-party
-service you do not recognise.
+The bot stops and asks you here only when the plan touches something that
+deserves a human: storing personal information in a new place, sending email
+from a new address, using a new outside service, adding a new software
+dependency, or anything touching sign-in or payments. When it stops, it shows
+you just that one decision in plain language and waits for `/approve` or
+`/changes`. So silence at this gate is safe: the bot interrupts you only when it
+genuinely matters, and you keep the veto either way.
 
 ### Gate 3: merge the PR
 
@@ -85,6 +96,9 @@ severity), and a plain-language summary of what changed.
 If the validator report has anything labelled Critical, do not merge yet;
 the bot will fix it and update the PR. If the PR is clean, click the green
 Merge button.
+
+For a tweak, this is the only gate: there was no story or plan step, so the pull
+request is where you review and approve, by merging it.
 
 That is the entire flow.
 

@@ -16,6 +16,7 @@
     "memory:snapshot": "bash scripts/memory-snapshot.sh",
     "chain:show": "node --experimental-strip-types scripts/chain-show.ts",
     "chain:list": "node --experimental-strip-types scripts/chain-show.ts list",
+    "chain:board": "node --experimental-strip-types scripts/mission-control.ts",
     "dream:show": "node --experimental-strip-types scripts/dream-show.ts",
     "dream:forget": "node --experimental-strip-types scripts/dream-forget.ts",
     "setup": "node --experimental-strip-types scripts/setup-bootstrap.ts",

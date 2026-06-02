@@ -1,9 +1,9 @@
 {
   "version": "1",
   "schema": "ribosome.eval.baseline",
-  "recorded_at": "2026-05-30T07:03:09.520Z",
-  "pass": 41,
-  "totalTasks": 41,
+  "recorded_at": "2026-06-02T10:30:42.652Z",
+  "pass": 48,
+  "totalTasks": 48,
   "score": 1,
-  "notes": "slice 3 of operator-as-non-coder (story-writer gate-1 coaching), stacked on PR #20 (R14 validator binding). Added T14: story-writer references operator-translation and carries the Needs-you / inform-only buckets (same labels as spec-writer at gate 2, for cross-gate consistency) plus the anti-over-ask guardrail. Total 41."
+  "notes": "native-GitHub bundle (2026-06-02). Slice A: live Mission Control inbox board (src/chain/mission-control.ts renderer + scripts/mission-control.ts CLI; coordinator and shepherd rebuild it from scratch) - R15/T15/TR15. Slices B+C: deterministic gate triage (src/chain/triage.ts; spec gate auto-advances unless flagged, tweak fast-path with size escalation; ADR-0004) - R16/T16/TR16/TR17. Total 48."
 }

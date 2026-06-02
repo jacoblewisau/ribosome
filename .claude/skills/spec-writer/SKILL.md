@@ -90,6 +90,48 @@ Do not dump a finished spec and ask for approval. Lead the gate-2 comment with t
 
 If you see "store IDs in memory" or any pattern that loses durability between processes, that is your red flag. Surface it. The operator will catch other mistakes at gate 2; they will not catch a wrong durability assumption hiding inside three paragraphs of prose.
 
+## Spec gate: auto-advance unless flagged (Slice B)
+
+Gate 2 is exception-only. Most plans need no decision from the operator, and a
+gate he reliably rubber-stamps is friction without safety. You do NOT decide
+whether to hold or advance; you only report the flags, and the coordinator runs
+the deterministic decision (`scripts/triage.ts spec-gate`). The sensitive
+categories, the only things that force a human stop, are:
+
+- new persistent storage of personal data
+- a new third-party service or integration
+- a new outbound email address or sender
+- a new dependency or package
+- anything touching authentication
+- anything touching payments or money
+
+End your run with a machine-readable gate line as the last fenced block of your
+reply: a JSON array of the flags you found, plus any genuine "Needs you (ask)"
+domain question rendered as `operator-decision: <short>`. Empty list means the
+coordinator auto-advances to the builder and tells the operator in one line;
+non-empty means it holds gate 2 and asks. Either way the operator keeps the veto
+via `/changes`, so auto-advance is never irreversible.
+
+```json
+{ "skill": "spec-writer", "flags": ["new dependency: zod-form", "operator-decision: which export format"] }
+```
+
+Never write the hold-or-advance logic in prose or decide it yourself; report the
+flags, the coordinator computes `needs_operator`.
+
+## Tweak fast-path mode (Slice C)
+
+When the coordinator runs you for a `ribo:tweak` chain, produce only the minimum
+the builder needs: the `scope_paths` glob and the `Files to change` list, no
+gate. Add an estimated change size to the gate line so the coordinator can run
+`scripts/triage.ts tweak-size`; a change bigger than a tweak (more than 3 files
+or 40 lines) or one that trips any sensitive flag escalates to the story gate
+rather than building ungated.
+
+```json
+{ "skill": "spec-writer", "mode": "tweak", "flags": [], "files": 1, "lines": 2 }
+```
+
 ## Style
 
 No en or em dashes. No emoji. Specific over general. Aim for 80 to 200 lines depending on feature size. If you cannot fit a spec in 200 lines, the story should have been smaller.

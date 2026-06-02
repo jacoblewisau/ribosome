@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Ribosome automation - what it would look like</title>
+<style>
+  :root{
+    --bg:#0d1117; --panel:#161b22; --panel2:#1c2230; --border:#30363d; --fg:#e6edf3;
+    --muted:#9198a1; --accent:#7c8cff; --green:#238636; --green-h:#2ea043;
+    --blue:#4493f8; --purple:#bc8cff; --amber:#e3b341; --pill:#21262d;
+    --red:#f85149; --radius:10px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+    font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+  a{color:var(--blue);text-decoration:none} a:hover{text-decoration:underline}
+  code,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  code{background:#ffffff14;border:1px solid var(--border);border-radius:5px;padding:1px 6px;font-size:.86em}
+  .wrap{max-width:960px;margin:0 auto;padding:34px 22px 130px}
+  h1{font-size:28px;margin:0 0 6px;letter-spacing:-.3px}
+  .lead{color:var(--muted);font-size:16px;margin:0 0 22px;max-width:680px}
+  h2{font-size:20px;margin:40px 0 4px}
+  .sub{color:var(--muted);margin:0 0 14px;max-width:720px}
+  .muted{color:var(--muted)}
+
+  /* sticky mode switch */
+  .switchbar{position:sticky;top:0;z-index:20;background:linear-gradient(var(--bg),var(--bg) 70%,#0d1117cc);
+    padding:14px 0 12px;margin:0 0 6px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .seg{display:inline-flex;background:var(--panel);border:1px solid var(--border);border-radius:999px;padding:4px}
+  .seg button{border:0;background:none;color:var(--muted);font:inherit;font-weight:600;padding:8px 18px;
+    border-radius:999px;cursor:pointer}
+  .seg button.on{background:var(--accent);color:#0d1117}
+  .switchbar .hint{color:var(--muted);font-size:13px}
+
+  /* faux github chrome */
+  .gh{border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--panel);margin:14px 0}
+  .gh .bar{display:flex;align-items:center;gap:8px;background:#010409;border-bottom:1px solid var(--border);
+    padding:9px 14px;font-size:13px;color:var(--muted)}
+  .dot{width:11px;height:11px;border-radius:50%;display:inline-block}
+  .dot.r{background:#ff5f57}.dot.y{background:#febc2e}.dot.g{background:#28c840}
+  .gh .repo{margin-left:8px;color:var(--fg);font-weight:600}
+  .tabs{display:flex;gap:2px;background:#010409;border-bottom:1px solid var(--border);padding:0 8px}
+  .tabs span{padding:10px 14px;font-size:13px;color:var(--muted);border-bottom:2px solid transparent}
+  .tabs span.act{color:var(--fg);border-bottom-color:#fb8500;font-weight:600}
+  .tabs .count{background:var(--pill);border:1px solid var(--border);border-radius:20px;padding:0 7px;
+    font-size:11px;margin-left:6px}
+  .body{padding:18px}
+
+  /* issue header */
+  .ititle{font-size:20px;font-weight:600;margin:0 0 6px}
+  .ititle .num{color:var(--muted);font-weight:400}
+  .meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px;font-size:13px;color:var(--muted)}
+  .open{background:#1a7f37;color:#fff;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:600}
+  .pinned{background:#1f6feb22;color:#79c0ff;border:1px solid #1f6feb55;border-radius:999px;padding:3px 9px;font-size:12px}
+
+  /* labels */
+  .lbl{display:inline-block;border-radius:999px;padding:1px 9px;font-size:12px;border:1px solid;margin:0 2px 2px 0}
+  .lbl.inflight{color:#7ee787;border-color:#2ea04366;background:#2ea04314}
+  .lbl.feature{color:#79c0ff;border-color:#1f6feb55;background:#1f6feb14}
+  .lbl.bug{color:#ff9b95;border-color:#da363355;background:#da363314}
+  .lbl.tweak{color:#cdd9e5;border-color:#444c56;background:#ffffff08}
+  .lbl.auto{color:#d2a8ff;border-color:#8957e555;background:#8957e514}
+
+  /* mission control table */
+  table{border-collapse:collapse;width:100%;font-size:14px;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+  th,td{text-align:left;padding:11px 13px;border-bottom:1px solid var(--border)}
+  th{background:#010409;color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.4px}
+  tr:last-child td{border-bottom:0}
+  td.needs .yes{color:#ffd33d;font-weight:700}
+  td.needs .no{color:var(--muted)}
+  .stage-build{color:#7ee787}
+  .row-need{background:#e3b3410a}
+  .updated{color:var(--muted);font-size:12px;margin-top:10px}
+
+  /* inbox board */
+  .ibsec{margin:14px 0}
+  .ibh{font-size:12px;text-transform:uppercase;letter-spacing:.5px;font-weight:700;color:var(--muted);
+    padding:6px 2px;display:flex;align-items:center;gap:8px}
+  .ibh.needs{color:#ffd33d}
+  .ibh .cnt{background:#ffd33d1f;color:#ffd33d;border:1px solid #ffd33d55;border-radius:999px;
+    padding:0 8px;font-size:12px;font-weight:700}
+  .ibrow{display:flex;align-items:center;gap:12px;padding:11px 13px;border:1px solid var(--border);
+    border-radius:9px;margin:6px 0;text-decoration:none;color:var(--fg)}
+  a.ibrow.need{border-left:3px solid #ffd33d;background:#e3b3410a}
+  a.ibrow.need:hover{background:#e3b34117;border-color:#6e7681;text-decoration:none}
+  .ibnum{flex:0 0 22px;height:22px;border-radius:50%;background:#ffd33d22;color:#ffd33d;font-weight:700;
+    display:grid;place-items:center;font-size:12px}
+  .ibtitle{font-weight:600;flex:0 0 auto;min-width:160px}
+  .ibact{color:#c9d1d9;font-size:13px;flex:1}
+  .ibage{color:var(--muted);font-size:12px;flex:0 0 auto}
+  .ibgo{color:var(--blue);font-size:13px;font-weight:600;flex:0 0 auto}
+  .ibrow.flat{color:var(--muted)}
+  .ibrow.flat .ibtitle{color:#adbac7}
+  .ibmut{color:var(--muted);font-size:13px;flex:1}
+
+  /* comment box (github style) */
+  .cmt{border:1px solid var(--border);border-radius:10px;overflow:hidden;margin:12px 0;background:var(--panel)}
+  .cmt .head{display:flex;align-items:center;gap:10px;background:var(--panel2);border-bottom:1px solid var(--border);
+    padding:9px 14px;font-size:13px}
+  .av{width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,#7c8cff,#bc8cff);flex:0 0 24px}
+  .av.you{background:linear-gradient(135deg,#2ea043,#3fb950)}
+  .who{font-weight:600}.botpill{background:var(--pill);border:1px solid var(--border);border-radius:5px;
+    padding:0 6px;font-size:11px;color:var(--muted)}
+  .cmt .c{padding:14px 16px}
+  .cmt .c h4{margin:0 0 8px;font-size:15px}
+  .cmt .c p{margin:7px 0}
+  .brief{font-size:13px;color:var(--muted);border-left:3px solid var(--border);padding:2px 0 2px 12px;margin:10px 0}
+
+  /* callouts */
+  .ask{background:#e3b3410f;border:1px solid #e3b34144;border-radius:8px;padding:12px 14px;color:#f2d68a}
+  .auto{background:#2ea0430f;border:1px solid #2ea04344;border-radius:8px;padding:12px 14px;color:#9ff0bf}
+  .why{font-size:13px;color:var(--muted);margin:8px 2px 0;display:flex;gap:8px}
+  .why b{color:#7ee787;font-weight:600;flex:0 0 auto}
+
+  /* buttons */
+  .btn{border:1px solid var(--border);background:var(--panel2);color:var(--fg);font:inherit;font-weight:600;
+    padding:7px 14px;border-radius:7px;cursor:pointer}
+  .btn:hover{border-color:#6e7681}
+  .btn.green{background:var(--green);border-color:#2ea04388;color:#fff}
+  .btn.green:hover{background:var(--green-h)}
+  .btn.small{padding:5px 11px;font-size:13px}
+  .cmd{font-family:ui-monospace,monospace;background:#0d1117;border:1px solid var(--border);border-radius:5px;padding:1px 7px;color:#79c0ff}
+
+  /* diff */
+  .diff{font-family:ui-monospace,monospace;font-size:13px;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin:10px 0}
+  .diff .fn{background:#010409;border-bottom:1px solid var(--border);padding:7px 12px;color:var(--muted)}
+  .diff .ln{padding:3px 12px;white-space:pre}
+  .diff .del{background:#da36331f;color:#ffb4ae}
+  .diff .add{background:#2ea0431f;color:#9ff0bf}
+  .checks{display:flex;gap:14px;align-items:center;margin:12px 0;font-size:13px;color:var(--muted)}
+  .ok{display:inline-flex;align-items:center;gap:6px}
+  .ok::before{content:"";width:9px;height:9px;border-radius:50%;background:#2ea043;display:inline-block}
+
+  /* scattered (today) mission control */
+  .scatter{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+  @media(max-width:760px){.scatter{grid-template-columns:1fr}}
+  .drawer{border:1px solid var(--border);border-radius:9px;background:var(--panel)}
+  .drawer .dh{background:#010409;border-bottom:1px solid var(--border);padding:8px 12px;font-size:13px;font-weight:600}
+  .drawer .di{padding:10px 12px;font-size:13px;color:var(--muted);border-bottom:1px solid var(--border)}
+  .drawer .di:last-child{border-bottom:0}
+  .invisible{font-family:ui-monospace,monospace;font-size:12px;color:#484f58;background:#010409;
+    border:1px dashed #30363d;border-radius:6px;padding:8px 10px;margin-top:8px}
+
+  /* show/hide by mode */
+  .only-today,.only-after{display:none}
+  body.mode-today .only-today{display:block}
+  body.mode-after .only-after{display:block}
+  .seg-inline{display:inline-flex;gap:4px;margin:6px 0 12px}
+  .seg-inline button{border:1px solid var(--border);background:var(--panel);color:var(--muted);font:inherit;
+    font-size:13px;font-weight:600;padding:6px 13px;border-radius:7px;cursor:pointer}
+  .seg-inline button.on{background:#1f6feb22;color:#79c0ff;border-color:#1f6feb66}
+  .plan-boring,.plan-sensitive{display:none}
+  .plans.show-boring .plan-boring{display:block}
+  .plans.show-sensitive .plan-sensitive{display:block}
+  .legend{font-size:13px}
+  .legend .k{display:inline-block;width:64px;color:var(--muted)}
+</style>
+</head>
+<body class="mode-after">
+<div class="wrap">
+
+  <h1>What the automation looks like</h1>
+  <p class="lead">A throwaway mockup, not the real app. Three things change. Flip the switch
+  to compare what you see today with what you would see after the build. The screens below
+  are clickable.</p>
+
+  <div class="switchbar">
+    <div class="seg" id="seg">
+      <button data-mode="today" onclick="setMode('today')">Today</button>
+      <button data-mode="after" class="on" onclick="setMode('after')">After the build</button>
+    </div>
+    <span class="hint">flip this to compare</span>
+  </div>
+
+  <!-- ============ SCREEN 1: MISSION CONTROL ============ -->
+  <h2>1. One board on the wall</h2>
+  <p class="sub">Glance at one place to know what every job is doing and which ones want you.</p>
+
+  <div class="only-after">
+    <div class="gh">
+      <div class="bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+        <span class="repo">jacoblewisau / ribosome</span></div>
+      <div class="body">
+        <div class="meta"><span class="open">Open</span><span class="pinned">Pinned</span>
+          <span class="lbl inflight">ribo:in-flight</span></div>
+        <div class="ititle">Ribosome: 3 things need you <span class="num">#50</span></div>
+
+        <div class="ibsec">
+          <div class="ibh needs">Needs you <span class="cnt">3</span></div>
+          <a class="ibrow need" href="#"><span class="ibnum">1</span>
+            <span class="ibtitle">Dark mode toggle</span><span class="ibact">approve the plan</span>
+            <span class="ibage">waiting 2 days</span><span class="ibgo">Open #41 -&gt;</span></a>
+          <a class="ibrow need" href="#"><span class="ibnum">2</span>
+            <span class="ibtitle">Fix login redirect</span><span class="ibact">ready to merge</span>
+            <span class="ibage">waiting 1 day</span><span class="ibgo">Open #44 -&gt;</span></a>
+          <a class="ibrow need" href="#"><span class="ibnum">3</span>
+            <span class="ibtitle">Weekly report email</span><span class="ibact">approve the breakdown</span>
+            <span class="ibage">waiting 4 hours</span><span class="ibgo">Open #46 -&gt;</span></a>
+        </div>
+
+        <div class="ibsec">
+          <div class="ibh">Working, nothing needed</div>
+          <div class="ibrow flat"><span class="ibtitle">Export to CSV</span><span class="ibmut">building</span></div>
+          <div class="ibrow flat"><span class="ibtitle">Tooltip wording</span><span class="ibmut">building (plan needed no decisions)</span></div>
+        </div>
+
+        <div class="ibsec">
+          <div class="ibh">Done this week</div>
+          <div class="ibrow flat"><span class="ibtitle">Add dark logo</span><span class="ibmut">merged yesterday</span></div>
+        </div>
+
+        <div class="updated">Last updated 14:03, refreshes on every step</div>
+      </div>
+    </div>
+    <p class="why"><b>Why better:</b> <span>the count is in the title, so the tab alone says "3 things
+    need you". The sections sort it for you, and you act on the issue itself. No buttons, no new moving parts.</span></p>
+  </div>
+
+  <div class="only-today">
+    <p class="sub muted">There is no board. The truth is split across three tabs, and you assemble it in your head.</p>
+    <div class="scatter">
+      <div class="drawer"><div class="dh">Issues <span class="muted">(5 open)</span></div>
+        <div class="di">#41 Dark mode toggle</div><div class="di">#44 Fix login redirect</div>
+        <div class="di">#46 Weekly report email</div><div class="di">#39 Export to CSV</div>
+        <div class="di">#47 Tooltip wording</div></div>
+      <div class="drawer"><div class="dh">Pull requests <span class="muted">(2)</span></div>
+        <div class="di">Draft: Export to CSV</div><div class="di">Draft: Fix login redirect</div>
+        <div class="di muted">which issue is which?</div></div>
+      <div class="drawer"><div class="dh">Actions <span class="muted">(running)</span></div>
+        <div class="di">Ribosome chain step - running</div><div class="di">checks - passing</div>
+        <div class="di muted">is it stuck or working?</div></div>
+    </div>
+    <p class="sub muted" style="margin-top:12px">And the real status of each job is hidden inside an
+    invisible note on the issue that you cannot even read:</p>
+    <div class="invisible">&lt;!-- ribosome:state v1 { "current_step": "spec-writer",
+    "gate_state": { "story": "approved", "spec": "pending" } } --&gt;</div>
+    <p class="why"><b>The cost:</b> <span>to answer "what needs me?" you open every drawer, match PRs to
+    issues by hand, and guess whether Actions is working or stuck.</span></p>
+  </div>
+
+  <!-- ============ SCREEN 2: THE PERMISSION MOMENT ============ -->
+  <h2>2. Fewer "is this okay?" pop-ups</h2>
+  <p class="sub">The bot stops asking permission for boring plans, and still stops for the real ones.</p>
+
+  <div class="only-after">
+    <div class="seg-inline plans-toggle" id="plansToggle">
+      <button class="on" onclick="setPlan('boring')">A boring plan</button>
+      <button onclick="setPlan('sensitive')">A plan that touches something real</button>
+    </div>
+    <div class="plans show-boring" id="plans">
+      <div class="plan-boring">
+        <div class="cmt">
+          <div class="head"><span class="av"></span><span class="who">ribosome-bot</span>
+            <span class="botpill">bot</span><span class="muted">commented just now</span></div>
+          <div class="c">
+            <div class="auto">Plan is ready and needed no decisions from you, so I am building it now.
+            Want to change anything? Reply <span class="cmd">/changes</span> and I will pull it back.</div>
+          </div>
+        </div>
+        <p class="why"><b>Why better:</b> <span>nothing for you to do. You do not read a brief, you do not
+        type a password. You can close the tab.</span></p>
+      </div>
+      <div class="plan-sensitive">
+        <div class="cmt">
+          <div class="head"><span class="av"></span><span class="who">ribosome-bot</span>
+            <span class="botpill">bot</span><span class="muted">commented just now</span></div>
+          <div class="c">
+            <div class="ask">I need your OK on one thing before building:
+              <p style="margin:8px 0 0;color:#fff">This feature sends email from a <b>new address</b>
+              (notifications@yourapp.com).</p>
+            </div>
+            <p style="margin-top:12px" id="appr">
+              <button class="btn green small" onclick="approve(this)">Approve</button>
+              <button class="btn small" onclick="alert('You would type: /changes followed by your note.')">Request changes</button>
+              <span class="muted" style="margin-left:8px;font-size:13px">or reply <span class="cmd">/approve</span></span>
+            </p>
+          </div>
+        </div>
+        <p class="why"><b>Why still safe:</b> <span>email, money, and private data always stop the bot.
+        It boils the question down to the one thing that needs a human.</span></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="only-today">
+    <div class="cmt">
+      <div class="head"><span class="av"></span><span class="who">ribosome-bot</span>
+        <span class="botpill">bot</span><span class="muted">commented just now</span></div>
+      <div class="c">
+        <h4>Spec for review (gate 2)</h4>
+        <div class="brief">Data model: adds a <code>theme</code> field to user settings.<br>
+        Files: src/settings/Theme.tsx, src/settings/store.ts, src/settings/Theme.verify.ts<br>
+        Data flow: toggle writes to local store, persists to the settings API on change.<br>
+        Tests: ThemeToggle.spec.ts asserts the choice survives a reload. Risks: none flagged.</div>
+        <div class="ask">Reply <span class="cmd">/approve</span> to advance, or
+        <span class="cmd">/changes &lt;note&gt;</span> to revise.</div>
+      </div>
+    </div>
+    <p class="why"><b>The cost:</b> <span>this same wall of text appears for every plan, even when there is
+    nothing to decide. So you skim it and type the password out of habit.</span></p>
+  </div>
+
+  <!-- ============ SCREEN 3: THE TINY TWEAK ============ -->
+  <h2>3. Tiny jobs show you the result, not a meeting</h2>
+  <p class="sub">You asked: change the heading from "Sign in" to "Log in".</p>
+
+  <div class="only-after">
+    <div class="gh" id="prcard">
+      <div class="bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+        <span class="repo">jacoblewisau / ribosome</span></div>
+      <div class="body">
+        <div class="meta"><span class="open" id="prstate">Draft</span>
+          <span class="lbl auto">ribo:auto-pr</span><span class="lbl tweak">ribo:tweak</span></div>
+        <div class="ititle">Tweak: heading "Sign in" to "Log in" <span class="num">#48</span></div>
+        <div class="meta mono"><span class="muted">ribosome/0048 into main</span></div>
+        <div class="diff">
+          <div class="fn">src/components/Header.tsx</div>
+          <div class="ln del">-  &lt;h1&gt;Sign in&lt;/h1&gt;</div>
+          <div class="ln add">+  &lt;h1&gt;Log in&lt;/h1&gt;</div>
+        </div>
+        <div class="checks"><span class="ok">typecheck</span><span class="ok">test</span><span class="ok">verify</span></div>
+        <div id="mergebox">
+          <button class="btn green" onclick="merge()">Merge pull request</button>
+          <span class="muted" style="margin-left:10px;font-size:13px">you look at the change, then click. done.</span>
+        </div>
+      </div>
+    </div>
+    <p class="why"><b>Why better:</b> <span>no story, no plan, no passwords. You see the literal one-line
+    change and merge it. If the "tiny" job were secretly big, the bot would stop and ask first.</span></p>
+  </div>
+
+  <div class="only-today">
+    <div class="cmt"><div class="head"><span class="av"></span><span class="who">ribosome-bot</span>
+      <span class="botpill">bot</span><span class="muted">step 1</span></div>
+      <div class="c"><h4>Story for review (gate 1)</h4>
+      <p class="muted" style="font-size:13px">As a user I want the heading to read "Log in" so the wording matches the rest of the app...</p>
+      <div class="ask">Reply <span class="cmd">/approve</span> to advance.</div></div></div>
+    <div class="cmt"><div class="head"><span class="av"></span><span class="who">ribosome-bot</span>
+      <span class="botpill">bot</span><span class="muted">step 2 (after you approve)</span></div>
+      <div class="c"><h4>Building...</h4><p class="muted" style="font-size:13px">then a PR appears for you to merge.</p></div></div>
+    <p class="why"><b>The cost:</b> <span>a one-word change still goes through a gate and a wait before you
+    even see the result.</span></p>
+  </div>
+
+  <div style="margin-top:46px;padding-top:18px;border-top:1px solid var(--border)" class="legend muted">
+    <p><span class="k">Reminder:</span> this is a layout mockup to feel the idea. No real code is wired yet.</p>
+    <p><span class="k">Safe by:</span> the bot never touches money, email, or private data without asking;
+    you can always say <span class="cmd">/changes</span>; every step is still recorded in GitHub.</p>
+  </div>
+</div>
+
+<script>
+  function setMode(m){
+    document.body.classList.remove('mode-today','mode-after');
+    document.body.classList.add('mode-'+m);
+    document.querySelectorAll('#seg button').forEach(function(b){
+      b.classList.toggle('on', b.dataset.mode===m);
+    });
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+  function setPlan(kind){
+    var p=document.getElementById('plans');
+    p.classList.remove('show-boring','show-sensitive');
+    p.classList.add('show-'+kind);
+    document.querySelectorAll('#plansToggle button').forEach(function(b,i){
+      b.classList.toggle('on', (kind==='boring')===(i===0));
+    });
+  }
+  function approve(btn){
+    document.getElementById('appr').innerHTML =
+      '<div class="auto">Approved. Building it now.</div>';
+  }
+  function merge(){
+    document.getElementById('prstate').textContent='Merged';
+    document.getElementById('prstate').style.background='#8957e5';
+    document.getElementById('mergebox').innerHTML =
+      '<div class="auto">Merged. The change is live and the issue closed itself.</div>';
+  }
+</script>
+</body>
+</html>

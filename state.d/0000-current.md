@@ -10,7 +10,7 @@ record what a change shipped (see `state.d/README.md`).
 ## What is true right now
 
 - Local repo: `/Users/jacobl/projects/ribosome`. `origin` is `git@github.com:jacoblewisau/ribosome` (public). Do not reference the deleted `ribosome-test` remote.
-- **Eval suite: 48/48** against `evals/baseline.json`. Unit tests **58/58**. Typecheck clean.
+- **Eval suite: 55/55** against `evals/baseline.json`. Unit tests **88/88**. Typecheck clean.
 - **The repo is operational and behaviourally validated.** The auth secret and the Claude App are set; the chain has run live here. The full operator-as-non-coder pipeline (all three slices) is shipped and merged to `main`.
 
 ## Open work
@@ -20,6 +20,7 @@ record what a change shipped (see `state.d/README.md`).
 3. **Planner auto-advance is on `main`** (merged 2026-06-02). Remaining: live-verify the slice-N to slice-N+1 advance on a real Project (only slice-1 auto-start has run live), and decide whether to extend it to parallel slices (a dependency graph, deferred). See ADR-0004.
 4. **Browser-evidence goal** (`goals/browser-evidence.md`, on `main`) is fed into the chain as project Issue #34; the planner roadmap is pending at the decomposition gate.
 5. **Conflict-free STATE.md** (this change) ships the fragment mechanism. Remaining hardening is tracked in `goals/conflict-free-state.md`: a CI guard that blocks a feature PR from editing STATE.md directly (slice 2), and rebuilding STATE.md at session start (slice 3).
+6. **Native-GitHub bundle** (merged 2026-06-02): live Mission Control inbox board, spec gate auto-advances unless flagged (ADR-0005), tweak = merge-only. The deterministic logic is unit-tested and eval-gated (55/55); the remaining verification is a live chain run to confirm the coordinator wires the triage CLIs and rebuilds the board in a real Action. Slack/n8n push was declined for simplicity (read-only board). Design docs in `docs/explorations/native-github-bundle-build-def.md`.
 
 ## What not to do
 
@@ -34,7 +35,7 @@ record what a change shipped (see `state.d/README.md`).
 ## Useful pointers
 
 - `goals/`: `operator-as-non-coder.md` (the shipped pipeline), `browser-evidence.md` (project #34), `conflict-free-state.md` (this change's full plan).
-- `docs/adr/`: 0001 (adopt ADRs), 0002 (sub-issues roadmap + fallback), 0003 (allowed_bots).
+- `docs/adr/`: 0001 (adopt ADRs), 0002 (sub-issues roadmap + fallback), 0003 (allowed_bots), 0004 (planner auto-advance), 0005 (spec gate auto-advances unless flagged).
 - `docs/tutorial.html`: the interactive operator tutorial (linked from OPERATOR.md and README).
 - `npm run eval`: structural eval. `npm test`: unit tests. `npm run state:build`: regenerate STATE.md from `state.d/`.
 - Cost reference: Opus 4.8 ~$5-9 per chain run; Haiku scout ~$0.10-0.30; Sonnet scout ~$1-3.

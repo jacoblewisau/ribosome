@@ -23,6 +23,12 @@ The chain state lives in a sticky comment on the Issue. The comment is posted by
 -->
 ```
 
+`gate_state.spec` may also be `"auto-approved"` (Slice B): the spec gate
+auto-advanced because the plan flagged nothing that needed the operator. It is
+deliberately distinct from `"approved"` so `chain:show` and the Mission Control
+board show it was not an explicit human yes. The operator can still pull an
+auto-advanced build back with `/changes`.
+
 On every invocation:
 
 1. List bot comments on the Issue via the REST API (NOT `gh issue view --json`):
@@ -38,12 +44,14 @@ After acting, write a new bot comment that includes both the operator-visible co
 
 | Trigger event | Current state | Next action |
 |---|---|---|
-| Issue labeled `ribo:feature`, `ribo:bug`, or `ribo:tweak` | no state | Allocate chain id (next sequential, zero-padded, four digits). Initialise state. Invoke `researcher` subagent. Then run `story-writer` skill. Post story + state comment. |
+| Issue labeled `ribo:feature` or `ribo:bug` | no state | Allocate chain id (next sequential, zero-padded, four digits). Initialise state. Invoke `researcher` subagent. Then run `story-writer` skill. Post story + state comment. |
+| Issue labeled `ribo:tweak` | no state | Fast-path, no pre-build gate (Slice C). Allocate chain id, initialise state, invoke `researcher` (light). Run `spec-writer` in tweak mode; it emits `scope_paths`, `files_to_change`, and a gate line with `flags`, `files`, `lines`. Run `node --experimental-strip-types scripts/triage.ts tweak-size --files <n> --lines <n>` and `node --experimental-strip-types scripts/triage.ts spec-gate '<flags>'`. If tweak-size escalates OR spec-gate `needs_operator` is true: fall back to the story gate (run `story-writer`, post "This looked like a tweak but is bigger than one, here is the story to approve", set `current_step: story-writer`, `gate_state.story: pending`). Otherwise: create branch `ribosome/<id>`, invoke `builder`, run `verify-contracts`, invoke `validator`; if clean invoke `pr-shepherd`. The PR merge is the only gate. Post PR link + state. |
 | Issue labeled `ribo:project` | no state | Run the `planner` skill (the transcription layer). Initialise state with `id` set to the project Issue number, `current_step: planner`, `gate_state.roadmap: pending`. Post the roadmap proposal + state comment. Do NOT allocate a feature chain or invoke researcher / story-writer; this is decomposition, not a build. |
-| `/approve` on Issue | `current_step: story-writer`, gate_state.story: pending | Mark story approved. Run `spec-writer` skill. Post spec + state comment. |
+| `/approve` on Issue | `current_step: story-writer`, gate_state.story: pending | Mark story approved. Run `spec-writer` skill. Take the gate line it emits (fenced JSON with `flags`) and run `node --experimental-strip-types scripts/triage.ts spec-gate '<flags>'`. If `needs_operator` is true: post "Spec for review (gate 2)" leading with the flagged decisions in plain language, set `gate_state.spec: pending`, and wait. If false: set `gate_state.spec: auto-approved`, post one line ("Plan needed no decisions from you, building it now. Reply /changes to pull it back."), and proceed exactly as the spec-`/approve` row below (branch, builder, verify-contracts, validator, pr-shepherd). |
 | `/changes <note>` on Issue | `current_step: story-writer` | Run `bash .claude/hooks/record-correction.sh <id> story-writer "<note>" github-issue-comment`. Re-run `story-writer` with the note appended. Post revised story + state comment. |
 | `/approve` on Issue | `current_step: spec-writer`, gate_state.spec: pending | Mark spec approved. Create branch `ribosome/<id>`. Invoke `builder` subagent (builder writes both implementation and the acceptance test at `tests/acceptance/<id>.spec.ts`, within `scope_paths`). Run `verify-contracts` skill. Invoke `validator` subagent. If validator clean: invoke `pr-shepherd`. Post PR link + state comment. |
 | `/changes <note>` on Issue | `current_step: spec-writer` | Run `bash .claude/hooks/record-correction.sh <id> spec-writer "<note>" github-issue-comment`. Re-run `spec-writer` with the note appended. Post revised spec + state comment. |
+| `/changes <note>` on Issue | `current_step: builder` or `pr-shepherd`, `gate_state.spec: auto-approved` | The operator is vetoing an auto-advanced plan (Slice B pull-back). Stop the build. Run `bash .claude/hooks/record-correction.sh <id> spec-writer "<note>" github-issue-comment`. Set `current_step: spec-writer`, `gate_state.spec: pending`. Re-run `spec-writer` with the note and post it as a held gate 2, so the operator now reviews the plan explicitly. |
 | `/approve` on Issue | `current_step: planner`, `gate_state.roadmap: pending` | Per the `planner` skill, file the child Feature Issues as native sub-issues of this Issue. Label only the tracer-bullet first slice `ribo:feature` so exactly one chain starts; create the rest unlabelled and queued. Mark `gate_state.roadmap: approved`. Post the filed list + state comment. |
 | `/changes <note>` on Issue | `current_step: planner` | Run `bash .claude/hooks/record-correction.sh <id> planner "<note>" github-issue-comment` (id = the project Issue number). Re-run the `planner` skill with the note. Re-post the roadmap proposal + state comment. |
 | `/cancel` on Issue | any | Close the chain. Comment "Cancelled by operator at step <current_step>." Update state to `current_step: cancelled`. Delete branch if it exists. |
@@ -54,6 +62,19 @@ After acting, write a new bot comment that includes both the operator-visible co
 | Issue `closed` (`action=closed`), body has `Part of #<parent>`, `state_reason=completed` | any | Project auto-advance. The merged slice is done; start the next queued sibling. See "Auto-advance" below. |
 | Issue `closed`, body has `Part of #<parent>`, `state_reason` is `not_planned` (or empty) | any | Roadmap pause. The slice was cancelled or abandoned, not completed. Do NOT advance. Post on the parent: "Roadmap paused at slice K (#<closed> was closed without merging). To resume, add the `ribo:feature` label to the next slice yourself." See "Auto-advance" below. |
 | Issue `closed`, body has NO `Part of #<parent>` breadcrumb | any | No-op. A standalone (non-project) chain ends at merge; there is nothing to advance. Do not post. |
+
+### The spec gate is computed, not guessed (Slices B and C)
+
+The decision to hold or auto-advance the spec gate is mechanical: the
+spec-writer names the sensitive flags (judgment), and
+`node --experimental-strip-types scripts/triage.ts spec-gate '<flags>'` returns
+`needs_operator` (the decision). Do not eyeball it. Any flag holds the gate; an
+empty list auto-advances and records `gate_state.spec: "auto-approved"`. The
+sensitive categories are personal data, a new third-party service, a new email
+sender, a new dependency, authentication, and payments. The same script's
+`tweak-size` subcommand decides whether a `ribo:tweak` stays on the no-gate
+fast-path or escalates to the story gate. Both decisions are unit-tested in
+`src/chain/triage.ts`; never reimplement them in prose.
 
 ## Inputs and outputs each step
 
@@ -124,6 +145,42 @@ Every comment the bot posts must:
 - End with the state marker as an HTML comment.
 
 Do not nest, indent, or pretty-print the JSON inside the marker beyond what `JSON.stringify(state, null, 2)` produces. The coordinator reads it back via regex match on the marker; consistency matters.
+
+## Rebuild Mission Control (part of finishing every step)
+
+After you post the operator-visible comment and update the state, refresh the
+single pinned board so "what needs me right now?" is answerable in one glance.
+This is not a separate chain step; it is the last thing you do before stopping.
+
+The board is one Issue labelled `ribo:in-flight`, **rebuilt from scratch each
+time, never patched row by row**, so it is always correct and idempotent. The
+stage wording and the needs-you logic live in `src/chain/mission-control.ts`;
+you never invent stage text or hand-format the board.
+
+1. Gather chains. Open ones:
+   `gh issue list --label ribo:feature --label ribo:bug --label ribo:tweak --label ribo:project --state open --json number,title,updatedAt`.
+   For the "Done this week" section, also list recently closed:
+   `gh issue list --state closed --search "closed:>=$(date -u -v-7d '+%Y-%m-%d' 2>/dev/null || date -u -d '7 days ago' '+%Y-%m-%d')" --label ribo:feature --label ribo:bug --label ribo:tweak --json number,title`.
+2. For each open chain, read its most recent bot comment and parse the sticky
+   `<!-- ribosome:state v1 ... -->` marker (the same one you read for this
+   Issue) to get `current_step` and `gate_state`. Build a JSON array of inputs,
+   one object per chain:
+   `{ "issue": <n>, "title": "<title>", "current_step": "<step>", "gate_state": {…}, "waiting": "<human age>" }`.
+   For a recently closed/merged chain pass `"current_step": "completed"`.
+3. Render deterministically (do not format the board yourself):
+   ```
+   printf '%s' "$ROWS" \
+     | node --experimental-strip-types scripts/mission-control.ts --updated "$(date -u '+%Y-%m-%d %H:%M UTC')" \
+     > /tmp/board.json
+   ```
+4. Upsert the board Issue (exactly one per repo):
+   - find: `gh issue list --label ribo:in-flight --state open --json number --jq '.[0].number'`
+   - if found: `gh issue edit <n> --title "$(jq -r .title /tmp/board.json)" --body "$(jq -r .body /tmp/board.json)"`
+   - if not found: `gh issue create --title "$(jq -r .title /tmp/board.json)" --body "$(jq -r .body /tmp/board.json)" --label "ribo:in-flight,ribo:shepherd"`, then pin it with `gh issue pin <n>` (skip if that command errors).
+
+If the rebuild fails (any gh error), note it in one plain line in your step
+comment and continue. The board is a convenience, never a gate; a failed
+refresh must never block or revert the chain.
 
 ## Things you do not do
 

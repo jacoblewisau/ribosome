@@ -1063,6 +1063,164 @@ export const TASKS: ReadonlyArray<TaskDefinition> = [
       return pass();
     },
   },
+
+  // -------- Native-GitHub bundle (2026-06-02): Slice A, live Mission Control --------
+  {
+    id: "R16",
+    category: "routine",
+    name: "Mission Control renderer, CLI, npm script, and test are all present",
+    rationale:
+      "Native-GitHub bundle Slice A (2026-06-02). The operator's single status surface (the pinned ribo:in-flight inbox board) is rendered by src/chain/mission-control.ts, wrapped by scripts/mission-control.ts, and run via `npm run chain:board`. If the module, the CLI, the npm script, or the unit test goes missing, the board silently stops refreshing or drifts in wording.",
+    check: () => {
+      const mod = "src/chain/mission-control.ts";
+      const cli = "scripts/mission-control.ts";
+      const test = "src/chain/mission-control.test.ts";
+      for (const p of [mod, cli, test]) {
+        if (!existsSync(p)) return fail(`${p} is missing`);
+      }
+      if (!readFile(mod).includes("renderMissionControl")) {
+        return fail(`${mod} does not export renderMissionControl`);
+      }
+      if (!readFile(cli).includes("renderMissionControl")) {
+        return fail(`${cli} does not call the renderer`);
+      }
+      if (!readFile("package.json").includes('"chain:board"')) {
+        return fail("package.json does not define the chain:board script");
+      }
+      return pass();
+    },
+  },
+  {
+    id: "T19",
+    category: "tricky",
+    name: "coordinator and shepherd rebuild the board via the shared renderer, never by hand",
+    rationale:
+      "Native-GitHub bundle Slice A (2026-06-02). The board must be rebuilt from scratch (idempotent) using the one deterministic renderer, by both the coordinator (after every step) and the shepherd (weekly reconcile). If either hand-formats a table or stops calling scripts/mission-control.ts, the board drifts or goes stale and the no-leak / formatting guarantees in the renderer are bypassed.",
+    check: () => {
+      const coord = readFile(".claude/skills/coordinator/SKILL.md");
+      if (!coord.includes("scripts/mission-control.ts")) {
+        return fail("coordinator SKILL.md does not call scripts/mission-control.ts");
+      }
+      if (!coord.includes("ribo:in-flight")) {
+        return fail("coordinator SKILL.md does not target the ribo:in-flight board Issue");
+      }
+      if (!/rebuilt from scratch|never patched/i.test(coord)) {
+        return fail("coordinator SKILL.md does not state the board is rebuilt from scratch (idempotent)");
+      }
+      const shep = readFile(".claude/skills/shepherd/SKILL.md");
+      if (!shep.includes("scripts/mission-control.ts")) {
+        return fail("shepherd SKILL.md still hand-builds the summary instead of calling scripts/mission-control.ts");
+      }
+      return pass();
+    },
+  },
+  {
+    id: "TR17",
+    category: "trap",
+    name: "mission-control.ts stays a pure renderer (no I/O), so the board logic is unit-testable and single-sourced",
+    rationale:
+      "Native-GitHub bundle Slice A (2026-06-02). The stage vocabulary and the needs-you logic must live in one pure module with no file or network I/O, so it is deterministic and fully unit-tested. If a refactor pulls gh/fs/process I/O into mission-control.ts, the logic becomes untestable and the operator-facing board can drift. I/O belongs in scripts/mission-control.ts (the CLI wrapper), not the module.",
+    check: () => {
+      const mod = readFile("src/chain/mission-control.ts");
+      const forbidden = ["node:fs", "node:child_process", "readFileSync", "execSync", "process.argv"];
+      const found = forbidden.filter((f) => mod.includes(f));
+      if (found.length > 0) {
+        return fail(`src/chain/mission-control.ts contains I/O it should not: ${found.join(", ")}`);
+      }
+      return pass();
+    },
+  },
+
+  // -------- Native-GitHub bundle Slices B and C (2026-06-02): gate triage --------
+  {
+    id: "R17",
+    category: "routine",
+    name: "gate triage module, CLI, and test are present with both decisions",
+    rationale:
+      "Native-GitHub bundle Slices B and C (2026-06-02). The spec-gate hold/advance decision and the tweak-size escalation are deterministic code in src/chain/triage.ts, exposed via scripts/triage.ts and unit-tested. If the module, its exports, the CLI, or the test goes missing, the gate decisions revert to LLM guesswork and the safety posture drifts.",
+    check: () => {
+      const mod = "src/chain/triage.ts";
+      const cli = "scripts/triage.ts";
+      const test = "src/chain/triage.test.ts";
+      for (const p of [mod, cli, test]) {
+        if (!existsSync(p)) return fail(`${p} is missing`);
+      }
+      const m = readFile(mod);
+      for (const sym of ["decideSpecGate", "evaluateTweakSize", "FLAG_CATEGORIES", "TWEAK_BUDGET"]) {
+        if (!m.includes(sym)) return fail(`${mod} does not export ${sym}`);
+      }
+      const c = readFile(cli);
+      if (!c.includes("spec-gate") || !c.includes("tweak-size")) {
+        return fail("scripts/triage.ts does not expose both spec-gate and tweak-size subcommands");
+      }
+      return pass();
+    },
+  },
+  {
+    id: "T20",
+    category: "tricky",
+    name: "spec-writer reports gate flags and the coordinator computes the spec gate, never guesses it",
+    rationale:
+      "Native-GitHub bundle Slice B (2026-06-02). The spec-writer must name the sensitive-category flags and leave the hold/advance decision to scripts/triage.ts spec-gate; the coordinator must branch on needs_operator, record gate_state.spec auto-approved on advance, and keep the /changes pull-back. If the spec-writer starts deciding in prose, or the coordinator stops calling the triage CLI, the posture silently changes and the audit trail loses the auto-approved marker.",
+    check: () => {
+      const spec = readFile(".claude/skills/spec-writer/SKILL.md");
+      if (!spec.includes("scripts/triage.ts spec-gate")) {
+        return fail("spec-writer.md does not defer the spec gate to scripts/triage.ts spec-gate");
+      }
+      for (const cat of ["new dependency", "payments", "authentication", "email"]) {
+        if (!spec.toLowerCase().includes(cat)) {
+          return fail(`spec-writer.md no longer lists the sensitive category "${cat}"`);
+        }
+      }
+      const coord = readFile(".claude/skills/coordinator/SKILL.md");
+      if (!coord.includes("scripts/triage.ts spec-gate")) {
+        return fail("coordinator SKILL.md does not call scripts/triage.ts spec-gate");
+      }
+      if (!coord.includes("auto-approved")) {
+        return fail("coordinator SKILL.md does not record gate_state.spec auto-approved on auto-advance");
+      }
+      return pass();
+    },
+  },
+  {
+    id: "TR18",
+    category: "trap",
+    name: "the spec-gate auto-advance keeps the operator veto and is recorded as an ADR",
+    rationale:
+      "Native-GitHub bundle Slice B (2026-06-02). Auto-advancing the spec gate softens CLAUDE.md rule 6 and changes the safety posture, so it must keep the /changes pull-back (the veto) and be documented as a system-wide ADR. If the pull-back row is dropped, an auto-advanced build becomes irreversible by the operator; if the ADR is dropped, the posture change loses its record.",
+    check: () => {
+      const coord = readFile(".claude/skills/coordinator/SKILL.md");
+      if (!/auto-approved[\s\S]*?spec-writer|pull[- ]back/i.test(coord)) {
+        return fail("coordinator SKILL.md dropped the /changes pull-back for an auto-advanced build (operator loses the veto)");
+      }
+      const adr = "docs/adr/0005-spec-gate-auto-advances-unless-flagged.md";
+      if (!existsSync(adr)) {
+        return fail(`${adr} is missing; the spec-gate posture change must be recorded as an ADR`);
+      }
+      return pass();
+    },
+  },
+  {
+    id: "TR19",
+    category: "trap",
+    name: "the tweak fast-path keeps its escalation guardrail (a big or sensitive tweak cannot slip ungated)",
+    rationale:
+      "Native-GitHub bundle Slice C (2026-06-02). A ribo:tweak skips the story and spec gates, so the only thing preventing a mis-filed large change from building ungated is the escalation: over the tweak-size budget, or any sensitive flag, falls back to the story gate. If the coordinator's tweak row drops the tweak-size / spec-gate check or the escalate-to-story-gate fallback, the safety net is gone.",
+    check: () => {
+      const coord = readFile(".claude/skills/coordinator/SKILL.md");
+      if (!coord.includes("scripts/triage.ts tweak-size")) {
+        return fail("coordinator SKILL.md tweak fast-path does not run scripts/triage.ts tweak-size");
+      }
+      if (!/escalate/i.test(coord) || !/story[- ]gate|story-writer/i.test(coord)) {
+        return fail("coordinator SKILL.md tweak fast-path does not escalate an oversized/flagged tweak to the story gate");
+      }
+      const spec = readFile(".claude/skills/spec-writer/SKILL.md");
+      if (!spec.includes("scripts/triage.ts tweak-size")) {
+        return fail("spec-writer.md tweak mode no longer references the tweak-size budget");
+      }
+      return pass();
+    },
+  },
 ];
 
 // Lazy execSync to avoid pulling node:child_process at module load

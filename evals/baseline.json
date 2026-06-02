@@ -1,9 +1,9 @@
 {
   "version": "1",
   "schema": "ribosome.eval.baseline",
-  "recorded_at": "2026-06-02T02:55:00.000Z",
-  "pass": 48,
-  "totalTasks": 48,
+  "recorded_at": "2026-06-02T11:22:06.952Z",
+  "pass": 55,
+  "totalTasks": 55,
   "score": 1,
-  "notes": "Merge of planner auto-advance onto the conflict-free-state main. Combines the auto-advance invariants (T15 ribosome.yml close-trigger wiring, T16 coordinator slice-closed dispatch + re-trigger verify, TR15 planner breadcrumb, T17 shepherd watchdog) with the STATE.md fragment invariants (R15 mechanism, T18 generated banner + rule 15, TR16 merge=union). Total 48."
+  "notes": "55 after merging the native-GitHub bundle (PR #40) onto main's 48 (browser-evidence + planner-auto-advance + conflict-free-state). Bundle added 7 tasks: Slice A board R16/T19/TR17, Slices B+C triage R17/T20/TR18/TR19 (renumbered from R15/T15/TR15/R16/T16/TR16/TR17 to avoid collision with main's new ids). ADR for the spec-gate posture is 0005 (main took 0004 for planner-auto-advance)."
 }

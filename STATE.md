@@ -1,72 +1,37 @@
+<!-- GENERATED FILE - do not edit by hand.
+     STATE.md is assembled from state.d/ by `npm run state:build`.
+     To record a change, add a fragment state.d/<id>-<slug>.md; never edit
+     STATE.md directly. Feature PRs add a fragment and do not rebuild STATE.md,
+     so they never collide on it (the rebuild is serial). See
+     goals/conflict-free-state.md. -->
+
 # Session-handoff state
 
-**Last updated:** 2026-06-02, end of session 6.
-
-The next session begins by reading this file. Skip rebuilding context that is already validated below.
+The next session begins by reading this file. Skip rebuilding context that is
+already validated below. STATE.md is generated; edit `state.d/0000-current.md`
+for the curated sections below, and add a `state.d/<id>-<slug>.md` fragment to
+record what a change shipped (see `state.d/README.md`).
 
 ---
 
 ## What is true right now
 
-- Local repo: `/Users/jacobl/projects/ribosome`, on `main` in sync with origin. `origin` is `git@github.com:jacoblewisau/ribosome` (public). Do not reference the deleted `ribosome-test` remote.
-- **Eval suite: 48/48** against `evals/baseline.json`. Unit tests **82/82** (+ 2 verify-matrix). Typecheck clean.
+- Local repo: `/Users/jacobl/projects/ribosome`. `origin` is `git@github.com:jacoblewisau/ribosome` (public). Do not reference the deleted `ribosome-test` remote.
+- **Eval suite: 48/48** against `evals/baseline.json`. Unit tests **58/58**. Typecheck clean.
 - **The repo is operational and behaviourally validated.** The auth secret and the Claude App are set; the chain has run live here. The full operator-as-non-coder pipeline (all three slices) is shipped and merged to `main`.
-- **Session 6 work is in the working tree, not yet committed** (the native-GitHub automation bundle, below). Code + structural evals pass; the skill-prose behaviour is eval-gated but not yet live-run.
-
-## What session 5 shipped
-
-The **operator-as-non-coder** goal (`goals/operator-as-non-coder.md`): the operator is a domain expert who does not code. The chain assumed well-formed Issues and evaluable gates; both are false for him. Three slices fix that, end to end.
-
-- **Slice 1 (PR #1) - the coaching layer.** `operator-translation` skill (triage domain-vs-engineering; three buckets ask / decide / inform-only; translate-to-consequence; bounded interview; brevity guardrail; anti-rubber-stamp + default-to-autonomy). `decision-records` skill (ADR convention, three altitudes, three-criteria gate, propose-through-gate, promotion path). Seeded `CONTEXT.md`, `docs/adr/0001`-`0002`. spec-writer enriched + OPERATOR gate-2 reframed. Evals R12 / T11 / TR11 / T12.
-- **Slice 2 (PR #3) - the planner / transcription layer.** `planner` skill decomposes a `ribo:project` Issue into sequenced child Feature Issues (tracer-bullet first), files them as native sub-issues per ADR-0002, starts only the first. `project.yml` Issue Form (fourth template). Coordinator routing + ribosome.yml trigger + `ribo:project` label + OPERATOR decomposition gate. Evals R13 / T13 / TR12.
-- **Slice 3 (PR #20/#21) - gate-1 coaching.** story-writer enriched with the same protocol at gate 1: Needs-you / inform-only buckets (same labels as gate 2, the cross-gate "polish"), reframed "Open questions", anti-over-ask guardrail (gate 1 is where over-asking is most tempting). OPERATOR gate-1 reframed. Eval T14.
-- **allowed_bots fix (PR #12).** Found by the live run: claude-code-action blocks bot-initiated runs by default, so the planner's auto-start aborted. Fixed on `ribosome.yml` and all 7 scouts (name the Claude bot, not `*`). ADR-0003; evals TR13 / TR14.
-- **test-author reconciliation + validator binding (PR #20).** Removed stale `test-author` references (the role was deleted in session 4; the builder writes the acceptance test). Gave the validator teeth: it flags acceptance tests that pass without binding the criterion (Important, or Critical when the test is the only evidence). Eval R14.
-
-## What session 6 shipped (working tree, uncommitted)
-
-The **native-GitHub automation bundle** (`docs/explorations/native-github-bundle-build-def.md`):
-make the operator loop boringly effortless without new infrastructure. The
-operator chose GitHub-native, read-only, no n8n (see
-`~/.claude/.../memory/prefers-boring-native-simplicity.md`). Three slices, all
-verified programmatically (typecheck + 82 unit tests + 48-eval gate green).
-
-- **Slice A - live Mission Control.** One pinned `ribo:in-flight` Issue, rebuilt
-  from scratch on every chain step, laid out as an inbox (Needs you / Working /
-  Done this week) with the needs-you count in the title. New pure renderer
-  `src/chain/mission-control.ts` (20 unit tests) wrapped by
-  `scripts/mission-control.ts` (`npm run chain:board`); coordinator and shepherd
-  both rebuild via the one renderer (shepherd's hand-built table retired).
-  OPERATOR.md points at the board. Evals R15 / T15 / TR15.
-- **Slice B - spec gate auto-advances unless flagged.** Gate 2 is exception-only:
-  the spec-writer names sensitive-category flags, the coordinator runs the
-  deterministic `scripts/triage.ts spec-gate` (backed by `src/chain/triage.ts`,
-  10 unit tests) and either holds (any flag) or auto-advances, recording
-  `gate_state.spec: "auto-approved"` (distinct from `approved` for an honest
-  audit trail). Operator keeps the veto via a `/changes` pull-back row. OPERATOR
-  gate-2 reframed. ADR-0004. Evals R16 / T16 / TR16.
-- **Slice C - tweak = merge-only.** `ribo:tweak` skips the story and spec gates
-  (the PR merge is the only gate), with an escape hatch: over the tweak-size
-  budget (3 files / 40 lines) or any sensitive flag escalates to the story gate
-  (`scripts/triage.ts tweak-size`). OPERATOR tweak bullet + gate-3 reframed.
-  Eval TR17.
-
-Parked deliberately (in the build-def): Slack/n8n push, one-tap buttons, the
-daily standup, approve-from-email, PR-review-button gates, the Projects board.
-
-## Live test - validated end to end
-
-The first real chain runs on this repo (Projects #6 and #13, since closed) confirmed by observation: the planner decomposes well, triages and translates the privacy decision into a plain-language choice, files native sub-issues, records a decision as a gated ADR PR, and the bot-applied `ribo:feature` label auto-starts the first child chain (which now clears the actor check after the allowed_bots fix). The one bug (allowed_bots) was found live and fixed.
 
 ## Open work
 
-1. **Behavioural eval mode** (~$5-9/run, or subscription quota on OAuth). Structural eval (48/48) confirms the prompts carry the protocol; only a live run proves the agents *behave* (ask well, do not over-ask, do not slide into recommending). Session 6's bundle especially wants a live run: the auto-advance branch and the tweak fast-path change live behaviour, and only a real chain proves the coordinator wires the triage CLIs and rebuilds the board correctly. The deterministic logic is unit-tested; the agent prose is eval-gated.
-2. **Slack integration: declined for the operator surface** (session 6). The operator chose read-only GitHub-native simplicity over the Slack/n8n push channel. Still available as a future opt-in upgrade, but not the recommended path.
-3. The planner's "advance to the next slice when the previous one merges" is a future enhancement; today it starts only the first slice.
-4. **Commit session 6.** The native-GitHub bundle is in the working tree only; it has not been committed or PR'd. Branch + PR it (it touches coordinator/spec-writer/shepherd skills, OPERATOR.md, src/chain, scripts, evals, ADR-0004).
+1. **Behavioural eval mode** (~$5-9/run, or subscription quota on OAuth). Structural eval confirms the prompts carry the protocol; only a live run proves the agents *behave* (ask well, do not over-ask, do not slide into recommending). A repeatable cadence is still undefined.
+2. **Slack integration end-to-end** (carried from session 4; documented, not wired).
+3. **Planner auto-advance is on `main`** (merged 2026-06-02). Remaining: live-verify the slice-N to slice-N+1 advance on a real Project (only slice-1 auto-start has run live), and decide whether to extend it to parallel slices (a dependency graph, deferred). See ADR-0004.
+4. **Browser-evidence goal** (`goals/browser-evidence.md`, on `main`) is fed into the chain as project Issue #34; the planner roadmap is pending at the decomposition gate.
+5. **Conflict-free STATE.md** (this change) ships the fragment mechanism. Remaining hardening is tracked in `goals/conflict-free-state.md`: a CI guard that blocks a feature PR from editing STATE.md directly (slice 2), and rebuilding STATE.md at session start (slice 3).
 
 ## What not to do
 
+- Do not edit STATE.md by hand. It is generated by `npm run state:build`. Add a `state.d/<id>-<slug>.md` fragment instead; edit `state.d/0000-current.md` for the curated sections.
+- Do not rebuild and commit STATE.md inside a feature PR. The rebuild is serial (maintainer / dream pass / session start); rebuilding per-PR reintroduces the conflict the fragments removed.
 - Do not reference `ribosome-test` as a remote; it is deleted.
 - Do not rework the eval runner; adding invariants is fine, reshaping is not.
 - Do not spawn `ribosome.yml` chain runs casually to test; each costs ~$5-9 (or quota on OAuth). Iterate locally; cancel a live run once it has shown what you need.
@@ -75,13 +40,45 @@ The first real chain runs on this repo (Projects #6 and #13, since closed) confi
 
 ## Useful pointers
 
-- `goals/operator-as-non-coder.md`: the full vision, settled decisions, all three slice build definitions.
+- `goals/`: `operator-as-non-coder.md` (the shipped pipeline), `browser-evidence.md` (project #34), `conflict-free-state.md` (this change's full plan).
 - `docs/adr/`: 0001 (adopt ADRs), 0002 (sub-issues roadmap + fallback), 0003 (allowed_bots).
 - `docs/tutorial.html`: the interactive operator tutorial (linked from OPERATOR.md and README).
-- `npm run eval`: 41-task structural eval. `npm test`: 52 unit tests.
+- `npm run eval`: structural eval. `npm test`: unit tests. `npm run state:build`: regenerate STATE.md from `state.d/`.
 - Cost reference: Opus 4.8 ~$5-9 per chain run; Haiku scout ~$0.10-0.30; Sonnet scout ~$1-3.
 
 ## Memories worth re-reading at session start
 
 - `~/.claude/memory/user_role.md` - Jacob designs ambitious software but does not hand-code; surface decisions in plain language, never assume he can answer architecture questions, keep it brief (volume makes him rubber-stamp).
-- Project memory store: keep STATE.md current as part of every landed change (do not make the operator ask); primary-source verification; no em-dashes; no emoji.
+- Project memory store: record what each change shipped as a `state.d/` fragment (do not make the operator ask); primary-source verification; no em-dashes; no emoji.
+
+## Shipped log
+
+### 2026-06-02 - Conflict-free STATE.md via the fragment pattern
+
+Fixes the structural bug where every landed change rewrote `STATE.md` (rule 15), so concurrent PRs (notably several scout-generated PRs overnight) always conflicted on it. Diagnosis was grounded: closed PRs #23/#24/#25 already showed the manual conflict dance, and 5 scout Issues (#27-#31) were queued to repeat it.
+
+Researched the standard fix and challenged the obvious one: `.gitattributes merge=union` does NOT work for Ribosome because GitHub's web/API merge ignores user-defined merge drivers. The robust answer is the news-fragment pattern (Towncrier / Changesets): each change adds a uniquely named `state.d/<id>-<slug>.md`, and `STATE.md` is assembled from those fragments plus the curated head `state.d/0000-current.md`.
+
+Shipped (tracer bullet): `state.d/` with the curated head, a README, and seed log fragments; `src/state/build.ts` (pure assembler) + `scripts/state-build.ts` (`npm run state:build`, with `--check`); `STATE.md` regenerated with a generated-file banner; `.gitattributes` with `STATE.md merge=union` as local defense-in-depth; unit tests for the assembler; eval invariants R15 / T18 / TR16. Rule 15 reworded to require a fragment, not a STATE.md edit (CLAUDE.md change, left for the operator to merge). Full plan and remaining slices in `goals/conflict-free-state.md`.
+
+### 2026-06-01 - Planner auto-advance (sequential, rides the merge gate)
+
+A Project now runs to completion with the operator doing nothing but merging each PR. When a slice's PR merges, the linked Issue closes as `completed`; `ribosome.yml` triggers on `issues: closed`, and the coordinator reads the slice's `Part of #<parent> - slice K of N` breadcrumb, finds the next open sibling, and labels it `ribo:feature`. The merge gate (gate 3) doubles as the advance signal, so no fourth gate. Sequential only; a cancelled slice (`not_planned`) pauses the roadmap with a recoverable note; the last slice closes the parent. See ADR-0004.
+
+The bot-applied-label re-trigger (App/PAT token) is the one fragile link, and its failure is invisible. Guarded in three layers: (1) `setup:check` + eval TR13 assert `allowed_bots` names the bot; (2) the coordinator verifies the start in-run (`sleep` + `gh run list`) and posts either "building" or a one-click nudge; (3) the shepherd watchdog reads `pending_advance` off open roadmaps and escalates a stalled advance to the always-reliable operator-applied label.
+
+Files: `ribosome.yml`, `planner` / `coordinator` / `shepherd` skills, `setup-check.ts`, ADR-0004, OPERATOR.md. Evals T15 / T16 / T17 / TR15. Originally on branch `claude/session-planning-3NdKu` (PR #26, closed); reconciled onto the conflict-free-state main and merged 2026-06-02.
+
+Not yet live-verified: the slice-N to slice-N+1 advance has not run on a real Project; only the slice-1 auto-start has. The guard layers exist precisely because that path is once-validated.
+
+### 2026-05-30 - Session 5: operator-as-non-coder pipeline
+
+The **operator-as-non-coder** goal (`goals/operator-as-non-coder.md`): the operator is a domain expert who does not code. The chain assumed well-formed Issues and evaluable gates; both are false for him. Three slices fixed that, end to end.
+
+- **Slice 1 (PR #1) - the coaching layer.** `operator-translation` skill (triage domain-vs-engineering; three buckets ask / decide / inform-only; translate-to-consequence; bounded interview; brevity guardrail; anti-rubber-stamp + default-to-autonomy). `decision-records` skill (ADR convention, three altitudes, three-criteria gate, propose-through-gate, promotion path). Seeded `CONTEXT.md`, `docs/adr/0001`-`0002`. spec-writer enriched + OPERATOR gate-2 reframed. Evals R12 / T11 / TR11 / T12.
+- **Slice 2 (PR #3) - the planner / transcription layer.** `planner` skill decomposes a `ribo:project` Issue into sequenced child Feature Issues (tracer-bullet first), files them as native sub-issues per ADR-0002, starts only the first. `project.yml` Issue Form (fourth template). Coordinator routing + ribosome.yml trigger + `ribo:project` label + OPERATOR decomposition gate. Evals R13 / T13 / TR12.
+- **Slice 3 (PR #20/#21) - gate-1 coaching.** story-writer enriched with the same protocol at gate 1: Needs-you / inform-only buckets (same labels as gate 2, the cross-gate "polish"), reframed "Open questions", anti-over-ask guardrail. OPERATOR gate-1 reframed. Eval T14.
+- **allowed_bots fix (PR #12).** claude-code-action blocks bot-initiated runs by default, so the planner's auto-start aborted. Fixed on `ribosome.yml` and all 7 scouts (name the Claude bot, not `*`). ADR-0003; evals TR13 / TR14.
+- **test-author reconciliation + validator binding (PR #20).** Removed stale `test-author` references; gave the validator teeth: it flags acceptance tests that pass without binding the criterion. Eval R14.
+
+**Live test (Projects #6 and #13, since closed):** the planner decomposes well, triages and translates the privacy decision into a plain-language choice, files native sub-issues, records a decision as a gated ADR PR, and the bot-applied `ribo:feature` label auto-starts the first child chain (after the allowed_bots fix). The one bug (allowed_bots) was found live and fixed.

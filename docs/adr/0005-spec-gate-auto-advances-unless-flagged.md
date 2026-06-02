@@ -1,4 +1,4 @@
-# 0004. The spec gate auto-advances unless the plan flags something sensitive
+# 0005. The spec gate auto-advances unless the plan flags something sensitive
 
 - Status: accepted
 - Altitude: system-wide

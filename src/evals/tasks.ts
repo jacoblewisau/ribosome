@@ -902,6 +902,92 @@ export const TASKS: ReadonlyArray<TaskDefinition> = [
     },
   },
   {
+    id: "T15",
+    category: "tricky",
+    name: "ribosome.yml triggers project auto-advance on issue close and routes it to the coordinator",
+    rationale:
+      "Earned 2026-06-01 (planner auto-advance). When a project slice's PR merges, the linked Issue closes; that close must fire the workflow so the coordinator can start the next slice. Requires three things wired together: the `closed` type on the issues trigger, an if-branch matching a closed chain-labelled Issue, and the close action plumbed to the coordinator (action + state_reason args). If any is dropped, a roadmap stops dead after the tracer bullet with no signal.",
+    check: () => {
+      const yml = readFile(".github/workflows/ribosome.yml");
+      if (!/types:\s*\[[^\]]*\bclosed\b[^\]]*\]/.test(yml)) {
+        return fail("ribosome.yml issues trigger does not include the 'closed' type");
+      }
+      if (!/github\.event\.action == 'closed'/.test(yml)) {
+        return fail("ribosome.yml if-clause has no 'closed' action branch");
+      }
+      if (!/contains\(github\.event\.issue\.labels\.\*\.name, 'ribo:feature'\)/.test(yml)) {
+        return fail("ribosome.yml closed-branch does not gate on a chain label (ribo:feature)");
+      }
+      if (!/state_reason=\$\{\{\s*github\.event\.issue\.state_reason/.test(yml)) {
+        return fail("ribosome.yml does not pass state_reason to the coordinator (needed to tell merged from cancelled)");
+      }
+      return pass();
+    },
+  },
+  {
+    id: "T16",
+    category: "tricky",
+    name: "coordinator has the slice-closed auto-advance rows (completed advances, not_planned pauses, non-project no-ops)",
+    rationale:
+      "Earned 2026-06-01 (planner auto-advance). The coordinator owns advancing the roadmap one slice at a time. It must branch on state_reason: a completed (merged) slice starts the next queued sibling, a cancelled (not_planned) slice pauses with a recoverable note, and a closed Issue with no parent breadcrumb is a no-op. It also must verify the bot-applied-label re-trigger (the one fragile link) rather than ending blind. If these rows are stripped, auto-advance either never fires or silently stalls.",
+    check: () => {
+      const c = readFile(".claude/skills/coordinator/SKILL.md");
+      const needles = [
+        "Part of #<parent>",   // reads the planner breadcrumb
+        "state_reason",        // branches on merged vs cancelled
+        "not_planned",         // the pause branch
+        "pending_advance",     // records the watchdog handoff
+        "Roadmap complete",    // closes the parent on the last slice
+      ];
+      const missing = needles.filter((n) => !c.includes(n));
+      if (missing.length > 0) {
+        return fail(`coordinator.md missing auto-advance element(s): ${missing.join(", ")}`);
+      }
+      // The re-trigger guard: the coordinator must verify the start, not end blind.
+      if (!/gh run list/.test(c)) {
+        return fail("coordinator.md auto-advance does not verify the re-trigger (no `gh run list` check after labelling the next slice)");
+      }
+      return pass();
+    },
+  },
+  {
+    id: "TR15",
+    category: "trap",
+    name: "planner stamps the parent breadcrumb on each child and no longer defers auto-advance",
+    rationale:
+      "Earned 2026-06-01 (planner auto-advance). The coordinator finds the next slice by reading `Part of #<parent> - slice K of N` off the closed slice's body. If the planner stops stamping it, the coordinator cannot navigate the roadmap and advance dies after slice one. This trap also catches a stale reversion: the old skill said advancing was 'a future enhancement, not part of this skill'; that line must be gone now that it is wired.",
+    check: () => {
+      const p = readFile(".claude/skills/planner/SKILL.md");
+      if (!/Part of #<parent>/.test(p)) {
+        return fail("planner.md no longer stamps the 'Part of #<parent>' breadcrumb the coordinator needs to advance");
+      }
+      if (/future enhancement, not part of this skill/.test(p)) {
+        return fail("planner.md still claims auto-advance is a future enhancement; it is now wired via the coordinator");
+      }
+      return pass();
+    },
+  },
+  {
+    id: "T17",
+    category: "tricky",
+    name: "shepherd carries the auto-advance watchdog and routes recovery to an operator-applied label",
+    rationale:
+      "Earned 2026-06-01 (planner auto-advance, guard layer 3). If the coordinator's bot-applied-label re-trigger drops, the roadmap stalls silently. The shepherd is the backstop: it reads `pending_advance` off open project roadmaps and, if a queued slice has stayed unstarted past the threshold, escalates with a nudge. Critically it must NOT re-apply the label itself (same token caveat, may not re-trigger); it routes to the operator-applied label, which always triggers. If this section is dropped, a dropped re-trigger has no detector beyond the operator noticing.",
+    check: () => {
+      const s = readFile(".claude/skills/shepherd/SKILL.md");
+      if (!/pending_advance/.test(s)) {
+        return fail("shepherd.md has no auto-advance watchdog (does not read pending_advance)");
+      }
+      if (!/ribo:project/.test(s)) {
+        return fail("shepherd.md watchdog does not scan open ribo:project roadmaps");
+      }
+      if (!/operator-applied label always triggers/i.test(s)) {
+        return fail("shepherd.md watchdog does not route recovery to the always-reliable operator-applied label");
+      }
+      return pass();
+    },
+  },
+  {
     id: "T14",
     category: "tricky",
     name: "story-writer references operator-translation and carries the gate-1 Needs-you / inform-only protocol",
@@ -917,14 +1003,74 @@ export const TASKS: ReadonlyArray<TaskDefinition> = [
       return pass();
     },
   },
-
-  // -------- Slice A (2026-06-02): live Mission Control inbox board --------
   {
     id: "R15",
     category: "routine",
+    name: "STATE.md fragment mechanism is present (state.d/ head, builder module, npm script)",
+    rationale:
+      "Earned 2026-06-02 (conflict-free-state). STATE.md is generated from state.d/ fragments so concurrent PRs never collide on it. The mechanism is three pieces: the curated head state.d/0000-current.md, the pure assembler src/state/build.ts, and the npm script wiring scripts/state-build.ts. If any goes missing, either STATE.md cannot be regenerated or the fragment pattern is half-wired and changes drift back to editing STATE.md directly.",
+    check: () => {
+      if (!existsSync("state.d/0000-current.md")) {
+        return fail("state.d/0000-current.md (the curated header) is missing");
+      }
+      if (!existsSync("src/state/build.ts")) {
+        return fail("src/state/build.ts (the assembler) is missing");
+      }
+      if (!existsSync("scripts/state-build.ts")) {
+        return fail("scripts/state-build.ts (the CLI) is missing");
+      }
+      if (!readFile("package.json").includes("\"state:build\"")) {
+        return fail("package.json does not register the state:build script");
+      }
+      return pass();
+    },
+  },
+  {
+    id: "T18",
+    category: "tricky",
+    name: "STATE.md is generated (carries the banner) and rule 15 requires a fragment, not a STATE.md edit",
+    rationale:
+      "Earned 2026-06-02 (conflict-free-state). The conflict only stays fixed if STATE.md is treated as generated (so nobody hand-edits it) AND the practice in CLAUDE.md rule 15 points at the fragment, not at editing STATE.md. The generated banner is the visible signal; rule 15 is the instruction the chain follows. If rule 15 reverts to 'edit STATE.md in the same PR', every PR touches the hot file again and the conflicts return.",
+    check: () => {
+      const state = readFile("STATE.md");
+      if (!/GENERATED FILE/.test(state) || !/state\.d\//.test(state)) {
+        return fail("STATE.md is missing the generated-file banner pointing at state.d/");
+      }
+      const claude = readFile("CLAUDE.md");
+      if (!/state\.d\//.test(claude)) {
+        return fail("CLAUDE.md (rule 15) does not reference the state.d/ fragment pattern; the practice still points at editing STATE.md directly");
+      }
+      return pass();
+    },
+  },
+  {
+    id: "TR16",
+    category: "trap",
+    name: "STATE.md merge=union is set as local defense-in-depth, and the head is not the only fragment",
+    rationale:
+      "Earned 2026-06-02 (conflict-free-state). Two regressions would quietly undo the fix. First, dropping the .gitattributes merge=union line removes the local-merge safety net (it is only a net, since GitHub's UI merge ignores it, but it costs nothing to keep). Second, if state.d/ ever holds only the curated head with no log fragments, the assembled STATE.md loses its shipped history; this guards that at least the seed fragments stay.",
+    check: () => {
+      if (!existsSync(".gitattributes") || !/STATE\.md\s+merge=union/.test(readFile(".gitattributes"))) {
+        return fail(".gitattributes does not set STATE.md merge=union (local defense-in-depth)");
+      }
+      const fragments = execSyncSafe("ls -1 state.d/*.md")
+        .split("\n")
+        .map((l) => l.trim())
+        .filter((l) => l && !/0000-current\.md$/.test(l) && !/README\.md$/.test(l));
+      if (fragments.length === 0) {
+        return fail("state.d/ has no shipped-log fragments (only the header); STATE.md would lose its history");
+      }
+      return pass();
+    },
+  },
+
+  // -------- Native-GitHub bundle (2026-06-02): Slice A, live Mission Control --------
+  {
+    id: "R16",
+    category: "routine",
     name: "Mission Control renderer, CLI, npm script, and test are all present",
     rationale:
-      "Slice A (2026-06-02, native-GitHub bundle). The operator's single status surface (the pinned ribo:in-flight inbox board) is rendered by src/chain/mission-control.ts, wrapped by scripts/mission-control.ts, and run via `npm run chain:board`. If the module, the CLI, the npm script, or the unit test goes missing, the board silently stops refreshing or drifts in wording.",
+      "Native-GitHub bundle Slice A (2026-06-02). The operator's single status surface (the pinned ribo:in-flight inbox board) is rendered by src/chain/mission-control.ts, wrapped by scripts/mission-control.ts, and run via `npm run chain:board`. If the module, the CLI, the npm script, or the unit test goes missing, the board silently stops refreshing or drifts in wording.",
     check: () => {
       const mod = "src/chain/mission-control.ts";
       const cli = "scripts/mission-control.ts";
@@ -935,11 +1081,8 @@ export const TASKS: ReadonlyArray<TaskDefinition> = [
       if (!readFile(mod).includes("renderMissionControl")) {
         return fail(`${mod} does not export renderMissionControl`);
       }
-      if (!readFile(cli).includes("scripts/mission-control")) {
-        // CLI must wrap the module, not reimplement it.
-        if (!readFile(cli).includes("renderMissionControl")) {
-          return fail(`${cli} does not call the renderer`);
-        }
+      if (!readFile(cli).includes("renderMissionControl")) {
+        return fail(`${cli} does not call the renderer`);
       }
       if (!readFile("package.json").includes('"chain:board"')) {
         return fail("package.json does not define the chain:board script");
@@ -948,11 +1091,11 @@ export const TASKS: ReadonlyArray<TaskDefinition> = [
     },
   },
   {
-    id: "T15",
+    id: "T19",
     category: "tricky",
     name: "coordinator and shepherd rebuild the board via the shared renderer, never by hand",
     rationale:
-      "Slice A (2026-06-02). The board must be rebuilt from scratch (idempotent) using the one deterministic renderer, by both the coordinator (after every step) and the shepherd (weekly reconcile). If either hand-formats a table or stops calling scripts/mission-control.ts, the board drifts or goes stale and the no-leak / formatting guarantees in the renderer are bypassed.",
+      "Native-GitHub bundle Slice A (2026-06-02). The board must be rebuilt from scratch (idempotent) using the one deterministic renderer, by both the coordinator (after every step) and the shepherd (weekly reconcile). If either hand-formats a table or stops calling scripts/mission-control.ts, the board drifts or goes stale and the no-leak / formatting guarantees in the renderer are bypassed.",
     check: () => {
       const coord = readFile(".claude/skills/coordinator/SKILL.md");
       if (!coord.includes("scripts/mission-control.ts")) {
@@ -972,11 +1115,11 @@ export const TASKS: ReadonlyArray<TaskDefinition> = [
     },
   },
   {
-    id: "TR15",
+    id: "TR17",
     category: "trap",
     name: "mission-control.ts stays a pure renderer (no I/O), so the board logic is unit-testable and single-sourced",
     rationale:
-      "Slice A (2026-06-02). The stage vocabulary and the needs-you logic must live in one pure module with no file or network I/O, so it is deterministic and fully unit-tested. If a refactor pulls gh/fs/process I/O into mission-control.ts, the logic becomes untestable and the operator-facing board can drift. I/O belongs in scripts/mission-control.ts (the CLI wrapper), not the module.",
+      "Native-GitHub bundle Slice A (2026-06-02). The stage vocabulary and the needs-you logic must live in one pure module with no file or network I/O, so it is deterministic and fully unit-tested. If a refactor pulls gh/fs/process I/O into mission-control.ts, the logic becomes untestable and the operator-facing board can drift. I/O belongs in scripts/mission-control.ts (the CLI wrapper), not the module.",
     check: () => {
       const mod = readFile("src/chain/mission-control.ts");
       const forbidden = ["node:fs", "node:child_process", "readFileSync", "execSync", "process.argv"];
@@ -988,13 +1131,13 @@ export const TASKS: ReadonlyArray<TaskDefinition> = [
     },
   },
 
-  // -------- Slices B and C (2026-06-02): gate triage --------
+  // -------- Native-GitHub bundle Slices B and C (2026-06-02): gate triage --------
   {
-    id: "R16",
+    id: "R17",
     category: "routine",
     name: "gate triage module, CLI, and test are present with both decisions",
     rationale:
-      "Slices B and C (2026-06-02). The spec-gate hold/advance decision and the tweak-size escalation are deterministic code in src/chain/triage.ts, exposed via scripts/triage.ts and unit-tested. If the module, its exports, the CLI, or the test goes missing, the gate decisions revert to LLM guesswork and the safety posture drifts.",
+      "Native-GitHub bundle Slices B and C (2026-06-02). The spec-gate hold/advance decision and the tweak-size escalation are deterministic code in src/chain/triage.ts, exposed via scripts/triage.ts and unit-tested. If the module, its exports, the CLI, or the test goes missing, the gate decisions revert to LLM guesswork and the safety posture drifts.",
     check: () => {
       const mod = "src/chain/triage.ts";
       const cli = "scripts/triage.ts";
@@ -1014,11 +1157,11 @@ export const TASKS: ReadonlyArray<TaskDefinition> = [
     },
   },
   {
-    id: "T16",
+    id: "T20",
     category: "tricky",
     name: "spec-writer reports gate flags and the coordinator computes the spec gate, never guesses it",
     rationale:
-      "Slice B (2026-06-02). The spec-writer must name the sensitive-category flags and leave the hold/advance decision to scripts/triage.ts spec-gate; the coordinator must branch on needs_operator, record gate_state.spec auto-approved on advance, and keep the /changes pull-back. If the spec-writer starts deciding in prose, or the coordinator stops calling the triage CLI, the posture silently changes and the audit trail loses the auto-approved marker.",
+      "Native-GitHub bundle Slice B (2026-06-02). The spec-writer must name the sensitive-category flags and leave the hold/advance decision to scripts/triage.ts spec-gate; the coordinator must branch on needs_operator, record gate_state.spec auto-approved on advance, and keep the /changes pull-back. If the spec-writer starts deciding in prose, or the coordinator stops calling the triage CLI, the posture silently changes and the audit trail loses the auto-approved marker.",
     check: () => {
       const spec = readFile(".claude/skills/spec-writer/SKILL.md");
       if (!spec.includes("scripts/triage.ts spec-gate")) {
@@ -1040,18 +1183,17 @@ export const TASKS: ReadonlyArray<TaskDefinition> = [
     },
   },
   {
-    id: "TR16",
+    id: "TR18",
     category: "trap",
     name: "the spec-gate auto-advance keeps the operator veto and is recorded as an ADR",
     rationale:
-      "Slice B (2026-06-02). Auto-advancing the spec gate softens CLAUDE.md rule 6 and changes the safety posture, so it must keep the /changes pull-back (the veto) and be documented as a system-wide ADR. If the pull-back row is dropped, an auto-advanced build becomes irreversible by the operator; if the ADR is dropped, the posture change loses its record.",
+      "Native-GitHub bundle Slice B (2026-06-02). Auto-advancing the spec gate softens CLAUDE.md rule 6 and changes the safety posture, so it must keep the /changes pull-back (the veto) and be documented as a system-wide ADR. If the pull-back row is dropped, an auto-advanced build becomes irreversible by the operator; if the ADR is dropped, the posture change loses its record.",
     check: () => {
       const coord = readFile(".claude/skills/coordinator/SKILL.md");
-      // The pull-back row: /changes during an auto-approved build returns to the spec gate.
       if (!/auto-approved[\s\S]*?spec-writer|pull[- ]back/i.test(coord)) {
         return fail("coordinator SKILL.md dropped the /changes pull-back for an auto-advanced build (operator loses the veto)");
       }
-      const adr = "docs/adr/0004-spec-gate-auto-advances-unless-flagged.md";
+      const adr = "docs/adr/0005-spec-gate-auto-advances-unless-flagged.md";
       if (!existsSync(adr)) {
         return fail(`${adr} is missing; the spec-gate posture change must be recorded as an ADR`);
       }
@@ -1059,11 +1201,11 @@ export const TASKS: ReadonlyArray<TaskDefinition> = [
     },
   },
   {
-    id: "TR17",
+    id: "TR19",
     category: "trap",
     name: "the tweak fast-path keeps its escalation guardrail (a big or sensitive tweak cannot slip ungated)",
     rationale:
-      "Slice C (2026-06-02). A ribo:tweak skips the story and spec gates, so the only thing preventing a mis-filed large change from building ungated is the escalation: over the tweak-size budget, or any sensitive flag, falls back to the story gate. If the coordinator's tweak row drops the tweak-size / spec-gate check or the escalate-to-story-gate fallback, the safety net is gone.",
+      "Native-GitHub bundle Slice C (2026-06-02). A ribo:tweak skips the story and spec gates, so the only thing preventing a mis-filed large change from building ungated is the escalation: over the tweak-size budget, or any sensitive flag, falls back to the story gate. If the coordinator's tweak row drops the tweak-size / spec-gate check or the escalate-to-story-gate fallback, the safety net is gone.",
     check: () => {
       const coord = readFile(".claude/skills/coordinator/SKILL.md");
       if (!coord.includes("scripts/triage.ts tweak-size")) {

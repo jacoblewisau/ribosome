@@ -17,6 +17,7 @@ Two cadences:
 1. `gh pr list --draft --json number,title,createdAt,updatedAt,author,labels` — open draft PRs.
 2. `gh issue list --label ribo:feature --label ribo:bug --label ribo:tweak --state open --json number,title,labels,createdAt,updatedAt` — open chain Issues.
 3. `gh issue list --label ribo:in-flight --state open --json number,title,body` — the existing in-flight summary Issue (if any).
+4. `gh issue list --label ribo:project --state open --json number,title,body,comments` — open project roadmaps, for the auto-advance watchdog below.
 
 ## Daily mode
 
@@ -39,6 +40,21 @@ EOF
 ```
 
 Do not comment more than once per 3-day window on the same PR. Read the PR's existing comments and skip if your last shepherd comment is < 3 days old.
+
+## Daily mode: project auto-advance watchdog
+
+When one project slice merges, the coordinator labels the next slice `ribo:feature` to start it, and records `pending_advance: { issue, slice, labeled_at }` in the parent project's sticky state comment. That re-trigger relies on the App/PAT token and can silently drop. You are the backstop.
+
+For each open `ribo:project` Issue, read the most recent bot comment's state marker (same parsing convention as the coordinator skill). If it carries a `pending_advance`:
+
+- Look up the target Issue (`pending_advance.issue`). If it is now started (it has a bot state comment, or any chain label, or is closed), the advance succeeded: no action.
+- If the target is still unstarted (no bot comment, no `ribo:feature` label, still open) AND `now - pending_advance.labeled_at > 30 minutes`, the re-trigger was dropped. Post once on the parent project Issue:
+
+```
+Auto-advance watchdog: slice <slice> (#<issue>) was queued to start <DURATION> ago but its chain has not picked up. To resume, open #<issue> and add the `ribo:feature` label yourself (an operator-applied label always triggers the chain).
+```
+
+Do not re-apply the label yourself: a bot relabel hits the same token caveat and may not re-trigger, whereas an operator-applied label always does. Route to the certain path. Do not post more than once per 24h for the same `pending_advance`; check the parent's comments for a prior watchdog nudge naming the same target Issue and skip if it is < 24h old.
 
 ## Weekly mode
 

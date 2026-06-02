@@ -1,9 +1,9 @@
 {
   "version": "1",
   "schema": "ribosome.eval.baseline",
-  "recorded_at": "2026-06-02T10:30:42.652Z",
-  "pass": 48,
-  "totalTasks": 48,
+  "recorded_at": "2026-06-02T11:22:06.952Z",
+  "pass": 55,
+  "totalTasks": 55,
   "score": 1,
-  "notes": "native-GitHub bundle (2026-06-02). Slice A: live Mission Control inbox board (src/chain/mission-control.ts renderer + scripts/mission-control.ts CLI; coordinator and shepherd rebuild it from scratch) - R15/T15/TR15. Slices B+C: deterministic gate triage (src/chain/triage.ts; spec gate auto-advances unless flagged, tweak fast-path with size escalation; ADR-0004) - R16/T16/TR16/TR17. Total 48."
+  "notes": "55 after merging the native-GitHub bundle (PR #40) onto main's 48 (browser-evidence + planner-auto-advance + conflict-free-state). Bundle added 7 tasks: Slice A board R16/T19/TR17, Slices B+C triage R17/T20/TR18/TR19 (renumbered from R15/T15/TR15/R16/T16/TR16/TR17 to avoid collision with main's new ids). ADR for the spec-gate posture is 0005 (main took 0004 for planner-auto-advance)."
 }

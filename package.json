@@ -21,7 +21,8 @@
     "dream:forget": "node --experimental-strip-types scripts/dream-forget.ts",
     "setup": "node --experimental-strip-types scripts/setup-bootstrap.ts",
     "setup:check": "node --experimental-strip-types scripts/setup-check.ts",
-    "eval": "node --experimental-strip-types scripts/eval.ts"
+    "eval": "node --experimental-strip-types scripts/eval.ts",
+    "state:build": "node --experimental-strip-types scripts/state-build.ts"
   },
   "dependencies": {
     "react": "^19.0.0",

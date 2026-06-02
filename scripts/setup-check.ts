@@ -15,7 +15,7 @@
  */
 
 import { execSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { classifyClaudeApp, formatClaudeAppLine } from "../src/setup/claude-app.ts";
 
 type Check =
@@ -150,6 +150,26 @@ printCheck("workflow_file", workflowExists ? { ok: true, value: ".github/workflo
 
 const checksExists = existsSync(".github/workflows/checks.yml");
 printCheck("checks_workflow", checksExists ? { ok: true, value: ".github/workflows/checks.yml" } : { ok: false, reason: "missing" }, "named status checks for branch protection");
+
+// 9b. allowed_bots names the Claude bot (not the unsafe "*"). The planner's
+//     first-slice auto-start and the project auto-advance re-trigger both
+//     depend on claude-code-action accepting the bot actor; an empty or
+//     wildcard allowed_bots silently stalls them. See ADR-0003, ADR-0004.
+if (workflowExists) {
+  const yml = readFileSync(".github/workflows/ribosome.yml", "utf8");
+  const m = yml.match(/allowed_bots:\s*["']([^"'\n]*)["']/);
+  if (!m) {
+    printCheck("allowed_bots", { ok: false, reason: "allowed_bots not set in ribosome.yml" }, "set allowed_bots to name the Claude bot, e.g. \"claude[bot],claude\"");
+  } else if (m[1] === "*") {
+    printCheck("allowed_bots", { ok: false, reason: "allowed_bots is \"*\" (unsafe on public repos per the action docs)" }, "name the Claude bot explicitly instead of the bare wildcard");
+  } else if (!/claude/.test(m[1]!)) {
+    printCheck("allowed_bots", { ok: false, reason: `allowed_bots does not name the Claude bot (got "${m[1]}")` }, "include claude[bot] so bot-initiated chain starts are not blocked");
+  } else {
+    printCheck("allowed_bots", { ok: true, value: m[1]! });
+  }
+} else {
+  printCheck("allowed_bots", { ok: false, reason: "cannot check without ribosome.yml" });
+}
 
 // 10. branch protection
 if (ghRepoFull) {

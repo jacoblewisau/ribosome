@@ -35,6 +35,14 @@ ordered list of pieces, each in plain language, smallest useful one first. Reply
 first; reply `/changes` with a note to adjust the plan. Each piece then runs
 through the normal three gates on its own.
 
+The pieces build one at a time, in order. You do not have to kick off each one:
+when you merge a piece's pull request, the bot automatically starts the next
+piece. When you merge the last one, the bot closes the Project for you. If a
+piece's next-step does not start within a minute or two, the bot tells you on
+the Project exactly which Issue to open and adds the label yourself to resume.
+If you decide to stop after a piece, just do not merge the next one; close that
+piece without merging and the bot pauses the Project with a note.
+
 ## What happens after you submit
 
 Within a minute, the bot posts a comment that says it has started reading
@@ -99,6 +107,9 @@ Merge button.
 
 For a tweak, this is the only gate: there was no story or plan step, so the pull
 request is where you review and approve, by merging it.
+
+If this PR was a piece of a Project, merging it does one more thing: the bot
+starts the next piece for you. You do not have to do anything else.
 
 That is the entire flow.
 

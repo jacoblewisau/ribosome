@@ -1,9 +1,9 @@
 {
   "version": "1",
   "schema": "ribosome.eval.baseline",
-  "recorded_at": "2026-05-30T07:03:09.520Z",
-  "pass": 41,
-  "totalTasks": 41,
+  "recorded_at": "2026-06-02T02:36:41.000Z",
+  "pass": 44,
+  "totalTasks": 44,
   "score": 1,
-  "notes": "slice 3 of operator-as-non-coder (story-writer gate-1 coaching), stacked on PR #20 (R14 validator binding). Added T14: story-writer references operator-translation and carries the Needs-you / inform-only buckets (same labels as spec-writer at gate 2, for cross-gate consistency) plus the anti-over-ask guardrail. Total 41."
+  "notes": "conflict-free STATE.md via the fragment pattern. STATE.md is generated from state.d/ by npm run state:build; concurrent PRs add unique fragments instead of editing the shared file, so they never conflict. Added R15 (mechanism present: state.d head, src/state/build.ts, npm script), T18 (STATE.md carries the generated banner and rule 15 points at the fragment, not a STATE.md edit), TR16 (.gitattributes merge=union defense-in-depth and the head is not the only fragment). Total 44."
 }

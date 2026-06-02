@@ -1,9 +1,9 @@
 {
   "version": "1",
   "schema": "ribosome.eval.baseline",
-  "recorded_at": "2026-06-01T08:05:10.000Z",
-  "pass": 45,
-  "totalTasks": 45,
+  "recorded_at": "2026-06-02T02:55:00.000Z",
+  "pass": 48,
+  "totalTasks": 48,
   "score": 1,
-  "notes": "planner auto-advance (sequential, rides the merge gate). Added T15 (ribosome.yml triggers auto-advance on issue close and passes state_reason), T16 (coordinator slice-closed dispatch: completed advances, not_planned pauses, non-project no-ops, and verifies the bot-label re-trigger), TR15 (planner stamps the Part of #<parent> breadcrumb and no longer defers auto-advance), T17 (shepherd auto-advance watchdog routes recovery to an operator-applied label). Total 45."
+  "notes": "Merge of planner auto-advance onto the conflict-free-state main. Combines the auto-advance invariants (T15 ribosome.yml close-trigger wiring, T16 coordinator slice-closed dispatch + re-trigger verify, TR15 planner breadcrumb, T17 shepherd watchdog) with the STATE.md fragment invariants (R15 mechanism, T18 generated banner + rule 15, TR16 merge=union). Total 48."
 }

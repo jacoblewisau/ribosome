@@ -1003,6 +1003,66 @@ export const TASKS: ReadonlyArray<TaskDefinition> = [
       return pass();
     },
   },
+  {
+    id: "R15",
+    category: "routine",
+    name: "STATE.md fragment mechanism is present (state.d/ head, builder module, npm script)",
+    rationale:
+      "Earned 2026-06-02 (conflict-free-state). STATE.md is generated from state.d/ fragments so concurrent PRs never collide on it. The mechanism is three pieces: the curated head state.d/0000-current.md, the pure assembler src/state/build.ts, and the npm script wiring scripts/state-build.ts. If any goes missing, either STATE.md cannot be regenerated or the fragment pattern is half-wired and changes drift back to editing STATE.md directly.",
+    check: () => {
+      if (!existsSync("state.d/0000-current.md")) {
+        return fail("state.d/0000-current.md (the curated header) is missing");
+      }
+      if (!existsSync("src/state/build.ts")) {
+        return fail("src/state/build.ts (the assembler) is missing");
+      }
+      if (!existsSync("scripts/state-build.ts")) {
+        return fail("scripts/state-build.ts (the CLI) is missing");
+      }
+      if (!readFile("package.json").includes("\"state:build\"")) {
+        return fail("package.json does not register the state:build script");
+      }
+      return pass();
+    },
+  },
+  {
+    id: "T18",
+    category: "tricky",
+    name: "STATE.md is generated (carries the banner) and rule 15 requires a fragment, not a STATE.md edit",
+    rationale:
+      "Earned 2026-06-02 (conflict-free-state). The conflict only stays fixed if STATE.md is treated as generated (so nobody hand-edits it) AND the practice in CLAUDE.md rule 15 points at the fragment, not at editing STATE.md. The generated banner is the visible signal; rule 15 is the instruction the chain follows. If rule 15 reverts to 'edit STATE.md in the same PR', every PR touches the hot file again and the conflicts return.",
+    check: () => {
+      const state = readFile("STATE.md");
+      if (!/GENERATED FILE/.test(state) || !/state\.d\//.test(state)) {
+        return fail("STATE.md is missing the generated-file banner pointing at state.d/");
+      }
+      const claude = readFile("CLAUDE.md");
+      if (!/state\.d\//.test(claude)) {
+        return fail("CLAUDE.md (rule 15) does not reference the state.d/ fragment pattern; the practice still points at editing STATE.md directly");
+      }
+      return pass();
+    },
+  },
+  {
+    id: "TR16",
+    category: "trap",
+    name: "STATE.md merge=union is set as local defense-in-depth, and the head is not the only fragment",
+    rationale:
+      "Earned 2026-06-02 (conflict-free-state). Two regressions would quietly undo the fix. First, dropping the .gitattributes merge=union line removes the local-merge safety net (it is only a net, since GitHub's UI merge ignores it, but it costs nothing to keep). Second, if state.d/ ever holds only the curated head with no log fragments, the assembled STATE.md loses its shipped history; this guards that at least the seed fragments stay.",
+    check: () => {
+      if (!existsSync(".gitattributes") || !/STATE\.md\s+merge=union/.test(readFile(".gitattributes"))) {
+        return fail(".gitattributes does not set STATE.md merge=union (local defense-in-depth)");
+      }
+      const fragments = execSyncSafe("ls -1 state.d/*.md")
+        .split("\n")
+        .map((l) => l.trim())
+        .filter((l) => l && !/0000-current\.md$/.test(l) && !/README\.md$/.test(l));
+      if (fragments.length === 0) {
+        return fail("state.d/ has no shipped-log fragments (only the header); STATE.md would lose its history");
+      }
+      return pass();
+    },
+  },
 ];
 
 // Lazy execSync to avoid pulling node:child_process at module load

@@ -68,6 +68,7 @@ npm run dream:show                      # latest distilled store summary
 npm run dream:forget <id> [reason]      # remove a distilled item
 npm run dream:decay [--days N] [--floor F]  # decay or purge stale items
 npm run memory:snapshot                 # opt-in: commit memory for audit
+npm run state:build                     # regenerate STATE.md from state.d/ (--check to verify)
 ```
 
 Stack-specific commands inside the substrate (`npm run dev`, `npm run build`)
@@ -104,13 +105,20 @@ maintainability; the numbers are stable (do not renumber when adding).
    merge. Everything else runs.
 7. **Idempotent setup.** Re-running setup is safe. Agents and skills
    register without duplication.
-15. **STATE.md is updated as part of done, not on request.** The session
+15. **The session handoff is updated as part of done, not on request.** The
    handoff doc (`STATE.md`) is the next session's starting context. Any change
-   that lands updates it in the same PR: eval and test counts, what shipped,
-   open work, what-not-to-do. Do not end a unit of work by asking the operator
-   whether to refresh it. Earned 2026-05-30: STATE.md repeatedly went stale
-   (wrong eval count, "slice 3 remains" after it had shipped) because it was
-   treated as an optional epilogue and surfaced as a question.
+   that lands records what it shipped in the same PR. Do not end a unit of work
+   by asking the operator whether to refresh it. Earned 2026-05-30: STATE.md
+   repeatedly went stale (wrong eval count, "slice 3 remains" after it had
+   shipped) because it was treated as an optional epilogue and surfaced as a
+   question. Refined 2026-06-02: `STATE.md` is now GENERATED from `state.d/` by
+   `npm run state:build`. Do not edit `STATE.md` directly. To record a change,
+   add a fragment `state.d/<id>-<slug>.md` (a unique file, so concurrent PRs
+   never conflict on it); edit `state.d/0000-current.md` for the curated
+   sections (what is true now, open work, what-not-to-do). Do not rebuild and
+   commit `STATE.md` inside a feature PR; the rebuild is serial (maintainer /
+   dream pass / session start). See `goals/conflict-free-state.md`. Earned from
+   scout-generated PRs that each rewrote `STATE.md` overnight and all conflicted.
 
 ### Memory
 
@@ -242,4 +250,8 @@ CHANGELOG
             Freshness pass: phases 0-6 all shipped (none remaining), opus-4-8
             pin, 52 tests, four Issue templates. Session 5 (operator-as-non-coder
             slices 1-3 shipped; allowed_bots fix; validator binding). ~243 lines.
+2026-06-02: Refined rule 15: STATE.md is now generated from state.d/ fragments
+            (npm run state:build); record a change as a fragment, never edit
+            STATE.md directly. Fixes the shared-file merge conflicts from
+            concurrent PRs. See goals/conflict-free-state.md.
 -->

@@ -1,0 +1,6 @@
+# STATE.md is generated from state.d/ by `npm run state:build`. Feature PRs add
+# a fragment (state.d/<id>-<slug>.md) and do not edit STATE.md, so they never
+# collide on it. merge=union is defense-in-depth for LOCAL merges only: GitHub's
+# web/API merge does NOT honor user-defined merge drivers (verified 2026-06-02),
+# so the fragment pattern, not this line, is what prevents conflicts on GitHub.
+STATE.md merge=union

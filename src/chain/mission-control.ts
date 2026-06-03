@@ -103,6 +103,26 @@ export function deriveStage(s: StickyLike): StageInfo {
   return { stage: "Working", needsYou: false, done: false };
 }
 
+/**
+ * Parse the last `ribosome:state v1` marker out of a bot comment body, into the
+ * subset that decides the stage. Pure (string in, object out, no I/O), so the
+ * --upsert CLI gathering stays driftless and this is unit-testable. Returns
+ * null when no parseable marker is present.
+ */
+export function parseStateMarker(commentBody: string): StickyLike | null {
+  const re = /<!--\s*ribosome:state v1\s*([\s\S]*?)-->/g;
+  let m: RegExpExecArray | null;
+  let last: string | undefined;
+  while ((m = re.exec(commentBody)) !== null) last = m[1];
+  if (last === undefined) return null;
+  try {
+    const obj = JSON.parse(last.trim()) as { current_step?: string; gate_state?: Record<string, string> };
+    return { current_step: obj.current_step, gate_state: obj.gate_state };
+  } catch {
+    return null;
+  }
+}
+
 /** Resolve a gathered chain input into a renderable row. */
 export function toRow(input: ChainInput): ChainRow {
   const { stage, needsYou, done } = deriveStage(input);

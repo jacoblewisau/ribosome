@@ -64,33 +64,20 @@ weekly job is a **reconcile-and-prune backstop**: rebuild it from a full scan in
 case a chain step failed to refresh it, and so merged or cancelled chains roll
 off the "Done this week" section after seven days.
 
-Use the same deterministic renderer the coordinator uses; do not hand-build a
-table (that path drifted in formatting and is retired).
+Use the same deterministic command the coordinator uses; do not hand-build a
+table (that path drifted in formatting and is retired). Run exactly:
 
-1. Gather every open chain Issue and any closed in the last 7 days
-   (`ribo:feature|bug|tweak|project`), reading each one's sticky state marker
-   per the coordinator convention.
-2. Build the JSON inputs array (`{ issue, title, current_step, gate_state, waiting }`
-   per chain; `current_step: "completed"` for recently merged) and render:
-   ```
-   printf '%s' "$ROWS" \
-     | node --experimental-strip-types scripts/mission-control.ts --updated "$(date -u '+%Y-%m-%d %H:%M UTC')" \
-     > /tmp/board.json
-   ```
-3. Upsert the one `ribo:in-flight` Issue:
-   ```
-   # Find:
-   gh issue list --label ribo:in-flight --state open --json number --jq '.[0].number'
-   # If found:
-   gh issue edit <number> --title "$(jq -r .title /tmp/board.json)" --body "$(jq -r .body /tmp/board.json)"
-   # If not found:
-   gh issue create --title "$(jq -r .title /tmp/board.json)" \
-     --label "ribo:in-flight,ribo:shepherd" --body "$(jq -r .body /tmp/board.json)"
-   ```
+```
+node --experimental-strip-types scripts/mission-control.ts --upsert
+```
+
+That one command gathers every open chain (and those closed in the last 7 days)
+via `gh`, parses each sticky state marker, renders the inbox, and edits (or
+creates) the one `ribo:in-flight` Issue. No piping, no file redirection.
 
 Do not fight the coordinator's live updates with a different layout; you call
-the same `scripts/mission-control.ts`, so the board reads identically whether it
-was last refreshed by a chain step or by you.
+the same `scripts/mission-control.ts --upsert`, so the board reads identically
+whether it was last refreshed by a chain step or by you.
 
 ## Idempotence
 

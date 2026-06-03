@@ -10,10 +10,45 @@ import { describe, it, expect } from "vitest";
 import {
   boardTitle,
   deriveStage,
+  parseStateMarker,
   renderMissionControl,
   toRow,
   type ChainInput,
 } from "./mission-control";
+
+describe("parseStateMarker", () => {
+  it("extracts current_step and gate_state from a sticky marker comment", () => {
+    const body = [
+      "Spec for review (gate 2). Reply /approve.",
+      "",
+      "<!-- ribosome:state v1",
+      '{ "id": "0007", "current_step": "spec-writer", "gate_state": { "story": "approved", "spec": "pending" } }',
+      "-->",
+    ].join("\n");
+    expect(parseStateMarker(body)).toEqual({
+      current_step: "spec-writer",
+      gate_state: { story: "approved", spec: "pending" },
+    });
+  });
+
+  it("returns the LAST marker when a comment quotes more than one", () => {
+    const body =
+      "<!-- ribosome:state v1\n{ \"current_step\": \"story-writer\" }\n-->\n" +
+      "later\n" +
+      "<!-- ribosome:state v1\n{ \"current_step\": \"builder\" }\n-->";
+    expect(parseStateMarker(body)?.current_step).toBe("builder");
+  });
+
+  it("returns null when there is no marker or the JSON is broken", () => {
+    expect(parseStateMarker("just a normal comment")).toBeNull();
+    expect(parseStateMarker("<!-- ribosome:state v1\n{ not json }\n-->")).toBeNull();
+  });
+
+  it("round-trips through toRow to the correct stage", () => {
+    const mk = parseStateMarker("<!-- ribosome:state v1\n{ \"current_step\": \"builder\", \"gate_state\": { \"spec\": \"auto-approved\" } }\n-->")!;
+    expect(toRow({ issue: 1, title: "x", ...mk }).stage).toBe("Building (plan needed no decisions)");
+  });
+});
 
 describe("deriveStage", () => {
   it("flags a story-writer chain with a pending story as needs-you", () => {

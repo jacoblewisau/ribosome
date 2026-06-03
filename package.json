@@ -17,6 +17,7 @@
     "chain:show": "node --experimental-strip-types scripts/chain-show.ts",
     "chain:list": "node --experimental-strip-types scripts/chain-show.ts list",
     "chain:board": "node --experimental-strip-types scripts/mission-control.ts",
+    "capture:evidence": "node --experimental-strip-types scripts/capture-evidence.ts",
     "dream:show": "node --experimental-strip-types scripts/dream-show.ts",
     "dream:forget": "node --experimental-strip-types scripts/dream-forget.ts",
     "dream:decay": "node --experimental-strip-types scripts/dream-decay.ts",
@@ -38,6 +39,7 @@
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.4",
     "happy-dom": "^15.11.7",
+    "playwright": "^1.60.0",
     "typescript": "^5.7.2",
     "vite": "^6.4.3",
     "vitest": "^2.1.8"

@@ -1221,6 +1221,50 @@ export const TASKS: ReadonlyArray<TaskDefinition> = [
       return pass();
     },
   },
+
+  // -------- Browser-evidence slice 1 (2026-06-04): capture core --------
+  {
+    id: "R18",
+    category: "routine",
+    name: "browser-evidence capture core is present (helpers, script, additive report field)",
+    rationale:
+      "Browser-evidence slice 1 (2026-06-04, project #34). The chain captures a real screenshot of the built app and commits it to the PR so the operator can see what was built. The capability is: the pure helpers in src/verify/core/evidence.ts, the Playwright capture script scripts/capture-evidence.ts (npm run capture:evidence), playwright as a devDependency, and an OPTIONAL evidence field on the v1 VerifyReport. If any goes missing, the chain can no longer produce or carry evidence.",
+    check: () => {
+      const mod = "src/verify/core/evidence.ts";
+      const cli = "scripts/capture-evidence.ts";
+      const test = "src/verify/core/evidence.test.ts";
+      for (const p of [mod, cli, test]) {
+        if (!existsSync(p)) return fail(`${p} is missing`);
+      }
+      const m = readFile(mod);
+      for (const sym of ["evidencePaths", "makeManifest", "mergeEvidenceIntoReport", "normalizeSnapshot"]) {
+        if (!m.includes(sym)) return fail(`${mod} does not export ${sym}`);
+      }
+      if (!/evidence\?\s*:/.test(readFile("src/verify/core/types.ts"))) {
+        return fail("VerifyReport has no optional evidence field");
+      }
+      const pkg = readFile("package.json");
+      if (!pkg.includes('"capture:evidence"')) return fail("package.json lacks the capture:evidence script");
+      if (!/"playwright"\s*:/.test(pkg)) return fail("playwright is not a dependency in package.json");
+      return pass();
+    },
+  },
+  {
+    id: "TR20",
+    category: "trap",
+    name: "the evidence helper module stays pure (no Playwright / I/O), so the logic is unit-testable",
+    rationale:
+      "Browser-evidence slice 1 (2026-06-04). The deterministic paths, snapshot normalisation, and report merge must stay in a pure module with no browser or filesystem I/O, so they are fully unit-tested and never drift. Playwright, child_process, and fs belong in scripts/capture-evidence.ts (the orchestration), not in src/verify/core/evidence.ts. Mirrors TR17 for the board renderer.",
+    check: () => {
+      const mod = readFile("src/verify/core/evidence.ts");
+      const forbidden = ["playwright", "node:fs", "node:child_process", "readFileSync", "writeFileSync", "process.argv"];
+      const found = forbidden.filter((f) => mod.includes(f));
+      if (found.length > 0) {
+        return fail(`src/verify/core/evidence.ts contains I/O it should not: ${found.join(", ")}`);
+      }
+      return pass();
+    },
+  },
 ];
 
 // Lazy execSync to avoid pulling node:child_process at module load

@@ -16,7 +16,7 @@ export function App() {
         <TodoApp />
       </main>
       <footer style={{ textAlign: "center", color: "#888", fontSize: "0.85rem" }}>
-        Built with Ribosome
+        Crafted with Ribosome
       </footer>
     </>
   );

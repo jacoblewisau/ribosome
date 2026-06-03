@@ -1,0 +1,17 @@
+{
+  "version": "1",
+  "chainId": "0008",
+  "scenes": [
+    {
+      "scene": "empty",
+      "criterion": "criterion 1: the empty first-load screen of the built app is captured",
+      "screenshot": "evidence/0008/empty.png",
+      "snapshot": "evidence/0008/empty.txt",
+      "capturedAt": "2026-06-03T21:37:01.636Z",
+      "viewport": {
+        "width": 1200,
+        "height": 800
+      }
+    }
+  ]
+}

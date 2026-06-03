@@ -138,4 +138,40 @@ export interface VerifyReport {
     probes: number;
   };
   results: FixtureResult[];
+  /**
+   * Optional, additive, v1-compatible: real-browser evidence captured for this
+   * run (one or more screens of the built app, each a screenshot plus a text
+   * snapshot). Present only for features that opt into screen capture. Older
+   * readers ignore it and the `version` stays `"1"`; this is a non-breaking
+   * extension, so the validator's version pin is unaffected.
+   */
+  evidence?: EvidenceManifest;
+}
+
+/**
+ * One captured screen of the built app: a real-browser screenshot plus a text
+ * snapshot of the same screen's visible content. Both files are committed under
+ * `evidence/<chainId>/` (a path outside `.gitignore`, unlike the report itself),
+ * so they show up in the pull request's changed files for the operator to see.
+ */
+export interface EvidenceScene {
+  /** Short scene name, e.g. "empty". One per captured screen. */
+  scene: string;
+  /** The acceptance criterion this screen is meant to demonstrate. */
+  criterion: string;
+  /** Repo-relative path to the committed `.png` screenshot. */
+  screenshot: string;
+  /** Repo-relative path to the committed `.txt` visible-text snapshot. */
+  snapshot: string;
+  /** ISO timestamp of capture (stamped by the capture script, not the renderer). */
+  capturedAt: string;
+  /** The fixed viewport the screen was captured at (determinism). */
+  viewport: { width: number; height: number };
+}
+
+/** The evidence captured for one chain run. */
+export interface EvidenceManifest {
+  version: "1";
+  chainId: string;
+  scenes: EvidenceScene[];
 }

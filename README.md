@@ -4,17 +4,19 @@ Ribosome is a Claude Code workflow that turns a GitHub Issue into a merged
 pull request through a coordinated chain of specialised subagents and
 skills. It is built for a non coder operator (the GitHub UI is the whole
 interface) and a proactive posture (background scouts open Issues for
-failing tests, dependency rot, coverage gaps, and doc drift; Phase 4
-deliverable). The name is from the molecular machine that reads an
+failing tests, dependency rot, coverage gaps, and doc drift). The name is
+from the molecular machine that reads an
 instruction (mRNA) and synthesises a new working object (a protein). The
 design document is at `/Users/jacobl/research/software-factory/PLAN.md`.
 
 If you are the operator, read `OPERATOR.md` and stop there; it is the
 whole manual and it is two pages long. For a guided, clickable version, open
 `docs/tutorial.html` in a browser. If you are the maintainer, read
-`CLAUDE.md` next for the architectural rules, then the plan. Phase 3
-(GitHub interface) ships with this commit; Phase 4 (proactive scouts)
-and Phase 6 (mechanical scope hooks) are the next planned phases.
+`CLAUDE.md` next for the architectural rules, then the plan. All phases
+through 6 have shipped (foundations, the chain, the verify schema, live
+memory, the GitHub workflow, proactive scouts, the dream pass, the
+structural eval harness, and the enforcement hooks); open work is
+incremental and tracked in `STATE.md`.
 
 ## Local setup
 
@@ -57,7 +59,7 @@ does none of this.
 
 ## Cost expectation
 
-The workflow uses Claude Opus 4.7 for every step. A full six-step chain
+The workflow uses Claude Opus 4.8 for every step. A full six-step chain
 (researcher, story-writer, spec-writer, builder, validator,
 pr-shepherd) is roughly $5 to $9 in API tokens. Each `/approve` advances
 one step. The maintainer can switch to Sonnet by editing the `--model`
@@ -120,20 +122,22 @@ What the live demo showed (chain 0005, "rename heading to My Todos"):
   `ribosome/0005` with a clean validator report and the acceptance
   test for the change.
 - Total wall clock from Issue to draft PR: ~17 minutes of chain work,
-  plus operator approval time. Estimated cost: $5 to $8 on Opus 4.7.
+  plus operator approval time. Estimated cost: $5 to $8 on Opus 4.8.
 
-Deferred (with rationale in the plan):
+Deferred (the one item still outstanding):
 - Playwright screenshots on PRs. Plan §13 Q3 flagged this as
-  fallback-eligible; Phase 3 ships text-only. A follow-on phase adds
-  screenshots.
-- Proactive scouts (CI watcher, dep scanner, coverage scout, doc drift,
-  shepherd, dreamer-digest). Phase 4 deliverable. The dream skill is
-  ready; the scout that posts a weekly digest Issue is not yet wired.
-- Mid-run resumption from a partial chain step. The workflow tightly
-  scopes each invocation to one step, so a single failure leaves the
-  Issue in a recoverable state; Phase 6 will add explicit resumption
-  via the `ribosome/<id>` branch.
-- Eval harness on PRs touching `.claude/**`. Phase 5 deliverable.
+  fallback-eligible; the chain ships text-only PRs today. The
+  browser-evidence work (project Issue #34) adds per-screen screenshots;
+  until it lands, a PR carries the validator report and a plain-language
+  summary, not screenshots.
+
+The other items deferred here have since shipped: the proactive scouts (CI
+watcher, dep scanner, coverage scout, doc drift, shepherd, dreamer-digest;
+Phase 4), the structural eval harness on PRs touching `.claude/**` (Phase 5),
+and the enforcement hooks (Phase 6). Mid-run resumption via the
+`ribosome/<id>` branch remains a deliberate non-goal: each invocation is
+scoped to one gate transition, so a single failure leaves the Issue
+recoverable.
 
 What this live run uncovered as bugs (now fixed):
 1. The coordinator skill filtered bot comments using

@@ -19,6 +19,7 @@
     "chain:board": "node --experimental-strip-types scripts/mission-control.ts",
     "dream:show": "node --experimental-strip-types scripts/dream-show.ts",
     "dream:forget": "node --experimental-strip-types scripts/dream-forget.ts",
+    "dream:decay": "node --experimental-strip-types scripts/dream-decay.ts",
     "setup": "node --experimental-strip-types scripts/setup-bootstrap.ts",
     "setup:check": "node --experimental-strip-types scripts/setup-check.ts",
     "eval": "node --experimental-strip-types scripts/eval.ts",

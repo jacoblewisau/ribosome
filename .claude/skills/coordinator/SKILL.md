@@ -153,34 +153,24 @@ single pinned board so "what needs me right now?" is answerable in one glance.
 This is not a separate chain step; it is the last thing you do before stopping.
 
 The board is one Issue labelled `ribo:in-flight`, **rebuilt from scratch each
-time, never patched row by row**, so it is always correct and idempotent. The
-stage wording and the needs-you logic live in `src/chain/mission-control.ts`;
-you never invent stage text or hand-format the board.
+time, never patched row by row**, so it is always correct and idempotent. Run
+exactly one command:
 
-1. Gather chains. Open ones:
-   `gh issue list --label ribo:feature --label ribo:bug --label ribo:tweak --label ribo:project --state open --json number,title,updatedAt`.
-   For the "Done this week" section, also list recently closed:
-   `gh issue list --state closed --search "closed:>=$(date -u -v-7d '+%Y-%m-%d' 2>/dev/null || date -u -d '7 days ago' '+%Y-%m-%d')" --label ribo:feature --label ribo:bug --label ribo:tweak --json number,title`.
-2. For each open chain, read its most recent bot comment and parse the sticky
-   `<!-- ribosome:state v1 ... -->` marker (the same one you read for this
-   Issue) to get `current_step` and `gate_state`. Build a JSON array of inputs,
-   one object per chain:
-   `{ "issue": <n>, "title": "<title>", "current_step": "<step>", "gate_state": {…}, "waiting": "<human age>" }`.
-   For a recently closed/merged chain pass `"current_step": "completed"`.
-3. Render deterministically (do not format the board yourself):
-   ```
-   printf '%s' "$ROWS" \
-     | node --experimental-strip-types scripts/mission-control.ts --updated "$(date -u '+%Y-%m-%d %H:%M UTC')" \
-     > /tmp/board.json
-   ```
-4. Upsert the board Issue (exactly one per repo):
-   - find: `gh issue list --label ribo:in-flight --state open --json number --jq '.[0].number'`
-   - if found: `gh issue edit <n> --title "$(jq -r .title /tmp/board.json)" --body "$(jq -r .body /tmp/board.json)"`
-   - if not found: `gh issue create --title "$(jq -r .title /tmp/board.json)" --body "$(jq -r .body /tmp/board.json)" --label "ribo:in-flight,ribo:shepherd"`, then pin it with `gh issue pin <n>` (skip if that command errors).
+```
+node --experimental-strip-types scripts/mission-control.ts --upsert
+```
 
-If the rebuild fails (any gh error), note it in one plain line in your step
-comment and continue. The board is a convenience, never a gate; a failed
-refresh must never block or revert the chain.
+That command does everything in one process: it gathers every open chain (and
+those closed in the last 7 days) via `gh`, parses each sticky
+`<!-- ribosome:state v1 ... -->` marker, renders the inbox with the renderer in
+`src/chain/mission-control.ts`, and edits (or creates and pins) the
+`ribo:in-flight` Issue. Do NOT hand-build the board, do NOT pipe through `jq`,
+and do NOT redirect to a file: shell output redirection is blocked in the Action
+sandbox, and a multi-step recipe wastes turns. One command, no redirection.
+
+If that command exits non-zero, note it in one plain line in your step comment
+and continue. The board is a convenience, never a gate; a failed refresh must
+never block or revert the chain.
 
 ## Things you do not do
 

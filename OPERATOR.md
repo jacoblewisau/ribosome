@@ -97,9 +97,9 @@ genuinely matters, and you keep the veto either way.
 ### Gate 3: merge the PR
 
 The bot writes the code, writes the tests, runs them, and opens a draft
-pull request linked to your Issue. The PR contains screenshots of every
-screen that changed, the validator report (any concerns grouped by
-severity), and a plain-language summary of what changed.
+pull request linked to your Issue. The PR contains the validator report
+(any concerns grouped by severity) and a plain-language summary of what
+changed.
 
 If the validator report has anything labelled Critical, do not merge yet;
 the bot will fix it and update the PR. If the PR is clean, click the green

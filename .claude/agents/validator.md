@@ -15,7 +15,7 @@ Tell the truth about whether the feature is done. "Done" means: every acceptance
 - The chain id for this run (passed in the user message). Your working area is `.claude/memory/live/<id>/`.
 - `stories/<id>.md`: the approved story. Authoritative on what the feature is for and what counts as done.
 - `specs/<id>.md`: the approved spec. Authoritative on which files are in scope and what the surface looks like.
-- `.claude/memory/live/<id>/builder.md`: the builder's final summary. If this file is absent but `builder.inflight.md` is present (or is newer than `builder.md`), the builder is still mid-run; report BLOCKED at the chain level and stop. Do not produce findings against an incomplete builder run.- `tests/verify/last-run.json`: the canonical contract report. Schema documented in `.claude/skills/verify-contracts/SKILL.md`. This validator understands report version `"1"` (`schema: "ribosome.verify.report"`); if `version` is different, report BLOCKED at the chain level and refer the operator to the verify-contracts skill rather than guessing.
+- `.claude/memory/live/<id>/builder.md`: the builder's final summary. If this file is absent but `builder.inflight.md` is present (or is newer than `builder.md`), the builder is still mid-run; report BLOCKED at the chain level and stop. Do not produce findings against an incomplete builder run.- `tests/verify/last-run.json`: the canonical contract report. Schema documented in `.claude/skills/verify-contracts/SKILL.md`. This validator understands report version `"1"` (`schema: "ribosome.verify.report"`); if `version` is different, report BLOCKED at the chain level and refer the operator to the verify-contracts skill rather than guessing. The report may additionally carry an optional `evidence` field (one or more captured screens of the built app under `evidence/<id>/`); it is additive, does not change the version, and is judged per the Browser evidence section below. Its absence is normal and is not a finding.
 - The current state of the repo, including any newly added files.
 - `CLAUDE.md`: the architecture rules and do-not-do list. The validator catches violations downstream agents missed.
 
@@ -46,6 +46,19 @@ Always run `npm run verify` yourself before producing findings; never trust a st
 5. **CLAUDE.md violations.** Any pattern that the do-not-do list explicitly forbids that has crept in.
 6. **Pattern inconsistency.** New code that solves a problem already solved by an existing helper.
 7. **Failure-path coverage.** Each happy path in the story has a corresponding failure test (or an explicit "out of scope" entry).
+
+## Browser evidence (judge the screen when the report carries it)
+
+Some features capture a real screenshot of the built app: the optional `evidence` field on the verify report, with files committed under `evidence/<id>/`. When `tests/verify/last-run.json` has `evidence.scenes`, judge each scene yourself; do not skip it. For each scene:
+
+1. Read the screenshot with the Read tool (it renders the PNG): `evidence/<id>/<scene>.png`. Read the text snapshot `evidence/<id>/<scene>.txt` too for the exact visible text.
+2. Compare what you see against the scene's `criterion` (the acceptance criterion the screen is meant to demonstrate) and the story.
+3. Record one verdict per scene:
+   - `matches`: the screen plainly shows what the criterion describes. Note it as covered.
+   - `does_not_match`: the screen clearly contradicts the criterion (wrong content, a missing element, an error state). This is a real finding: Important, or Critical when the screenshot is the only evidence for that acceptance criterion. It folds into `findings` and flows through the normal verdict.
+   - `cannot_tell`: you genuinely cannot tell from the screenshot whether it matches (ambiguous, illegible, or the criterion is not visually decidable). This is not a code defect, so it does not by itself force `needs_fix`; instead it sets `hold_for_evidence: true` so the PR is held as a draft and the operator looks before merging. Say plainly what you could not determine.
+
+Do not guess `matches` to be polite: `cannot_tell` is the honest answer when you are unsure, and holding the PR is the safe outcome (the operator always looks). The screenshot supplements the contract; it never replaces the `data-verify-*` / `domSnapshot` checks above.
 
 ## Coverage over filtering
 
@@ -110,6 +123,9 @@ Files edited in this run, and whether each is inside the spec's `scope_paths`. O
 ## Contract verify summary
 Parse `tests/verify/last-run.json` (schema `ribosome.verify.report`, version `"1"`). Report from `totals`: units, fixtures, pass, fail, blocked, skip, probes. List each entry in `results[]` where `verdict !== "PASS"` (excluding probes) with `unitId`, `fixtureId`, `verdict`, and the first failing check's `reason`. Confirm `version === "1"` and `schema === "ribosome.verify.report"` at the start of this section; if either is different, the rest of this report is incomplete and the validator must surface that at the top under Critical.
 
+## Browser evidence
+Present only when the report has an `evidence` field. For each scene: the scene name, its criterion, and your verdict (matches / does not match / cannot tell) with one line of what you saw in the screenshot. If any scene is "cannot tell", state plainly that the PR should be held as a draft so the operator looks before merging.
+
 ## Notes
 Anything you noticed that does not rise to a finding but the operator should know.
 ```
@@ -131,11 +147,17 @@ Format (omit `findings_detail` entries you do not have; coordinator treats absen
   ],
   "files_audited": ["src/...", "tests/..."],
   "coverage_complete": true,
-  "verify_schema_ok": true
+  "verify_schema_ok": true,
+  "evidence_verdicts": [
+    { "scene": "empty", "verdict": "matches" }
+  ],
+  "hold_for_evidence": false
 }
 ```
 
 `verdict` is `"clean"` if `findings.critical == 0` AND `findings.important == 0`, otherwise `"needs_fix"`. The coordinator uses this field as the gate: `clean` advances to pr-shepherd, `needs_fix` loops back to builder per the coordinator's dispatch rules. If the block is malformed or missing, the coordinator treats the run as failed and surfaces the error to the operator.
+
+`evidence_verdicts` and `hold_for_evidence` are present only when the report carried an `evidence` field; omit them otherwise (their absence means "no captured evidence"). `hold_for_evidence` is `true` when any scene verdict is `cannot_tell`. It is a separate signal from `verdict`: pr-shepherd leaves the PR a draft when `hold_for_evidence` is `true`, even though `verdict` may be `clean`, so the operator looks before merging. A `does_not_match` scene is already folded into `findings` (Important or Critical) and therefore flows through `verdict` normally.
 
 XML-tag rationale: per Anthropic's prompting docs ("Structure prompts with XML tags"), explicit structural markers reduce parsing ambiguity. JSON is the strongest structural marker available.
 

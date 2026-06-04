@@ -17,6 +17,7 @@ Open a draft PR from `ribosome/<id>` against `main`. Post the validator report o
 - `.claude/memory/live/<id>/builder.md`: for the human-readable changes summary.
 - `stories/<id>.md`: for the operator-friendly description of what was asked for.
 - `tests/verify/last-run.json`: the canonical verify report; for the summary numbers.
+- `evidence/<id>/`: any captured screens committed by the chain's capture step (only when the feature opted into evidence). They appear in the PR's changed files; reference them in the Browser evidence section, and read `hold_for_evidence` from the validator's report.
 - The Issue number (passed in your invocation prompt).
 - The current branch (`ribosome/<id>`).
 
@@ -41,6 +42,10 @@ Inline copy of `.claude/memory/live/<id>/validator.md` "Status", "Critical", "Im
 
 From `tests/verify/last-run.json` totals: units, fixtures, pass, fail, blocked, probes.
 
+## Browser evidence
+
+Present only when the validator report has a "Browser evidence" section. For each captured screen, link the committed file (e.g. `evidence/<id>/<scene>.png`, which appears in this PR's changed files) and quote the validator's verdict in plain language (matches / could not tell). If the PR is held (the validator could not tell), say so here in one line. Do not embed the image inline; the committed file in the changed-files view is the evidence for this slice.
+
 ## How to review
 
 - "If everything above looks right, click the Merge button."
@@ -63,10 +68,11 @@ Execute these via `gh` and `git`:
      --label "ribo:auto-pr"
    ```
 3. Comment on the originating Issue with a link to the PR.
-4. If the validator returned clean, mark the PR ready for review:
+4. Mark the PR ready for review only if the validator returned clean AND did not set `hold_for_evidence`:
    ```
    gh pr ready
    ```
+   If the validator set `hold_for_evidence: true` (it could not tell whether a captured screen matches its criterion), LEAVE the PR a draft: do not run `gh pr ready`. A draft is the "held" state; the operator looks at the committed screenshot and marks it ready themselves. Say so in your final message and in a one-line PR comment ("Held for an evidence check: look at the committed screenshot before merging.").
 5. Update the Issue's sticky state comment to `step: "pr-opened"` (the coordinator handles the actual sticky write; you return the new state in your final message).
 
 ## What you do not do
@@ -74,7 +80,7 @@ Execute these via `gh` and `git`:
 - You do not merge the PR. The operator does that, in the GitHub UI, after reviewing.
 - You do not push directly to `main`. Never. Branch protection enforces this and so does the chain.
 - You do not change any source files. The builder did that already.
-- You do not include screenshots or visual diffs in this Phase 3 implementation. Plan §12 lists Playwright screenshots as a Phase 3 deliverable but plan §13 Q3 flagged them as fallback-eligible; current implementation defers them. If the spec called for visible UI changes and you can deploy a preview, link to it; otherwise, name the components changed in plain language.
+- You do not capture screenshots yourself; the chain's capture step commits them under `evidence/<id>/` and the validator judges them. When the validator report carries a Browser evidence section, reference the committed file(s) in the PR body's Browser evidence section (a link, not an embedded image; embedding the image inline is a later slice) and honour `hold_for_evidence` by leaving the PR a draft. When there is no evidence, name the components changed in plain language as before.
 - You do not interpret the validator report. You quote it verbatim. The operator interprets.
 
 ## Failure modes

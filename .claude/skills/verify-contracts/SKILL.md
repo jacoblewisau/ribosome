@@ -34,7 +34,23 @@ This shape is the contract between the verify-contracts skill and the `validator
     "skip": <count of verdict==SKIP>,
     "probes": <count of probe==true (regardless of verdict)>
   },
-  "results": [FixtureResult, ...]
+  "results": [FixtureResult, ...],
+  "evidence": { "version": "1", "chainId": "<id>", "scenes": [EvidenceScene, ...] }
+}
+```
+
+`evidence` is **optional and additive**: it is present only for features that capture a real screenshot of the built app, and its absence is normal. Because it is additive (no existing field changes), the report `version` stays `"1"` and the validator's version pin is unaffected. The capture step (`scripts/capture-evidence.ts`) writes the committed files under `evidence/<id>/` and merges this field into the report; the validator reads it and judges each scene.
+
+`EvidenceScene`:
+
+```json
+{
+  "scene": "short scene name, e.g. empty",
+  "criterion": "the acceptance criterion this screen demonstrates",
+  "screenshot": "evidence/<id>/<scene>.png (committed, outside .gitignore)",
+  "snapshot": "evidence/<id>/<scene>.txt (visible-text snapshot)",
+  "capturedAt": "ISO-8601",
+  "viewport": { "width": 1200, "height": 800 }
 }
 ```
 

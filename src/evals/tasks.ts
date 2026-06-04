@@ -1265,6 +1265,30 @@ export const TASKS: ReadonlyArray<TaskDefinition> = [
       return pass();
     },
   },
+  {
+    id: "T21",
+    category: "tricky",
+    name: "validator judges captured screens and pr-shepherd holds the PR when it cannot tell",
+    rationale:
+      "Browser-evidence slice 1 PR2 (2026-06-04). When the verify report carries evidence, the validator must judge each screen against its criterion (matches / does_not_match / cannot_tell) and emit hold_for_evidence; pr-shepherd must leave the PR a draft when held, rather than marking it ready. The hold is a pr-shepherd-level signal (no new top-level verdict), so the validator's clean/needs_fix and its version-1 pin stay intact. If these are stripped, a screen the bot could not verify would reach the operator as a clean, mergeable PR.",
+    check: () => {
+      const v = readFile(".claude/agents/validator.md");
+      for (const needle of ["evidence", "cannot_tell", "does_not_match", "hold_for_evidence"]) {
+        if (!v.includes(needle)) return fail(`validator.md does not mention "${needle}"`);
+      }
+      const ps = readFile(".claude/agents/pr-shepherd.md");
+      if (!ps.includes("hold_for_evidence")) {
+        return fail("pr-shepherd.md does not honour hold_for_evidence");
+      }
+      if (!/draft/i.test(ps) || !/gh pr ready/.test(ps)) {
+        return fail("pr-shepherd.md no longer gates `gh pr ready` (the hold leaves the PR a draft)");
+      }
+      if (!readFile(".claude/skills/verify-contracts/SKILL.md").includes("evidence")) {
+        return fail("verify-contracts SKILL.md does not document the optional evidence field");
+      }
+      return pass();
+    },
+  },
 ];
 
 // Lazy execSync to avoid pulling node:child_process at module load

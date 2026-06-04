@@ -115,6 +115,8 @@ Advancement rules based on the parsed JSON:
 | validator | `verdict: "clean"` | persist prose to `.claude/memory/live/<id>/validator.md`; invoke pr-shepherd; advance state to `current_step: pr-shepherd` |
 | validator | `verdict: "needs_fix"` | persist prose; loop back to builder with the validator JSON attached; advance state to `current_step: builder` (loop count incremented). Two-loop limit per the dispatch table. |
 
+When the validator's JSON also carries `hold_for_evidence: true` (it could not tell whether a captured screen matches its criterion), the `verdict: "clean"` row is unchanged: still invoke pr-shepherd and advance to `pr-shepherd`. pr-shepherd leaves the PR a draft instead of marking it ready, and the operator looks at the committed screenshot before merging. This needs no new chain verdict or dispatch row; the hold lives entirely in pr-shepherd.
+
 If the JSON block is missing or `JSON.parse` throws, the coordinator posts a "step failed" comment quoting the parse error and stops without advancing state. The operator re-triggers via label cycle.
 
 ## Auto-advance (project slices)

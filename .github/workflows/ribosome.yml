@@ -100,6 +100,19 @@ jobs:
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
 
+      - name: Cache Playwright browsers
+        # Browser-evidence capture (project #34) needs a headless Chromium. Cache
+        # it by the lockfile hash so it downloads once, then restores in seconds.
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Install Chromium for browser-evidence capture
+        # node drives the install (npx is not in the chain's tool allowlist). Fast
+        # no-op on a cache hit; --with-deps adds the OS libraries Chromium needs.
+        run: node node_modules/playwright/cli.js install --with-deps chromium
+
       - name: Install Claude Code hook path
         run: git config core.hooksPath .claude/hooks
 

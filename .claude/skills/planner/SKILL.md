@@ -57,6 +57,7 @@ You start only the tracer bullet. The remaining slices advance one at a time, au
 - You do not write code, a story, or a spec. Those are the chain's job, once per child.
 - You do not overwhelm the operator. Few slices, short lines, only the questions that matter.
 - You do not write a system-wide ADR or glossary change silently; propose it at the gate.
+- You do not decompose a "meta" project into chain Feature slices. A meta project changes Ribosome's own machinery (agents, skills, hooks, the verify schema, or `CLAUDE.md`) rather than the substrate app. The builder cannot edit `.claude/` files (they are maintainer-owned and permission-gated), so such slices block at the build step. When the operator's idea is about changing the bot itself, say so plainly at the decomposition gate and route it to the maintainer instead of filing buildable children. Earned 2026-06-04 from project #34 (browser evidence), whose slices required rewiring the validator and pr-shepherd.
 
 ## Style
 

@@ -10,7 +10,7 @@ record what a change shipped (see `state.d/README.md`).
 ## What is true right now
 
 - Local repo: `/Users/jacobl/projects/ribosome`. `origin` is `git@github.com:jacoblewisau/ribosome` (public). Do not reference the deleted `ribosome-test` remote.
-- **Eval suite: 55/55** against `evals/baseline.json`. Unit tests **88/88**. Typecheck clean.
+- **Eval suite: 60/60** against `evals/baseline.json`. Unit tests **104/104**. Typecheck clean.
 - **The repo is operational and behaviourally validated.** The auth secret and the Claude App are set; the chain has run live here. The full operator-as-non-coder pipeline (all three slices) is shipped and merged to `main`.
 
 ## Open work
@@ -18,7 +18,7 @@ record what a change shipped (see `state.d/README.md`).
 1. **Behavioural eval mode** (~$5-9/run, or subscription quota on OAuth). Structural eval confirms the prompts carry the protocol; only a live run proves the agents *behave* (ask well, do not over-ask, do not slide into recommending). A repeatable cadence is still undefined.
 2. **Slack integration end-to-end** (carried from session 4; documented, not wired).
 3. **Planner auto-advance is on `main`** (merged 2026-06-02). Remaining: live-verify the slice-N to slice-N+1 advance on a real Project (only slice-1 auto-start has run live), and decide whether to extend it to parallel slices (a dependency graph, deferred). See ADR-0004.
-4. **Browser-evidence goal** (`goals/browser-evidence.md`, on `main`) is fed into the chain as project Issue #34; the planner roadmap is pending at the decomposition gate.
+4. **Browser-evidence (project #34)**: decomposed into 3 slices (#37/#38/#39). Slice 1 (capture a real screenshot of the built app, commit it, validator judges it, hold the PR when it cannot tell) shipped **as maintainer work** in PRs #55/#56/#57 (ADR-0006). The chain correctly blocked building it: the feature rewires Ribosome's own machinery (a meta feature), which produced a new spec-writer/planner guardrail (no `.claude/` files in builder `scope_paths`). The capture is a real, deterministic headless-Chromium screenshot via Playwright, evidence committed under `evidence/<id>/`, additive on the v1 verify report (no version bump). Remaining: slice 2 (#38, embed the image in the PR body) and slice 3 (#39, visual regression) are also maintainer work; the CI Chromium install is wired.
 5. **Conflict-free STATE.md** (this change) ships the fragment mechanism. Remaining hardening is tracked in `goals/conflict-free-state.md`: a CI guard that blocks a feature PR from editing STATE.md directly (slice 2), and rebuilding STATE.md at session start (slice 3).
 6. **Native-GitHub bundle** (merged 2026-06-02, **live-verified 2026-06-03**): live Mission Control inbox board, spec gate auto-advances unless flagged (ADR-0005), tweak = merge-only. All three slices ran green in real OAuth Actions (Slice A board render + one-command `--upsert` rebuild; Slice B issue #42 auto-advanced to PR #43; Slice C issue #47 tweak fast-path to PR #49). The live runs surfaced and fixed two integration bugs no structural test could (PR #41 workflow one-step prompt, PR #46 board redirect/max-turns/AND-label). Slack/n8n push was declined for simplicity (read-only board). Design docs in `docs/explorations/native-github-bundle-build-def.md`. Remaining: nothing required; a periodic behavioural-eval cadence (item 1) would catch agent-behaviour drift.
 

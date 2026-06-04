@@ -1289,6 +1289,41 @@ export const TASKS: ReadonlyArray<TaskDefinition> = [
       return pass();
     },
   },
+  {
+    id: "R19",
+    category: "routine",
+    name: "the chain workflow installs Chromium so browser-evidence capture can run",
+    rationale:
+      "Browser-evidence slice 1 PR3 (2026-06-04). The capture step launches a headless Chromium; the runner has none by default. ribosome.yml installs it via node (npx is not in the allowlist) and caches it by lockfile hash so it downloads once. If the install step is dropped, every capture fails at browser launch.",
+    check: () => {
+      const yml = readFile(".github/workflows/ribosome.yml");
+      if (!/playwright\/cli\.js install[^\n]*chromium/.test(yml)) {
+        return fail("ribosome.yml has no `node node_modules/playwright/cli.js install ... chromium` step");
+      }
+      if (/\bnpx\b[^\n]*playwright/.test(yml)) {
+        return fail("ribosome.yml installs Chromium via npx, which is not in the chain's tool allowlist");
+      }
+      return pass();
+    },
+  },
+  {
+    id: "T22",
+    category: "tricky",
+    name: "spec-writer and planner refuse to route meta-changes through the builder",
+    rationale:
+      "Earned 2026-06-04 from project #34: the chain blocked because the spec put four of Ribosome's own .claude/ files in the builder's scope_paths, which the builder is forbidden to edit. The gate-2 triage cannot catch this (its flags are data/services/senders/deps/auth/payments). The guardrail: spec-writer must never place agent/skill/hook files (or CLAUDE.md) in scope_paths, and the planner must not decompose a meta project into chain slices; both route such work to the maintainer.",
+    check: () => {
+      const spec = readFile(".claude/skills/spec-writer/SKILL.md");
+      if (!/scope_paths/.test(spec) || !/\.claude\//.test(spec) || !/maintainer/i.test(spec)) {
+        return fail("spec-writer.md lacks the guardrail against placing .claude/ files in scope_paths");
+      }
+      const planner = readFile(".claude/skills/planner/SKILL.md");
+      if (!/meta/i.test(planner) || !/\.claude\//.test(planner) || !/maintainer/i.test(planner)) {
+        return fail("planner.md lacks the guardrail against decomposing a meta project into chain slices");
+      }
+      return pass();
+    },
+  },
 ];
 
 // Lazy execSync to avoid pulling node:child_process at module load

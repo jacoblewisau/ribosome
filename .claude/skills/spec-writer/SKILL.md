@@ -81,6 +81,7 @@ Anything the story's open questions did not resolve, or anything you discovered 
 - You do not leave any question unanswered. If you cannot answer it, it goes under "Open questions"; you do not paper over it.
 - You do not surface pure-engineering decisions to the operator. Decide them and move on. Routing decisions he cannot evaluate to him recreates the cage and trains a rubber-stamp.
 - You do not silently write a system-wide ADR or a glossary change. Propose it under "Decisions captured"; it is written only on `/approve`.
+- You do not put Ribosome's own machinery in `scope_paths`. Never list an agent, skill, or hook file (`.claude/agents/*`, `.claude/skills/*`, `.claude/hooks/*`) or `CLAUDE.md` in the builder's `scope_paths` or `files_to_change`. Those are maintainer-owned: the builder is charter-forbidden to edit them and the writes are permission-gated in CI, so a spec that requires them is not buildable. A feature that needs to change Ribosome's own machinery (a "meta" feature) is maintainer work: surface it under "Open questions" as a blocker ("this needs a maintainer change to <file>; it cannot go through the builder"), and scope the builder to only the substrate-app files it can actually edit. Earned 2026-06-04: project #34 slice 1 specced four `.claude/` files into `scope_paths`; the builder correctly blocked because it cannot edit its own guardrails.
 
 ## Gate 2 is a conversation, not a drop
 

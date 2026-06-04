@@ -1,9 +1,9 @@
 {
   "version": "1",
   "schema": "ribosome.eval.baseline",
-  "recorded_at": "2026-06-04T22:22:07.440Z",
-  "pass": 58,
-  "totalTasks": 58,
+  "recorded_at": "2026-06-04T22:28:19.459Z",
+  "pass": 60,
+  "totalTasks": 60,
   "score": 1,
-  "notes": "58 after browser-evidence slice 1 PR2 (project #34). Added T21: the validator judges captured screens (matches/does_not_match/cannot_tell) and emits hold_for_evidence; pr-shepherd leaves the PR a draft when held; verify-contracts documents the optional evidence field. All additive: the validator's clean/needs_fix verdict and version-1 pin are intact (T3/R11/R14/T10/TR3 stay green). Prior: R18/TR20 (PR1 capture core), 55 (native-GitHub bundle)."
+  "notes": "60 after browser-evidence slice 1 PR3 (project #34). Added R19 (ribosome.yml installs Chromium via node, cached, for capture) and T22 (spec-writer + planner refuse to route meta-changes through the builder: no .claude/ files in scope_paths). Prior: T21 (PR2 judge+hold), R18/TR20 (PR1 capture core), 55 (native-GitHub bundle)."
 }

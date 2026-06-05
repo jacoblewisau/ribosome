@@ -169,9 +169,31 @@ export interface EvidenceScene {
   viewport: { width: number; height: number };
 }
 
+/**
+ * The result of comparing one captured scene against its committed baseline
+ * (slice 3, visual regression). `match` means the screen is unchanged from the
+ * baseline; `changed` means it drifted beyond the threshold (an accidental
+ * visual change to a shipped screen, unless intentional); `new-baseline` means
+ * there was no baseline yet (the capture becomes the baseline).
+ */
+export type VisualStatus = "match" | "changed" | "new-baseline";
+
+export interface VisualVerdict {
+  scene: string;
+  status: VisualStatus;
+  /** Fraction of pixels that differ from the baseline (0 for new-baseline). */
+  mismatchRatio: number;
+  /** The tolerance the ratio was judged against. */
+  threshold: number;
+  /** Repo-relative path to the committed diff image, present only when changed. */
+  diff?: string;
+}
+
 /** The evidence captured for one chain run. */
 export interface EvidenceManifest {
   version: "1";
   chainId: string;
   scenes: EvidenceScene[];
+  /** Optional, additive: per-scene visual-regression verdicts (slice 3). */
+  visual?: VisualVerdict[];
 }

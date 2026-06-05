@@ -8,7 +8,7 @@
  * src/chain/mission-control.ts.
  */
 
-import type { EvidenceManifest, EvidenceScene, VerifyReport } from "./types";
+import type { EvidenceManifest, EvidenceScene, VerifyReport, VisualStatus } from "./types";
 
 export const DEFAULT_VIEWPORT = { width: 1200, height: 800 } as const;
 
@@ -166,4 +166,40 @@ export function parseSceneSet(raw: string | unknown): SceneSpec[] {
       ? { scene, criterion }
       : { scene, criterion, steps: validateSteps(e.steps, scene) };
   });
+}
+
+/**
+ * Default visual-regression tolerance: the fraction of pixels allowed to differ
+ * from the baseline before a screen counts as "changed". A small non-zero value
+ * absorbs sub-pixel antialiasing noise; the same code in the same environment
+ * produces a 0 ratio, so a real visual change crosses this easily.
+ */
+export const DEFAULT_MISMATCH_THRESHOLD = 0.002;
+
+/** Repo-relative path to a scene's committed baseline screenshot (the golden
+ *  image), shared across runs and outside `.gitignore`. */
+export function baselinePath(scene: string): string {
+  return `evidence/baselines/${sanitize(scene)}.png`;
+}
+
+/** Repo-relative path to a scene's diff image, written only when it changed. */
+export function diffPath(chainId: string, scene: string): string {
+  return `evidence/${sanitize(chainId)}/${sanitize(scene)}.diff.png`;
+}
+
+/**
+ * Classify a scene against its baseline from the measured pixel-mismatch ratio.
+ * Pure: the caller does the PNG decode and the pixel diff; this only applies the
+ * threshold. No baseline means the capture becomes the baseline (not a
+ * regression).
+ */
+export function classifyVisual(input: {
+  hasBaseline: boolean;
+  mismatchRatio: number;
+  threshold?: number;
+}): { status: VisualStatus; mismatchRatio: number; threshold: number } {
+  const threshold = input.threshold ?? DEFAULT_MISMATCH_THRESHOLD;
+  if (!input.hasBaseline) return { status: "new-baseline", mismatchRatio: 0, threshold };
+  const ratio = Number.isFinite(input.mismatchRatio) ? Math.max(0, input.mismatchRatio) : 1;
+  return { status: ratio > threshold ? "changed" : "match", mismatchRatio: ratio, threshold };
 }

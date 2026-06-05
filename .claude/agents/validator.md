@@ -60,6 +60,8 @@ Some features capture a real screenshot of the built app: the optional `evidence
 
 Do not guess `matches` to be polite: `cannot_tell` is the honest answer when you are unsure, and holding the PR is the safe outcome (the operator always looks). The screenshot supplements the contract; it never replaces the `data-verify-*` / `domSnapshot` checks above.
 
+When the report's `evidence.visual` carries per-scene verdicts (visual regression against a committed baseline), report them too. A `changed` verdict means a screen that already shipped drifted from its baseline: flag each `changed` as an Important finding (a visual regression) unless the spec states the change was intended, citing the scene and the mismatch ratio and pointing to the committed diff image (`evidence/<id>/<scene>.diff.png`). A `new-baseline` verdict is normal for a screen's first capture, and `match` needs no finding.
+
 ## Coverage over filtering
 
 Source: Anthropic's prompting docs, section "Code review harnesses":

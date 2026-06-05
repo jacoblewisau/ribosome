@@ -35,12 +35,17 @@
  */
 
 import { execFileSync, spawn, type ChildProcess } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { chromium, type Page } from "playwright";
+import pixelmatch from "pixelmatch";
+import { PNG } from "pngjs";
 import {
   DEFAULT_VIEWPORT,
   DISABLE_ANIMATIONS_CSS,
+  baselinePath,
+  classifyVisual,
+  diffPath,
   evidencePaths,
   makeManifest,
   makeScene,
@@ -50,7 +55,7 @@ import {
   type EvidenceScene,
   type SceneSpec,
 } from "../src/verify/core/evidence.ts";
-import type { VerifyReport } from "../src/verify/core/types.ts";
+import type { VerifyReport, VisualVerdict } from "../src/verify/core/types.ts";
 
 const argv = process.argv.slice(2);
 const arg = (name: string, def?: string): string | undefined => {
@@ -116,6 +121,25 @@ async function captureScene(page: Page, target: string, spec: SceneSpec): Promis
   return makeScene({ chainId: id, scene: spec.scene, criterion: spec.criterion, capturedAt: new Date().toISOString() });
 }
 
+/** Decode the current and baseline PNGs and measure their pixel mismatch ratio
+ *  (slice 3). A missing baseline yields hasBaseline:false; a dimension change
+ *  counts as fully changed. The diff image is returned only when pixels differ. */
+function compareToBaseline(
+  currentAbs: string,
+  baselineAbs: string
+): { hasBaseline: boolean; mismatchRatio: number; diff?: PNG } {
+  if (!existsSync(baselineAbs)) return { hasBaseline: false, mismatchRatio: 0 };
+  const cur = PNG.sync.read(readFileSync(currentAbs));
+  const base = PNG.sync.read(readFileSync(baselineAbs));
+  if (cur.width !== base.width || cur.height !== base.height) {
+    return { hasBaseline: true, mismatchRatio: 1 };
+  }
+  const { width, height } = cur;
+  const diff = new PNG({ width, height });
+  const numDiff = pixelmatch(base.data, cur.data, diff.data, width, height, { threshold: 0.1 });
+  return { hasBaseline: true, mismatchRatio: numDiff / (width * height), diff };
+}
+
 async function main(): Promise<void> {
   const scenes = loadScenes();
   const override = arg("url");
@@ -136,7 +160,32 @@ async function main(): Promise<void> {
     const records: EvidenceScene[] = [];
     for (const spec of scenes) records.push(await captureScene(page, target, spec));
 
-    const manifest = makeManifest(id, records);
+    // Visual regression (slice 3): compare each captured scene to its committed
+    // baseline; --update-baselines accepts the current capture as the new golden.
+    const verdicts: VisualVerdict[] = [];
+    if (has("check-visual") || has("update-baselines")) {
+      const thr = arg("threshold") !== undefined ? Number(arg("threshold")) : undefined;
+      for (const rec of records) {
+        const curAbs = join(ROOT, evidencePaths(id, rec.scene).screenshot);
+        const baseAbs = join(ROOT, baselinePath(rec.scene));
+        const cmp = compareToBaseline(curAbs, baseAbs);
+        const v = classifyVisual({ hasBaseline: cmp.hasBaseline, mismatchRatio: cmp.mismatchRatio, threshold: thr });
+        const vv: VisualVerdict = { scene: rec.scene, status: v.status, mismatchRatio: v.mismatchRatio, threshold: v.threshold };
+        if (v.status === "changed" && cmp.diff) {
+          const dRel = diffPath(id, rec.scene);
+          writeFileSync(join(ROOT, dRel), PNG.sync.write(cmp.diff));
+          vv.diff = dRel;
+        }
+        if (has("update-baselines") && v.status !== "match") {
+          mkdirSync(dirname(baseAbs), { recursive: true });
+          copyFileSync(curAbs, baseAbs);
+        }
+        verdicts.push(vv);
+        console.log(`capture-evidence: visual "${rec.scene}": ${v.status} (${(v.mismatchRatio * 100).toFixed(2)}% changed)`);
+      }
+    }
+
+    const manifest = verdicts.length ? { ...makeManifest(id, records), visual: verdicts } : makeManifest(id, records);
     const anyPng = evidencePaths(id, records[0]!.scene).screenshot;
     writeFileSync(join(dirname(join(ROOT, anyPng)), "manifest.json"), JSON.stringify(manifest, null, 2) + "\n");
 

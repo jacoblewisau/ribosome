@@ -1345,6 +1345,26 @@ export const TASKS: ReadonlyArray<TaskDefinition> = [
       return pass();
     },
   },
+  {
+    id: "T24",
+    category: "tricky",
+    name: "pr-shepherd embeds each captured screen inline in the PR body",
+    rationale:
+      "Browser-evidence slice 2 PR-B (2026-06-05). Slice 1 committed the screenshots so they showed in the changed-files view; slice 2's value is that the operator sees the picture IN the PR body. pr-shepherd must embed each committed screen inline via its raw URL on the head branch (markdown image), not merely link it. If this regresses to a link, the non-coder operator has to dig into changed files to see what was built.",
+    check: () => {
+      const ps = readFile(".claude/agents/pr-shepherd.md");
+      if (!/embed/i.test(ps)) {
+        return fail("pr-shepherd.md no longer embeds the screenshot inline");
+      }
+      if (!/raw\//.test(ps) || !/!\[/.test(ps)) {
+        return fail("pr-shepherd.md does not embed via a raw-URL markdown image (![...](.../raw/...))");
+      }
+      if (/a link, not an embed/i.test(ps)) {
+        return fail("pr-shepherd.md still says 'a link, not an embed' (slice 1 language)");
+      }
+      return pass();
+    },
+  },
 ];
 
 // Lazy execSync to avoid pulling node:child_process at module load

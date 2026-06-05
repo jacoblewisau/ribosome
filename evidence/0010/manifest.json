@@ -7,7 +7,7 @@
       "criterion": "the empty first-load screen: an empty list with zero counts",
       "screenshot": "evidence/0010/empty.png",
       "snapshot": "evidence/0010/empty.txt",
-      "capturedAt": "2026-06-05T03:13:45.258Z",
+      "capturedAt": "2026-06-05T06:54:02.547Z",
       "viewport": {
         "width": 1200,
         "height": 800
@@ -18,11 +18,25 @@
       "criterion": "a few todos on the list with the counts updated to match",
       "screenshot": "evidence/0010/populated.png",
       "snapshot": "evidence/0010/populated.txt",
-      "capturedAt": "2026-06-05T03:13:45.925Z",
+      "capturedAt": "2026-06-05T06:54:03.210Z",
       "viewport": {
         "width": 1200,
         "height": 800
       }
+    }
+  ],
+  "visual": [
+    {
+      "scene": "empty",
+      "status": "match",
+      "mismatchRatio": 0,
+      "threshold": 0.002
+    },
+    {
+      "scene": "populated",
+      "status": "match",
+      "mismatchRatio": 0,
+      "threshold": 0.002
     }
   ]
 }

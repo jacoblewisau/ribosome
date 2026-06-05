@@ -1,9 +1,9 @@
 {
   "version": "1",
   "schema": "ribosome.eval.baseline",
-  "recorded_at": "2026-06-05T03:18:23.590Z",
-  "pass": 62,
-  "totalTasks": 62,
+  "recorded_at": "2026-06-05T06:55:47.457Z",
+  "pass": 63,
+  "totalTasks": 63,
   "score": 1,
-  "notes": "62 after browser-evidence slice 2 PR-B (project #34, #38): pr-shepherd embeds each captured screen inline in the PR body (raw URL on the head branch), not just a link. Added T24. Prior: T23 (PR-A scene set), R19/T22 (slice 1 PR3), T21 (PR2), R18/TR20 (PR1), 55 (native-GitHub bundle)."
+  "notes": "63 after browser-evidence slice 3 (project #34, #39): visual regression. Capture diffs each scene against a committed baseline (evidence/baselines/<scene>.png) with pixelmatch; classifyVisual (pure) returns match/changed/new-baseline; the validator flags `changed` as a visual regression. Added T25. Prior: T24 (slice 2 embed), T23 (scene set), R19/T22 (slice 1 PR3), T21 (PR2), R18/TR20 (PR1), 55 (native-GitHub bundle)."
 }

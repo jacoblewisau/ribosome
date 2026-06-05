@@ -6,8 +6,12 @@
 
 import { describe, it, expect } from "vitest";
 import {
+  DEFAULT_MISMATCH_THRESHOLD,
   DEFAULT_VIEWPORT,
   DISABLE_ANIMATIONS_CSS,
+  baselinePath,
+  classifyVisual,
+  diffPath,
   evidencePaths,
   makeManifest,
   makeScene,
@@ -160,5 +164,31 @@ describe("parseSceneSet (slice 2)", () => {
     expect(() => parseSceneSet([{ scene: "x", criterion: "c", steps: [{ action: "fill", selector: "#a" }] }])).toThrow();
     expect(() => parseSceneSet([{ scene: "x", criterion: "c", steps: [{ action: "nope", selector: "#a" }] }])).toThrow();
     expect(() => parseSceneSet([{ scene: "x", criterion: "c", steps: [{ action: "click" }] }])).toThrow();
+  });
+});
+
+describe("visual regression (slice 3)", () => {
+  it("resolves baseline and diff paths (baselines are shared, diffs per run)", () => {
+    expect(baselinePath("empty")).toBe("evidence/baselines/empty.png");
+    expect(diffPath("0011", "Populated")).toBe("evidence/0011/populated.diff.png");
+  });
+
+  it("treats a missing baseline as new-baseline, not a regression", () => {
+    expect(classifyVisual({ hasBaseline: false, mismatchRatio: 0 })).toEqual({
+      status: "new-baseline",
+      mismatchRatio: 0,
+      threshold: DEFAULT_MISMATCH_THRESHOLD,
+    });
+  });
+
+  it("matches when within tolerance and flags changed when over it", () => {
+    expect(classifyVisual({ hasBaseline: true, mismatchRatio: 0 }).status).toBe("match");
+    expect(classifyVisual({ hasBaseline: true, mismatchRatio: DEFAULT_MISMATCH_THRESHOLD }).status).toBe("match");
+    expect(classifyVisual({ hasBaseline: true, mismatchRatio: 0.05 }).status).toBe("changed");
+  });
+
+  it("honours a custom threshold and fails safe on a non-finite ratio", () => {
+    expect(classifyVisual({ hasBaseline: true, mismatchRatio: 0.01, threshold: 0.02 }).status).toBe("match");
+    expect(classifyVisual({ hasBaseline: true, mismatchRatio: NaN }).status).toBe("changed");
   });
 });

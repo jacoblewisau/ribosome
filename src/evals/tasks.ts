@@ -1365,6 +1365,32 @@ export const TASKS: ReadonlyArray<TaskDefinition> = [
       return pass();
     },
   },
+  {
+    id: "T25",
+    category: "tricky",
+    name: "visual regression: capture diffs each screen against a committed baseline and the validator flags changes",
+    rationale:
+      "Browser-evidence slice 3 (2026-06-05). To catch accidental visual changes to screens that already shipped, the capture diffs each scene against a committed baseline (evidence/baselines/<scene>.png) with pixelmatch and classifies it (match / changed / new-baseline); the validator flags a `changed` verdict as a visual regression. The classify logic stays pure (classifyVisual, tested); the pixel diff is in the script. If this regresses, a silent visual change to a shipped screen would not be caught.",
+    check: () => {
+      const mod = readFile("src/verify/core/evidence.ts");
+      for (const sym of ["classifyVisual", "baselinePath", "DEFAULT_MISMATCH_THRESHOLD"]) {
+        if (!mod.includes(sym)) return fail(`evidence.ts no longer exports ${sym}`);
+      }
+      const cli = readFile("scripts/capture-evidence.ts");
+      if (!cli.includes("check-visual") || !cli.includes("update-baselines") || !cli.includes("pixelmatch")) {
+        return fail("capture-evidence.ts does not diff against baselines (check-visual / update-baselines / pixelmatch)");
+      }
+      const v = readFile(".claude/agents/validator.md");
+      if (!/visual/i.test(v) || !/baseline/i.test(v) || !/changed/i.test(v)) {
+        return fail("validator.md does not flag a visual `changed` verdict as a regression");
+      }
+      const pkg = readFile("package.json");
+      if (!/"pixelmatch"\s*:/.test(pkg) || !/"pngjs"\s*:/.test(pkg)) {
+        return fail("pixelmatch / pngjs are not dependencies in package.json");
+      }
+      return pass();
+    },
+  },
 ];
 
 // Lazy execSync to avoid pulling node:child_process at module load

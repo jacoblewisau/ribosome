@@ -1,9 +1,9 @@
 {
   "version": "1",
   "schema": "ribosome.eval.baseline",
-  "recorded_at": "2026-06-05T03:15:00.676Z",
-  "pass": 61,
-  "totalTasks": 61,
+  "recorded_at": "2026-06-05T03:18:23.590Z",
+  "pass": 62,
+  "totalTasks": 62,
   "score": 1,
-  "notes": "61 after browser-evidence slice 2 PR-A (project #34, #38): declared scene set. Added T23 (capture supports parseSceneSet + --scenes-file + per-scene interaction steps, every screen not just one). Prior: R19/T22 (slice 1 PR3), T21 (PR2), R18/TR20 (PR1), 55 (native-GitHub bundle)."
+  "notes": "62 after browser-evidence slice 2 PR-B (project #34, #38): pr-shepherd embeds each captured screen inline in the PR body (raw URL on the head branch), not just a link. Added T24. Prior: T23 (PR-A scene set), R19/T22 (slice 1 PR3), T21 (PR2), R18/TR20 (PR1), 55 (native-GitHub bundle)."
 }

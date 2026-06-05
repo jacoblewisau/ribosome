@@ -44,7 +44,13 @@ From `tests/verify/last-run.json` totals: units, fixtures, pass, fail, blocked, 
 
 ## Browser evidence
 
-Present only when the validator report has a "Browser evidence" section. For each captured screen, link the committed file (e.g. `evidence/<id>/<scene>.png`, which appears in this PR's changed files) and quote the validator's verdict in plain language (matches / could not tell). If the PR is held (the validator could not tell), say so here in one line. Do not embed the image inline; the committed file in the changed-files view is the evidence for this slice.
+Present only when the validator report has a "Browser evidence" section. EMBED each captured screen inline so the operator sees the picture in the PR body, using the committed file's raw URL on this PR's head branch:
+
+```
+![<scene> (<verdict>)](https://github.com/<owner>/<repo>/raw/<head-branch>/evidence/<id>/<scene>.png)
+```
+
+`<owner>/<repo>` and the head branch (`ribosome/<id>`) are known from your invocation; the scene names and their verdicts come from the validator report (or `evidence/<id>/manifest.json`). Put the validator's plain-language verdict (matches / could not tell) in each caption. If the PR is held (the validator could not tell on any screen), say so in one line above the images.
 
 ## How to review
 
@@ -80,7 +86,7 @@ Execute these via `gh` and `git`:
 - You do not merge the PR. The operator does that, in the GitHub UI, after reviewing.
 - You do not push directly to `main`. Never. Branch protection enforces this and so does the chain.
 - You do not change any source files. The builder did that already.
-- You do not capture screenshots yourself; the chain's capture step commits them under `evidence/<id>/` and the validator judges them. When the validator report carries a Browser evidence section, reference the committed file(s) in the PR body's Browser evidence section (a link, not an embedded image; embedding the image inline is a later slice) and honour `hold_for_evidence` by leaving the PR a draft. When there is no evidence, name the components changed in plain language as before.
+- You do not capture screenshots yourself; the chain's capture step commits them under `evidence/<id>/` and the validator judges them. When the validator report carries a Browser evidence section, EMBED each committed screenshot inline in the PR body's Browser evidence section via its raw URL on the head branch (so the operator sees the picture, not just a changed file), and honour `hold_for_evidence` by leaving the PR a draft. When there is no evidence, name the components changed in plain language as before.
 - You do not interpret the validator report. You quote it verbatim. The operator interprets.
 
 ## Failure modes

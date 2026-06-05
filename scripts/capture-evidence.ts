@@ -1,36 +1,43 @@
 #!/usr/bin/env node
 /**
- * scripts/capture-evidence.ts  (browser-evidence slice 1)
+ * scripts/capture-evidence.ts  (browser-evidence, slices 1 and 2)
  *
- * Capture ONE screen of the BUILT app in a real headless browser,
- * deterministically, and commit a screenshot plus a text snapshot under
- * evidence/<id>/ so they appear in the pull request's changed files. When the
- * verify report (tests/verify/last-run.json) is present, also merge an evidence
- * entry into it so the validator can read it.
+ * Capture one or more declared screens of the BUILT app in a real headless
+ * browser, deterministically, and commit a screenshot plus a text snapshot per
+ * scene under evidence/<id>/ so they appear in the pull request's changed
+ * files. When the verify report (tests/verify/last-run.json) is present, also
+ * merge an evidence entry into it so the validator can read and judge each
+ * scene.
  *
  * Deterministic by construction: a fixed viewport, animations/transitions
- * disabled, and an explicit wait for the unit selector (never a timed pause).
- * The app is the production build (`vite build`) served over http by
- * `vite preview` (ES-module scripts do not execute from file://), and the
- * server is torn down at the end.
+ * disabled, and explicit waits (never timed pauses). The app is the production
+ * build (`vite build`) served over http by `vite preview` (ES-module scripts do
+ * not execute from file://). Each scene starts from a fresh page load, runs its
+ * declared interaction steps, then is captured.
  *
+ *   # single scene (slice 1):
  *   node --experimental-strip-types scripts/capture-evidence.ts \
- *     --id 0008 --scene empty --criterion "criterion 1: empty first-load screen"
+ *     --id 0008 --scene empty --criterion "the empty first-load screen"
+ *
+ *   # declared scene set (slice 2):
+ *   node --experimental-strip-types scripts/capture-evidence.ts \
+ *     --id 0010 --scenes-file evidence/0010/scenes.json
  *
  * Flags:
- *   --id <chainId>      evidence/<id>/ folder (default "local")
- *   --scene <name>      scene name -> <scene>.png / <scene>.txt (default "empty")
- *   --criterion "<t>"   the acceptance criterion this screen demonstrates
- *   --selector <css>    wait-for/innerText target (default [data-verify-unit="TodoApp"])
- *   --port <n>          preview server port (default 4319)
- *   --url <override>    skip build+serve and capture this URL instead
- *   --no-build          reuse an existing dist/ build (still starts the server)
+ *   --id <chainId>        evidence/<id>/ folder (default "local")
+ *   --scenes-file <path>  JSON array of declared scenes (overrides --scene)
+ *   --scene <name>        single-scene name (default "empty")
+ *   --criterion "<t>"     single-scene criterion
+ *   --selector <css>      main wait/innerText target (default [data-verify-unit="TodoApp"])
+ *   --port <n>            preview server port (default 4319)
+ *   --url <override>      skip build+serve and capture this URL instead
+ *   --no-build            reuse an existing dist/ build (still starts the server)
  */
 
 import { execFileSync, spawn, type ChildProcess } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { chromium } from "playwright";
+import { chromium, type Page } from "playwright";
 import {
   DEFAULT_VIEWPORT,
   DISABLE_ANIMATIONS_CSS,
@@ -39,6 +46,9 @@ import {
   makeScene,
   mergeEvidenceIntoReport,
   normalizeSnapshot,
+  parseSceneSet,
+  type EvidenceScene,
+  type SceneSpec,
 } from "../src/verify/core/evidence.ts";
 import type { VerifyReport } from "../src/verify/core/types.ts";
 
@@ -52,10 +62,14 @@ const has = (name: string): boolean => argv.includes(`--${name}`);
 const ROOT = process.cwd();
 const VITE = join(ROOT, "node_modules", "vite", "bin", "vite.js");
 const id = arg("id", "local")!;
-const scene = arg("scene", "empty")!;
-const criterion = arg("criterion", "the captured screen matches the requested screen")!;
 const selector = arg("selector", '[data-verify-unit="TodoApp"]')!;
 const port = Number(arg("port", "4319"));
+
+function loadScenes(): SceneSpec[] {
+  const file = arg("scenes-file");
+  if (file) return parseSceneSet(readFileSync(join(ROOT, file), "utf8"));
+  return [{ scene: arg("scene", "empty")!, criterion: arg("criterion", "the captured screen matches the requested screen")! }];
+}
 
 function build(): void {
   console.log("capture-evidence: building app (vite build) ...");
@@ -82,7 +96,28 @@ async function startPreview(): Promise<{ url: string; child: ChildProcess }> {
   throw new Error(`capture-evidence: vite preview did not become ready on ${url}`);
 }
 
+async function captureScene(page: Page, target: string, spec: SceneSpec): Promise<EvidenceScene> {
+  // Fresh load per scene, so scenes are independent.
+  await page.goto(target, { waitUntil: "networkidle" });
+  await page.waitForSelector(selector, { state: "visible" });
+  for (const step of spec.steps ?? []) {
+    if (step.action === "fill") await page.fill(step.selector, step.value);
+    else if (step.action === "click") await page.click(step.selector);
+    else await page.waitForSelector(step.selector, { state: "visible" });
+  }
+  await page.addStyleTag({ content: DISABLE_ANIMATIONS_CSS });
+
+  const paths = evidencePaths(id, spec.scene);
+  mkdirSync(dirname(join(ROOT, paths.screenshot)), { recursive: true });
+  const visible = await page.locator(selector).first().innerText();
+  writeFileSync(join(ROOT, paths.snapshot), normalizeSnapshot(visible));
+  await page.screenshot({ path: join(ROOT, paths.screenshot), fullPage: true });
+  console.log(`capture-evidence: captured "${spec.scene}" -> ${paths.screenshot}`);
+  return makeScene({ chainId: id, scene: spec.scene, criterion: spec.criterion, capturedAt: new Date().toISOString() });
+}
+
 async function main(): Promise<void> {
+  const scenes = loadScenes();
   const override = arg("url");
   if (!has("no-build") && !override) build();
 
@@ -97,23 +132,13 @@ async function main(): Promise<void> {
       reducedMotion: "reduce",
     });
     const page = await context.newPage();
-    await page.goto(target, { waitUntil: "networkidle" });
-    await page.waitForSelector(selector, { state: "visible" });
-    await page.addStyleTag({ content: DISABLE_ANIMATIONS_CSS });
 
-    const paths = evidencePaths(id, scene);
-    mkdirSync(dirname(join(ROOT, paths.screenshot)), { recursive: true });
+    const records: EvidenceScene[] = [];
+    for (const spec of scenes) records.push(await captureScene(page, target, spec));
 
-    const visible = await page.locator(selector).first().innerText();
-    writeFileSync(join(ROOT, paths.snapshot), normalizeSnapshot(visible));
-    await page.screenshot({ path: join(ROOT, paths.screenshot), fullPage: true });
-
-    const sceneRec = makeScene({ chainId: id, scene, criterion, capturedAt: new Date().toISOString() });
-    const manifest = makeManifest(id, [sceneRec]);
-    writeFileSync(
-      join(dirname(join(ROOT, paths.screenshot)), "manifest.json"),
-      JSON.stringify(manifest, null, 2) + "\n"
-    );
+    const manifest = makeManifest(id, records);
+    const anyPng = evidencePaths(id, records[0]!.scene).screenshot;
+    writeFileSync(join(dirname(join(ROOT, anyPng)), "manifest.json"), JSON.stringify(manifest, null, 2) + "\n");
 
     const reportPath = join(ROOT, "tests", "verify", "last-run.json");
     if (existsSync(reportPath)) {
@@ -122,7 +147,7 @@ async function main(): Promise<void> {
       console.log("capture-evidence: merged evidence into tests/verify/last-run.json");
     }
 
-    console.log(`capture-evidence: wrote ${paths.screenshot}, ${paths.snapshot}, and the manifest`);
+    console.log(`capture-evidence: ${records.length} scene(s) under evidence/${id}/ + manifest`);
   } finally {
     await browser.close();
     preview?.child.kill("SIGTERM");

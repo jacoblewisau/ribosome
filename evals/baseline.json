@@ -1,9 +1,9 @@
 {
   "version": "1",
   "schema": "ribosome.eval.baseline",
-  "recorded_at": "2026-06-04T22:28:19.459Z",
-  "pass": 60,
-  "totalTasks": 60,
+  "recorded_at": "2026-06-05T03:15:00.676Z",
+  "pass": 61,
+  "totalTasks": 61,
   "score": 1,
-  "notes": "60 after browser-evidence slice 1 PR3 (project #34). Added R19 (ribosome.yml installs Chromium via node, cached, for capture) and T22 (spec-writer + planner refuse to route meta-changes through the builder: no .claude/ files in scope_paths). Prior: T21 (PR2 judge+hold), R18/TR20 (PR1 capture core), 55 (native-GitHub bundle)."
+  "notes": "61 after browser-evidence slice 2 PR-A (project #34, #38): declared scene set. Added T23 (capture supports parseSceneSet + --scenes-file + per-scene interaction steps, every screen not just one). Prior: R19/T22 (slice 1 PR3), T21 (PR2), R18/TR20 (PR1), 55 (native-GitHub bundle)."
 }

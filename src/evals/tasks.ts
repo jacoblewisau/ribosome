@@ -1324,6 +1324,27 @@ export const TASKS: ReadonlyArray<TaskDefinition> = [
       return pass();
     },
   },
+  {
+    id: "T23",
+    category: "tricky",
+    name: "capture supports a declared scene set (slice 2: every screen, with interaction steps)",
+    rationale:
+      "Browser-evidence slice 2 (2026-06-05). A feature declares the screens it wants captured (a scene set), each reached from a fresh load by deterministic interaction steps (fill / click / waitFor, never a timed pause), so the chain can show every changed screen, not just one. The parser stays in the pure module (parseSceneSet, tested); the script reads it via --scenes-file and captures each scene. If the scene-set support is stripped, the chain regresses to a single screen.",
+    check: () => {
+      const mod = readFile("src/verify/core/evidence.ts");
+      if (!mod.includes("parseSceneSet") || !mod.includes("SceneSpec")) {
+        return fail("evidence.ts no longer exports the declared-scene-set parser (parseSceneSet / SceneSpec)");
+      }
+      const cli = readFile("scripts/capture-evidence.ts");
+      if (!cli.includes("scenes-file") || !cli.includes("parseSceneSet")) {
+        return fail("capture-evidence.ts does not read a declared scene set via --scenes-file");
+      }
+      if (!/step\.action|"fill"|"click"|"waitFor"/.test(cli)) {
+        return fail("capture-evidence.ts does not run per-scene interaction steps");
+      }
+      return pass();
+    },
+  },
 ];
 
 // Lazy execSync to avoid pulling node:child_process at module load

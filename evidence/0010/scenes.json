@@ -1,0 +1,17 @@
+[
+  {
+    "scene": "empty",
+    "criterion": "the empty first-load screen: an empty list with zero counts"
+  },
+  {
+    "scene": "populated",
+    "criterion": "a few todos on the list with the counts updated to match",
+    "steps": [
+      { "action": "fill", "selector": "#todo-text", "value": "Buy milk" },
+      { "action": "click", "selector": "[data-verify-action=\"submit-todo\"]" },
+      { "action": "fill", "selector": "#todo-text", "value": "Write the tests" },
+      { "action": "click", "selector": "[data-verify-action=\"submit-todo\"]" },
+      { "action": "waitFor", "selector": "[data-verify-total=\"2\"]" }
+    ]
+  }
+]

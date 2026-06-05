@@ -13,6 +13,7 @@ import {
   makeScene,
   mergeEvidenceIntoReport,
   normalizeSnapshot,
+  parseSceneSet,
 } from "./evidence";
 import type { VerifyReport } from "./types";
 
@@ -114,5 +115,50 @@ describe("DISABLE_ANIMATIONS_CSS", () => {
   it("zeroes animations and transitions for deterministic capture", () => {
     expect(DISABLE_ANIMATIONS_CSS).toContain("animation-duration: 0s");
     expect(DISABLE_ANIMATIONS_CSS).toContain("transition-duration: 0s");
+  });
+});
+
+describe("parseSceneSet (slice 2)", () => {
+  it("parses a set with a first-load scene and an interacted scene", () => {
+    const set = parseSceneSet([
+      { scene: "empty", criterion: "the empty first-load screen" },
+      {
+        scene: "populated",
+        criterion: "a few todos on the list",
+        steps: [
+          { action: "fill", selector: "#todo-text", value: "Buy milk" },
+          { action: "click", selector: "[data-verify-action='submit-todo']" },
+        ],
+      },
+    ]);
+    expect(set).toHaveLength(2);
+    expect(set[1]!.steps).toEqual([
+      { action: "fill", selector: "#todo-text", value: "Buy milk" },
+      { action: "click", selector: "[data-verify-action='submit-todo']" },
+    ]);
+  });
+
+  it("accepts a JSON string", () => {
+    expect(parseSceneSet('[{"scene":"empty","criterion":"c"}]')).toEqual([
+      { scene: "empty", criterion: "c" },
+    ]);
+  });
+
+  it("rejects a non-array, a scene with no name or criterion, and duplicate scenes", () => {
+    expect(() => parseSceneSet({})).toThrow();
+    expect(() => parseSceneSet([{ scene: "", criterion: "c" }])).toThrow();
+    expect(() => parseSceneSet([{ scene: "x", criterion: "" }])).toThrow();
+    expect(() =>
+      parseSceneSet([
+        { scene: "x", criterion: "c" },
+        { scene: "X", criterion: "c" },
+      ])
+    ).toThrow(/duplicate/);
+  });
+
+  it("rejects a malformed step rather than capturing a wrong screen", () => {
+    expect(() => parseSceneSet([{ scene: "x", criterion: "c", steps: [{ action: "fill", selector: "#a" }] }])).toThrow();
+    expect(() => parseSceneSet([{ scene: "x", criterion: "c", steps: [{ action: "nope", selector: "#a" }] }])).toThrow();
+    expect(() => parseSceneSet([{ scene: "x", criterion: "c", steps: [{ action: "click" }] }])).toThrow();
   });
 });

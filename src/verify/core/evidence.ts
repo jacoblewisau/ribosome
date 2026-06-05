@@ -107,3 +107,63 @@ export function mergeEvidenceIntoReport(
 ): VerifyReport {
   return { ...report, evidence: manifest };
 }
+
+/**
+ * A deterministic interaction to reach a screen state before capture
+ * (slice 2: every declared screen). Steps are minimal and replayable: fill an
+ * input, click an element, or wait for a selector. No timed pauses.
+ */
+export type CaptureStep =
+  | { action: "fill"; selector: string; value: string }
+  | { action: "click"; selector: string }
+  | { action: "waitFor"; selector: string };
+
+/** One declared screen a feature wants captured. */
+export interface SceneSpec {
+  scene: string;
+  criterion: string;
+  /** Interactions to reach the screen from a fresh load. Omit for the
+   *  first-load state. */
+  steps?: CaptureStep[];
+}
+
+function validateSteps(steps: unknown, scene: string): CaptureStep[] {
+  if (!Array.isArray(steps)) throw new Error(`scene "${scene}": steps must be an array`);
+  return steps.map((raw, i) => {
+    const s = raw as Record<string, unknown>;
+    const action = s.action;
+    const selector = typeof s.selector === "string" ? s.selector.trim() : "";
+    if (!selector) throw new Error(`scene "${scene}" step ${i}: missing selector`);
+    if (action === "fill") {
+      if (typeof s.value !== "string") throw new Error(`scene "${scene}" step ${i}: fill needs a string value`);
+      return { action: "fill", selector, value: s.value };
+    }
+    if (action === "click") return { action: "click", selector };
+    if (action === "waitFor") return { action: "waitFor", selector };
+    throw new Error(`scene "${scene}" step ${i}: unknown action "${String(action)}"`);
+  });
+}
+
+/**
+ * Parse and validate a declared scene set (the capture script's input). Pure:
+ * the script runs the steps in a browser, this only checks the shape. Throws on
+ * a malformed set rather than capturing a wrong or partial screen.
+ */
+export function parseSceneSet(raw: string | unknown): SceneSpec[] {
+  const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+  if (!Array.isArray(parsed)) throw new Error("scene set must be a JSON array");
+  const seen = new Set<string>();
+  return parsed.map((entry, i) => {
+    if (!entry || typeof entry !== "object") throw new Error(`scene ${i} is not an object`);
+    const e = entry as Record<string, unknown>;
+    const scene = String(e.scene ?? "").trim();
+    const criterion = String(e.criterion ?? "").trim();
+    if (!scene) throw new Error(`scene ${i} has no name`);
+    if (!criterion) throw new Error(`scene "${scene}" has no criterion`);
+    if (seen.has(scene.toLowerCase())) throw new Error(`duplicate scene "${scene}"`);
+    seen.add(scene.toLowerCase());
+    return e.steps === undefined
+      ? { scene, criterion }
+      : { scene, criterion, steps: validateSteps(e.steps, scene) };
+  });
+}

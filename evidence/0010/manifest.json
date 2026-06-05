@@ -1,0 +1,28 @@
+{
+  "version": "1",
+  "chainId": "0010",
+  "scenes": [
+    {
+      "scene": "empty",
+      "criterion": "the empty first-load screen: an empty list with zero counts",
+      "screenshot": "evidence/0010/empty.png",
+      "snapshot": "evidence/0010/empty.txt",
+      "capturedAt": "2026-06-05T03:13:45.258Z",
+      "viewport": {
+        "width": 1200,
+        "height": 800
+      }
+    },
+    {
+      "scene": "populated",
+      "criterion": "a few todos on the list with the counts updated to match",
+      "screenshot": "evidence/0010/populated.png",
+      "snapshot": "evidence/0010/populated.txt",
+      "capturedAt": "2026-06-05T03:13:45.925Z",
+      "viewport": {
+        "width": 1200,
+        "height": 800
+      }
+    }
+  ]
+}

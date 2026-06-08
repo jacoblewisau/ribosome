@@ -124,20 +124,15 @@ What the live demo showed (chain 0005, "rename heading to My Todos"):
 - Total wall clock from Issue to draft PR: ~17 minutes of chain work,
   plus operator approval time. Estimated cost: $5 to $8 on Opus 4.8.
 
-Deferred (the one item still outstanding):
-- Playwright screenshots on PRs. Plan §13 Q3 flagged this as
-  fallback-eligible; the chain ships text-only PRs today. The
-  browser-evidence work (project Issue #34) adds per-screen screenshots;
-  until it lands, a PR carries the validator report and a plain-language
-  summary, not screenshots.
-
-The other items deferred here have since shipped: the proactive scouts (CI
-watcher, dep scanner, coverage scout, doc drift, shepherd, dreamer-digest;
-Phase 4), the structural eval harness on PRs touching `.claude/**` (Phase 5),
-and the enforcement hooks (Phase 6). Mid-run resumption via the
-`ribosome/<id>` branch remains a deliberate non-goal: each invocation is
-scoped to one gate transition, so a single failure leaves the Issue
-recoverable.
+Everything once deferred here has since shipped: browser screenshots on PRs
+(project Issue #34; pr-shepherd now embeds each captured screen in the PR body,
+with visual regression against committed baselines, and maintainers can see the
+`evidence/<id>/` convention for detail), the proactive scouts (CI watcher, dep
+scanner, coverage scout, doc drift, shepherd, dreamer-digest; Phase 4), the
+structural eval harness on PRs touching `.claude/**` (Phase 5), and the
+enforcement hooks (Phase 6). Mid-run resumption via the `ribosome/<id>` branch
+remains a deliberate non-goal: each invocation is scoped to one gate transition,
+so a single failure leaves the Issue recoverable.
 
 What this live run uncovered as bugs (now fixed):
 1. The coordinator skill filtered bot comments using

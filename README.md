@@ -159,8 +159,12 @@ What this live run uncovered as bugs (now fixed):
 ```
 npm run chain:list           # list every chain on disk
 npm run chain:show 0003      # detailed view of one chain
+npm run chain:board          # rebuild the Mission Control board on demand
 npm run dream:show           # the latest distilled store summary
 npm run dream:forget <id>    # remove a distilled item
+npm run dream:decay          # decay or purge stale distilled items
+npm run capture:evidence     # capture browser screenshots for the evidence pipeline
+npm run eval                 # run the Phase 5 structural eval harness
 npm run memory:snapshot      # commit current memory state for audit
 ```
 

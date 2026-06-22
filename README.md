@@ -64,8 +64,8 @@ The workflow uses Claude Opus 4.8 for every step. A full six-step chain
 pr-shepherd) is roughly $5 to $9 in API tokens. Each `/approve` advances
 one step. The maintainer can switch to Sonnet by editing the `--model`
 flag in `.github/workflows/ribosome.yml`. See `MEMORY.md` and the dream
-skill for what the maintainer keeps; Opus is recommended for the dream
-nightly cron during the first months of operation.
+skill for what the maintainer keeps; the dream consolidation pass is run
+manually by the maintainer, and Opus is recommended when running it.
 
 ## Branch protection (apply on first push)
 

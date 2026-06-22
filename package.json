@@ -4,6 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "description": "Workflow that ships a GitHub Issue to a merged PR. See OPERATOR.md for the non-coder surface and CLAUDE.md for the architecture.",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",

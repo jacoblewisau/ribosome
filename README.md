@@ -41,10 +41,16 @@ does none of this.
    workflow assumes the official app; if you fork it to your own GitHub App
    for branded comments, mirror the same permissions.
 
-2. **Add the `ANTHROPIC_API_KEY` secret** to the repo: Settings -> Secrets
-   and variables -> Actions -> New repository secret. Get the key from
-   https://console.anthropic.com . The Ribosome workflow reads this as
-   `secrets.ANTHROPIC_API_KEY`.
+2. **Add an authentication secret** to the repo: Settings -> Secrets and
+   variables -> Actions -> New repository secret. The default and
+   recommended path is OAuth: set `CLAUDE_CODE_OAUTH_TOKEN`, generated with
+   `claude setup-token`. It draws on your Claude Pro/Max subscription quota,
+   so it adds no incremental API spend. The alternative is pay-per-token API
+   billing: set `ANTHROPIC_API_KEY`, obtained from
+   https://console.anthropic.com , for repos with no subscription or a hard
+   per-token spend cap. Both secrets are wired into every workflow and the
+   action uses whichever is populated, so switching later is just setting the
+   other secret.
 
 3. **Apply the branch protection rules below** to `main` before the first
    chain run. Each rule has a reason behind it. (Repeat the checklist on
@@ -59,12 +65,14 @@ does none of this.
 
 ## Cost expectation
 
-The workflow uses Claude Opus 4.8 for every step. A full six-step chain
-(researcher, story-writer, spec-writer, builder, validator,
-pr-shepherd) is roughly $5 to $9 in API tokens. Each `/approve` advances
-one step. The maintainer can switch to Sonnet by editing the `--model`
-flag in `.github/workflows/ribosome.yml`. See `MEMORY.md` and the dream
-skill for what the maintainer keeps; Opus is recommended for the dream
+The workflow uses Claude Opus 4.8 for every step. On the default OAuth path
+the chain incurs zero incremental API spend: every step draws on your Claude
+Pro/Max subscription quota. On the API-key alternative you pay per token: a
+full six-step chain (researcher, story-writer, spec-writer, builder,
+validator, pr-shepherd) is roughly $5 to $9 in API tokens. Each `/approve`
+advances one step. The maintainer can switch to Sonnet by editing the
+`--model` flag in `.github/workflows/ribosome.yml`. See `MEMORY.md` and the
+dream skill for what the maintainer keeps; Opus is recommended for the dream
 nightly cron during the first months of operation.
 
 ## Branch protection (apply on first push)

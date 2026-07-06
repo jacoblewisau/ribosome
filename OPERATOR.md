@@ -124,15 +124,17 @@ a PR comment.
 | `/changes <one sentence>` | Send the current draft back with your note. The bot rewrites and asks again. |
 | `/cancel` | Stop the run and close the Issue. Safe to use any time. |
 | `/explain <question>` | Ask the bot a question about the codebase. The bot replies in a comment, the run does not advance. Useful at gate 2 if something is unclear. |
-| `/keep` | Used only on the weekly digest Issue. Confirms a memory item the bot wants to keep. |
-| `/forget` | Used only on the weekly digest Issue. Tells the bot to drop a memory item. |
+| `/keep <id>` | Used only on the weekly digest Issue. Confirms a memory item the bot wants to keep. The `<id>` is the item id shown next to each digest entry. |
+| `/forget <id>` | Used only on the weekly digest Issue. Tells the bot to drop a memory item. The `<id>` is the item id shown next to each digest entry. |
 
 ## The weekly digest
 
 Once a week the bot opens an Issue titled "weekly digest" listing things it
 has learned from recent runs in plain language. Each item has a `/keep`
-or `/forget` button (well, a comment you reply with). If you do not reply
-within seven days, the bot keeps the item by default.
+or `/forget` button (well, a comment you reply with). Each entry shows an
+id, and you include that id in your reply, for example `/keep <id>` or
+`/forget <id>`. If you do not reply within seven days, the bot keeps the
+item by default.
 
 This is how the bot gets better at your codebase over time. You do not
 have to read every digest, but skimming once a week tightens the loop.

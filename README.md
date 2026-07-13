@@ -159,10 +159,16 @@ What this live run uncovered as bugs (now fixed):
 ```
 npm run chain:list           # list every chain on disk
 npm run chain:show 0003      # detailed view of one chain
+npm run chain:board          # render the Mission Control board to stdout (read-only, no GitHub write)
+npm run chain:board:update   # gather live chains and update the pinned ribo:in-flight Issue
 npm run dream:show           # the latest distilled store summary
 npm run dream:forget <id>    # remove a distilled item
 npm run memory:snapshot      # commit current memory state for audit
 ```
+
+chain:board only renders to stdout; it makes no GitHub calls. The write path
+that refreshes the pinned board is chain:board:update (the coordinator and
+shepherd invoke scripts/mission-control.ts --upsert directly).
 
 The operator uses none of these. The maintainer uses them for inspection
 and intervention.

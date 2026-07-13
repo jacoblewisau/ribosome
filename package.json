@@ -17,6 +17,7 @@
     "chain:show": "node --experimental-strip-types scripts/chain-show.ts",
     "chain:list": "node --experimental-strip-types scripts/chain-show.ts list",
     "chain:board": "node --experimental-strip-types scripts/mission-control.ts",
+    "chain:board:update": "node --experimental-strip-types scripts/mission-control.ts --upsert",
     "capture:evidence": "node --experimental-strip-types scripts/capture-evidence.ts",
     "dream:show": "node --experimental-strip-types scripts/dream-show.ts",
     "dream:forget": "node --experimental-strip-types scripts/dream-forget.ts",

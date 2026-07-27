@@ -47,7 +47,12 @@ export type Role =
 
 export type ChainPath = "full" | "docs-only" | "dep-bump" | "test-backfill";
 
-export type GateState = "pending" | "approved" | "changes-requested" | "phase-skipped";
+export type GateState =
+  | "pending"
+  | "approved"
+  | "auto-approved"
+  | "changes-requested"
+  | "phase-skipped";
 
 export interface ChainStateGates {
   story: GateState;
@@ -94,6 +99,10 @@ function normaliseGateState(raw: unknown): ChainState["gate_state"] {
   const summarise = (v: unknown): GateState => {
     if (typeof v !== "string") return "pending";
     const lower = v.toLowerCase();
+    // "auto-approved" (spec gate auto-advanced, ADR-0005) is deliberately
+    // distinct from "approved"; match it before the approved check so the
+    // audit trail keeps the distinction instead of collapsing to "pending".
+    if (lower.startsWith("auto-approved")) return "auto-approved";
     if (lower.startsWith("approved")) return "approved";
     if (lower.includes("changes")) return "changes-requested";
     if (lower.includes("skip")) return "phase-skipped";

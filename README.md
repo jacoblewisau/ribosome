@@ -77,9 +77,11 @@ or via `gh api`. Each rule has a reason.
 - [ ] Require at least one approving review on every PR. (For Ribosome
       PRs, the operator is the reviewer; this enforces the third human
       gate.)
-- [ ] Require status checks to pass before merging. Include at minimum:
-      typecheck, lint, unit tests, acceptance tests, contract verify.
-      (Phase 2 wired the checks; this enforces them at merge time.)
+- [ ] Require status checks to pass before merging. Require exactly the three
+      job names from `.github/workflows/checks.yml`: `typecheck`, `test`
+      (runs `npm test`), and `verify` (runs `npm run verify`). GitHub matches a
+      required check by its job name, so a name that no job posts blocks every PR.
+      (Phase 2 wired these checks; this enforces them at merge time.)
 - [ ] Require conversation resolution before merging. (Forces the
       operator to acknowledge each validator finding.)
 - [ ] Require linear history. (Merge conflicts surface as conflicts, not

@@ -54,8 +54,8 @@ does none of this.
    "Allow all actions and reusable workflows" (or at minimum allow
    `anthropics/claude-code-action`).
 
-5. **Open the first Issue** using one of the templates (Feature, Bug, or
-   Tweak). The bot acknowledges within a minute.
+5. **Open the first Issue** using one of the templates (Feature, Bug, Tweak,
+   or Project). The bot acknowledges within a minute.
 
 ## Cost expectation
 
@@ -99,7 +99,7 @@ or via `gh api`. Each rule has a reason.
 
 Shipped and demonstrated end-to-end on a real GitHub repo
 (jacoblewisau/ribosome-test 2026-05-28):
-- Three Issue templates (Feature, Bug, Tweak).
+- Four Issue templates (Feature, Bug, Tweak, Project).
 - One workflow file (`.github/workflows/ribosome.yml`) handling all six
   slash commands via job-level `if:` conditionals.
 - Sticky-comment state machine on each Issue (JSON inside HTML
